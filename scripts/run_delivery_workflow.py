@@ -330,6 +330,56 @@ def summarize_edit_rhythm_plan(plan: dict[str, Any] | None) -> dict[str, Any] | 
     }
 
 
+def summarize_creator_cut_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "primaryVisualShotCount": summary.get("primaryVisualShotCount"),
+        "creatorDecisionRowCount": summary.get("creatorDecisionRowCount"),
+        "rejectOrUtilityCount": summary.get("rejectOrUtilityCount"),
+        "routeBridgeCandidateCount": summary.get("routeBridgeCandidateCount"),
+        "motivatedRotationCandidateCount": summary.get("motivatedRotationCandidateCount"),
+        "chaptersNeedingCreatorCoverage": summary.get("chaptersNeedingCreatorCoverage"),
+    }
+
+
+def summarize_transition_grammar_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "rowsNeedingBridgeInsert": summary.get("rowsNeedingBridgeInsert"),
+        "physicalBridgeEvidenceCount": summary.get("physicalBridgeEvidenceCount"),
+        "motivatedMotionEffectCandidateCount": summary.get("motivatedMotionEffectCandidateCount"),
+        "recommendedStyleCounts": summary.get("recommendedStyleCounts"),
+    }
+
+
+def summarize_transition_execution_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "rowsReadyForResolveExecution": summary.get("rowsReadyForResolveExecution"),
+        "rowsWithExecutionRecipe": summary.get("rowsWithExecutionRecipe"),
+        "bridgeInsertBlockedRowCount": summary.get("bridgeInsertBlockedRowCount"),
+        "motionStyleRowCount": summary.get("motionStyleRowCount"),
+        "motionStyleRowsWithEvidence": summary.get("motionStyleRowsWithEvidence"),
+        "forbiddenRecipeHitCount": summary.get("forbiddenRecipeHitCount"),
+        "executionStyleCounts": summary.get("executionStyleCounts"),
+    }
+
+
 def summarize_rhythm_recut_blueprint(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -750,6 +800,50 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Rhythm risk rows: {rhythm.get('rhythmRiskCount')}",
             ]
         )
+    if report.get("creatorCutSummary"):
+        creator = report["creatorCutSummary"]
+        lines.extend(
+            [
+                "",
+                "## Creator Cut Plan",
+                f"- Exists: `{creator.get('exists')}`",
+                f"- Status: `{creator.get('status')}`",
+                f"- Primary visual shots: {creator.get('primaryVisualShotCount')}",
+                f"- Creator decision rows: {creator.get('creatorDecisionRowCount')}",
+                f"- Reject/utility rows: {creator.get('rejectOrUtilityCount')}",
+                f"- Route bridge candidates: {creator.get('routeBridgeCandidateCount')}",
+            ]
+        )
+    if report.get("transitionGrammarSummary"):
+        grammar = report["transitionGrammarSummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Grammar Plan",
+                f"- Exists: `{grammar.get('exists')}`",
+                f"- Status: `{grammar.get('status')}`",
+                f"- Transition rows: {grammar.get('transitionRowCount')}",
+                f"- Rows needing bridge insert: {grammar.get('rowsNeedingBridgeInsert')}",
+                f"- Physical bridge evidence rows: {grammar.get('physicalBridgeEvidenceCount')}",
+                f"- Motion effect candidates: {grammar.get('motivatedMotionEffectCandidateCount')}",
+            ]
+        )
+    if report.get("transitionExecutionSummary"):
+        execution = report["transitionExecutionSummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Execution Plan",
+                f"- Exists: `{execution.get('exists')}`",
+                f"- Status: `{execution.get('status')}`",
+                f"- Transition rows: {execution.get('transitionRowCount')}",
+                f"- Ready for Resolve execution: {execution.get('rowsReadyForResolveExecution')}",
+                f"- Rows with execution recipe: {execution.get('rowsWithExecutionRecipe')}",
+                f"- Bridge insert blocked rows: {execution.get('bridgeInsertBlockedRowCount')}",
+                f"- Motion rows/evidence: {execution.get('motionStyleRowCount')} / {execution.get('motionStyleRowsWithEvidence')}",
+                f"- Forbidden recipe hits: {execution.get('forbiddenRecipeHitCount')}",
+            ]
+        )
     if report.get("dryRunSummary"):
         dry = report["dryRunSummary"]
         lines.extend(
@@ -924,6 +1018,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     edit_rhythm_cmd = ["python3", str(SCRIPTS_DIR / "prepare_edit_rhythm_plan.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_edit_rhythm_plan", edit_rhythm_cmd))
 
+    creator_cut_cmd = ["python3", str(SCRIPTS_DIR / "prepare_creator_cut_plan.py"), "--package-dir", str(package_dir)]
+    steps.append(run_step("prepare_creator_cut_plan", creator_cut_cmd))
+
+    transition_grammar_cmd = ["python3", str(SCRIPTS_DIR / "prepare_transition_grammar_plan.py"), "--package-dir", str(package_dir)]
+    steps.append(run_step("prepare_transition_grammar_plan", transition_grammar_cmd))
+
+    transition_execution_cmd = ["python3", str(SCRIPTS_DIR / "prepare_transition_execution_plan.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("prepare_transition_execution_plan", transition_execution_cmd, ok_codes={0, 2}))
+
     rhythm_recut_cmd = ["python3", str(SCRIPTS_DIR / "prepare_rhythm_recut_blueprint.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_rhythm_recut_blueprint", rhythm_recut_cmd))
 
@@ -998,6 +1101,9 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     feedback_regression_plan_summary = None
     audio_scene_policy_summary = None
     edit_rhythm_summary = None
+    creator_cut_summary = None
+    transition_grammar_summary = None
+    transition_execution_summary = None
     rhythm_recut_summary = None
     rhythm_recut_apply_summary = None
     resolve_apply_contract_summary = None
@@ -1064,6 +1170,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             audio_scene_policy_summary = summarize_audio_scene_policy_plan(payload)
         if step["id"] == "prepare_edit_rhythm_plan":
             edit_rhythm_summary = summarize_edit_rhythm_plan(payload)
+        if step["id"] == "prepare_creator_cut_plan":
+            creator_cut_summary = summarize_creator_cut_plan(payload)
+        if step["id"] == "prepare_transition_grammar_plan":
+            transition_grammar_summary = summarize_transition_grammar_plan(payload)
+        if step["id"] == "prepare_transition_execution_plan":
+            transition_execution_summary = summarize_transition_execution_plan(payload)
         if step["id"] == "prepare_rhythm_recut_blueprint":
             rhythm_recut_summary = summarize_rhythm_recut_blueprint(payload)
         if step["id"] == "prepare_rhythm_recut_apply_package":
@@ -1138,6 +1250,18 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         edit_rhythm_summary = summarize_edit_rhythm_plan(
             load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json")
         )
+    if package_dir and (package_dir / "creator_cut_plan" / "creator_cut_plan.json").exists():
+        creator_cut_summary = summarize_creator_cut_plan(
+            load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json")
+        )
+    if package_dir and (package_dir / "transition_grammar_plan" / "transition_grammar_plan.json").exists():
+        transition_grammar_summary = summarize_transition_grammar_plan(
+            load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json")
+        )
+    if package_dir and (package_dir / "transition_execution_plan" / "transition_execution_plan.json").exists():
+        transition_execution_summary = summarize_transition_execution_plan(
+            load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json")
+        )
     if package_dir and (package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json").exists():
         rhythm_recut_summary = summarize_rhythm_recut_blueprint(
             load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json")
@@ -1193,6 +1317,9 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "feedbackRegressionPlanSummary": feedback_regression_plan_summary,
         "audioScenePolicySummary": audio_scene_policy_summary,
         "editRhythmSummary": edit_rhythm_summary,
+        "creatorCutSummary": creator_cut_summary,
+        "transitionGrammarSummary": transition_grammar_summary,
+        "transitionExecutionSummary": transition_execution_summary,
         "rhythmRecutBlueprintSummary": rhythm_recut_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "resolveApplyContractSummary": resolve_apply_contract_summary,
@@ -1224,6 +1351,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review feedback_regression_plan.json so original user complaints stay in pre-render audio policy, post-render feedback audit, and final QA commands.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",
             "Review edit_rhythm_plan.json before Resolve apply so long raw clips, missing cutaways, and weak chapter variety are fixed before the edit feels AI-assembled.",
+            "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",
+            "Review transition_grammar_plan.json and transition_execution_plan.json before Resolve apply so every adjacent pair has an approved, source-backed execution recipe.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "When the rhythm recut candidate is approved, generate/review the rhythm recut apply package before any Resolve write.",
             "Approve local TTS, recorded voiceover, or imported narration audio.",

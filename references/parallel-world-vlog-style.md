@@ -125,7 +125,7 @@ Use the plan to be stricter than a normal assembly:
 
 The reference feeling comes from selective shot choice plus route evidence. Effects are secondary.
 
-After creator cut selection, run `prepare_transition_grammar_plan.py` so each adjacent pair has a specific cut/dissolve/match/whip/rotation/speed-ramp/bridge-insert decision. This is the guard against vague "add some transition" editing.
+After creator cut selection, run `prepare_transition_grammar_plan.py` so each adjacent pair has a specific cut/dissolve/match/whip/rotation/speed-ramp/bridge-insert decision. Then run `prepare_transition_execution_plan.py` so those decisions become Resolve-ready recipes with effect names, duration frames, bridge requirements, BGM cues, subtitle policy, and readback fields. This is the guard against vague "add some transition" editing.
 
 ## Audio And Caption Behavior
 
@@ -162,6 +162,7 @@ Before saying a package has learned this reference style, verify:
 - The footage select plan proves the source pool was scored before first assembly, with hero/main/texture candidates and repair/reject rows.
 - The creator cut plan rejects/demotes weak clips, assigns every kept clip a creator function, and allows whip/rotation transitions only when motion evidence supports them.
 - The transition grammar plan gives every adjacent pair a recommended transition and fallback, and marks missing bridge footage as `insert_bridge_first`.
+- The transition execution plan converts every adjacent-pair decision into a concrete Resolve recipe and keeps bridge-missing rows blocked instead of hiding them with spin/flash/template effects.
 - Effect motion rows prefer fade/dissolve/match-cut/subtle motion and reject template-heavy effects.
 - BGM/audio policy protects scenic/title/transition windows from accidental source voice.
 - Subtitle/TXT/SRT lines are for viewers, not for the user/editor.

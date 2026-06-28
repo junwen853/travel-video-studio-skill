@@ -49,6 +49,7 @@ REQUIRED_SCRIPTS = {
         "prepare_edit_rhythm_plan.py",
         "prepare_creator_cut_plan.py",
         "prepare_transition_grammar_plan.py",
+        "prepare_transition_execution_plan.py",
         "prepare_rhythm_recut_blueprint.py",
         "prepare_rhythm_recut_apply_package.py",
         "audit_feedback_regressions.py",
@@ -91,6 +92,7 @@ REQUIRED_SKILL_PATTERNS = {
     "edit_rhythm_plan_rule": "prepare_edit_rhythm_plan.py",
     "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
+    "transition_execution_plan_rule": "prepare_transition_execution_plan.py",
     "rhythm_recut_blueprint_rule": "prepare_rhythm_recut_blueprint.py",
     "rhythm_recut_apply_package_rule": "prepare_rhythm_recut_apply_package.py",
     "scenic_audio_overlap_rule": "no A1/A2 voice or source-audio clips overlapping scenic/title/transition windows",
@@ -107,6 +109,7 @@ REQUIRED_SKILL_PATTERNS = {
     "footage_select_engine_rule": "footage-select-engine.md",
     "creator_cut_engine_rule": "creator-cut-engine.md",
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
+    "transition_execution_engine_rule": "transition-execution-engine.md",
 }
 
 REQUIRED_STYLE_PATTERNS = {
@@ -116,6 +119,7 @@ REQUIRED_STYLE_PATTERNS = {
     "footage_select_engine": "footage-select-engine.md",
     "creator_cut_engine": "creator-cut-engine.md",
     "transition_grammar_engine": "transition-grammar-engine.md",
+    "transition_execution_engine": "transition-execution-engine.md",
     "opening_story_engine": "opening-story-engine.md",
     "full_timeline_review": "full-film timeline strips",
     "cover_title_review": "cover/title card construction",
@@ -131,6 +135,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "raw_footage_selection": "footage select plan",
     "opening_story_plan": "opening_story_plan/opening_story_plan.json",
     "opening_route_promise": "viewer promise, destination proof",
+    "transition_execution_plan": "transition execution plan",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
 }
@@ -1639,6 +1644,145 @@ def transition_grammar_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_execution_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_execution_plan" / "transition_execution_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("executionRows") if isinstance(data.get("executionRows"), list) else []
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    upstream = data.get("upstreamEvidence") if isinstance(data.get("upstreamEvidence"), dict) else {}
+    decision_fields = {
+        "approvedTransitionType",
+        "approvedResolveEffectName",
+        "durationFrames",
+        "bridgeInsertSource",
+        "bgmPhraseCue",
+        "subtitleSuppressionConfirmed",
+        "audioPolicyConfirmed",
+        "resolveImplementation",
+        "timelineReadbackEvidence",
+        "renderFrameSampleEvidence",
+        "approvedBy",
+        "approvedAt",
+    }
+    rows_with_decision_fields = 0
+    rows_with_recipe = 0
+    rows_ready = 0
+    bridge_blocked_rows = 0
+    motion_rows = 0
+    motion_rows_with_evidence = 0
+    rows_bgm_only = 0
+    title_boundary_rows = 0
+    title_rows_with_subtitle_policy = 0
+    forbidden_hits = 0
+    style_counts: dict[str, int] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if row.get("status") == "ready_with_transition_execution_recipe":
+            rows_ready += 1
+        if row.get("requiresBridgeInsert"):
+            bridge_blocked_rows += 1
+        if row.get("motionStyle"):
+            motion_rows += 1
+            if row.get("motionHasEvidence"):
+                motion_rows_with_evidence += 1
+        forbidden_hits += len(row.get("forbiddenRecipeHits") or [])
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+        recipe = row.get("executionRecipe") if isinstance(row.get("executionRecipe"), dict) else {}
+        if recipe.get("resolveEffectName") and recipe.get("implementationSteps") and recipe.get("verificationTargets"):
+            rows_with_recipe += 1
+        if recipe.get("audioPolicy") == "bgm_only_no_camera_voice":
+            rows_bgm_only += 1
+        if row.get("boundaryCategory") == "title_boundary":
+            title_boundary_rows += 1
+            if "title_zone" in str(recipe.get("subtitlePolicy") or ""):
+                title_rows_with_subtitle_policy += 1
+        style = str(recipe.get("style") or "")
+        if style:
+            style_counts[style] = style_counts.get(style, 0) + 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "rowsReadyForResolveExecution": summary.get("rowsReadyForResolveExecution"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "rowsWithExecutionRecipe": summary.get("rowsWithExecutionRecipe"),
+        "bridgeInsertBlockedRowCount": summary.get("bridgeInsertBlockedRowCount"),
+        "motionStyleRowCount": summary.get("motionStyleRowCount"),
+        "motionStyleRowsWithEvidence": summary.get("motionStyleRowsWithEvidence"),
+        "forbiddenRecipeHitCount": summary.get("forbiddenRecipeHitCount"),
+        "executionStyleCounts": summary.get("executionStyleCounts") or style_counts,
+        "rowCount": len(rows),
+        "rowsReadyByRow": rows_ready,
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithRecipeByRow": rows_with_recipe,
+        "bridgeBlockedRowsByRow": bridge_blocked_rows,
+        "motionRowsByRow": motion_rows,
+        "motionRowsWithEvidenceByRow": motion_rows_with_evidence,
+        "rowsBgmOnly": rows_bgm_only,
+        "titleBoundaryRows": title_boundary_rows,
+        "titleRowsWithSubtitlePolicy": title_rows_with_subtitle_policy,
+        "forbiddenHitsByRow": forbidden_hits,
+        "transitionBridgeStatus": (upstream.get("transitionBridge") or {}).get("status") if isinstance(upstream.get("transitionBridge"), dict) else None,
+        "effectMotionStatus": (upstream.get("effectMotion") or {}).get("status") if isinstance(upstream.get("effectMotion"), dict) else None,
+        "bgmSelectionStatus": (upstream.get("bgmSelection") or {}).get("status") if isinstance(upstream.get("bgmSelection"), dict) else None,
+        "resolveExecutionRecipeRequired": policy.get("resolveExecutionRecipeRequired"),
+        "motionEffectsNeedGrammarEvidence": policy.get("motionEffectsNeedGrammarEvidence"),
+        "insertBridgeFirstIsNotEffectReady": policy.get("insertBridgeFirstIsNotEffectReady"),
+        "subtitleTitleZoneSafetyRequired": policy.get("subtitleTitleZoneSafetyRequired"),
+        "bgmOnlyTransitionAudio": policy.get("bgmOnlyTransitionAudio"),
+        "templateEffectsRejected": policy.get("templateEffectsRejected"),
+        "writesResolve": policy.get("writesResolve"),
+        "queuesRender": policy.get("queuesRender"),
+        "downloadsExternalAssets": policy.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": policy.get("modifiesSourceFootage"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def transition_execution_plan_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("transitionRowCount") or 0)
+    motion_count = int(evidence.get("motionStyleRowCount") or 0)
+    title_count = int(evidence.get("titleBoundaryRows") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_transition_execution_plan"
+        and row_count >= 3
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("rowsReadyForResolveExecution") or 0) == row_count
+        and int(evidence.get("rowsReadyByRow") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithExecutionRecipe") or 0) == row_count
+        and int(evidence.get("rowsWithRecipeByRow") or 0) == row_count
+        and int(evidence.get("bridgeInsertBlockedRowCount") or 0) == 0
+        and int(evidence.get("bridgeBlockedRowsByRow") or 0) == 0
+        and int(evidence.get("forbiddenRecipeHitCount") or 0) == 0
+        and int(evidence.get("forbiddenHitsByRow") or 0) == 0
+        and int(evidence.get("motionRowsWithEvidenceByRow") or 0) == motion_count
+        and int(evidence.get("rowsBgmOnly") or 0) == row_count
+        and int(evidence.get("titleRowsWithSubtitlePolicy") or 0) >= min(title_count, 1)
+        and evidence.get("resolveExecutionRecipeRequired") is True
+        and evidence.get("motionEffectsNeedGrammarEvidence") is True
+        and evidence.get("insertBridgeFirstIsNotEffectReady") is True
+        and evidence.get("subtitleTitleZoneSafetyRequired") is True
+        and evidence.get("bgmOnlyTransitionAudio") is True
+        and evidence.get("templateEffectsRejected") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def rhythm_recut_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json"
     data = load_json(path) or {}
@@ -2022,6 +2166,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition grammar plan turns adjacent clip pairs into specific cut, dissolve, match, whip, rotation, or bridge-insert decisions",
         transition_grammar_plan_ready(transition_grammar_evidence),
         transition_grammar_evidence,
+    )
+    transition_execution_evidence = transition_execution_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition execution plan turns adjacent-pair transition choices into Resolve-ready recipes with bridge, BGM, subtitle, and readback fields",
+        transition_execution_plan_ready(transition_execution_evidence),
+        transition_execution_evidence,
     )
     rhythm_recut_evidence = rhythm_recut_blueprint_evidence(package_dir)
     add_check(

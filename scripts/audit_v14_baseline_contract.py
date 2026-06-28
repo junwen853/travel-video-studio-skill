@@ -24,6 +24,7 @@ SKILL_PATTERNS = {
     "opening_story": "prepare_opening_story_plan.py",
     "creator_cut": "prepare_creator_cut_plan.py",
     "transition_grammar": "prepare_transition_grammar_plan.py",
+    "transition_execution": "prepare_transition_execution_plan.py",
     "route_texture": "audit_route_texture_contract.py",
     "final_qa": "run_final_qa_suite.py",
     "maturity": "audit_skill_maturity_contract.py",
@@ -52,6 +53,7 @@ REQUIRED_SCRIPTS = [
     "prepare_edit_rhythm_plan.py",
     "prepare_creator_cut_plan.py",
     "prepare_transition_grammar_plan.py",
+    "prepare_transition_execution_plan.py",
     "audit_reference_style_alignment.py",
     "audit_route_texture_contract.py",
     "audit_director_polish_contract.py",
@@ -149,6 +151,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
     creator_cut = load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json") or {}
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
+    transition_execution = load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
     route_texture = load_json(package_dir / "route_texture_contract_audit.json") or {}
     director_intent = load_json(package_dir / "director_intent_contract_audit.json") or {}
@@ -354,6 +357,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     footage_select_summary = get_summary(footage_select)
     creator_cut_summary = get_summary(creator_cut)
     transition_grammar_summary = get_summary(transition_grammar)
+    transition_execution_summary = get_summary(transition_execution)
     route_summary = get_summary(route_texture)
     director_summary = get_summary(director_intent)
     add_check(
@@ -367,6 +371,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and rhythm.get("status") == "ready_with_edit_rhythm_plan"
         and creator_cut.get("status") == "ready_with_creator_cut_plan"
         and transition_grammar.get("status") == "ready_with_transition_grammar_plan"
+        and transition_execution.get("status") == "ready_with_transition_execution_plan"
         and int(route_summary.get("matchedTransitions") or 0) >= 1
         and int(rhythm_summary.get("primaryVisualShotCount") or 0) >= 40,
         {
@@ -384,6 +389,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "creatorCutSummary": creator_cut_summary,
             "transitionGrammarStatus": transition_grammar.get("status"),
             "transitionGrammarSummary": transition_grammar_summary,
+            "transitionExecutionStatus": transition_execution.get("status"),
+            "transitionExecutionSummary": transition_execution_summary,
         },
     )
 

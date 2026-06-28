@@ -33,6 +33,7 @@ Expected files:
 - `edit_decision_plan.md`: chapter/clip/transition plan
 - `resolve_timeline_enrichment.json`: subtitle cues, voiceover/BGM mix plan, stock/aerial placeholders, transition cues, and Resolve timeline markers
 - `resolve_timeline_blueprint.json`: input for DaVinci Resolve API timeline creation
+- `transition_execution_plan/transition_execution_plan.json` / `.md`: Resolve-ready transition recipes for adjacent-pair cuts, dissolves, whip/rotation/speed ramps, bridge inserts, BGM cues, and readback evidence
 - `resolve_blueprint_preflight.json` / `.md`: no-write Resolve blueprint safety audit covering source files, source ranges, track overlaps, V1 gaps, title cards, subtitles, markers, and source audio
 - `resolve_apply_contract.json` / `.md`: approval contract before any actual DaVinci timeline write
 - `davinci_build_notes.md`: Resolve write steps and remaining manual/polish passes
@@ -104,6 +105,7 @@ The package is not final until:
 - Resolve timeline enrichment exists and records subtitle cues, audio plan, stock/aerial placeholders, transitions, and markers
 - Resolve timeline blueprint dry-run passes
 - Resolve timeline blueprint records whether footage selection sorted first-assembly chapter media by tier/score
+- transition execution plan exists before Resolve apply when transition grammar exists; bridge-missing rows must remain blocked until real bridge footage is inserted
 - Resolve blueprint preflight is present and not blocked before any `--apply`
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves
 - title/place cards have been generated or explicitly deferred

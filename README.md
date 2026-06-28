@@ -13,6 +13,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Plans the first three minutes as a real opening story: viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff.
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
 - Plans BGM, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, and visual bridge material.
+- Converts transition decisions into Resolve-ready execution recipes with effect names, duration frames, bridge requirements, BGM cues, subtitle policy, and readback evidence fields.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
 - Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, route texture, export quality, and V14 baseline maturity.
 
@@ -66,9 +67,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.7.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.7/travel-video-studio-skill-v0.1.7.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.7.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.8.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.8/travel-video-studio-skill-v0.1.8.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.8.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -142,6 +143,7 @@ A delivery package usually contains:
 - `opening_story_plan/opening_story_plan.md`
 - `bgm_sourcing/bgm_sourcing_brief.md`
 - `transition_bridge_plan/transition_bridge_plan.md`
+- `transition_execution_plan/transition_execution_plan.md`
 - `title_typography_plan/title_typography_plan.md`
 - `visual_establishing_plan/visual_establishing_plan.md`
 - `resolve_timeline_blueprint.json`
