@@ -324,7 +324,7 @@ Do not call the job complete unless the package contains all required handoff pi
 - machine-readable asset license ledger for BGM, aerial/stock, and fonts
 - asset sourcing packet with provider/license URLs, selection fields, approval evidence, and download/import gates
 - BGM sourcing brief proving the Skill proactively generated mood-appropriate search rows, section plans, provider/license URLs, and exact decision fields before any BGM/no-voiceover final claim
-- BGM selection package proving the selected music bed is local, license-traceable, target-duration-covering, referenced by the active Resolve blueprint, rebuildable from local source tracks, and ready for BGM/audio contract audits
+- BGM selection and phrase-blueprint package proving the selected music bed is local, license-traceable, target-duration-covering, referenced by the active Resolve blueprint, rebuildable from local source tracks, and materialized into section/phrase/transition-cue candidate metadata before BGM/audio contract audits
 - asset decision reconciliation report after sourcing decisions are filled or confirmed still missing
 - typography plan for titles, place cards, subtitles, and map labels
 - day/chapter transition plan
@@ -417,6 +417,7 @@ If any required item is missing, report the missing item and the next action ins
 30. Generate the asset sourcing packet with `prepare_asset_sourcing_packet.py`.
 30a. Generate the BGM sourcing brief with `prepare_bgm_sourcing_brief.py --package-dir <package>` so missing BGM turns into a concrete Mixkit/Pixabay/paid-library search and selection packet before asset decisions.
 30aa. Generate the BGM selection package with `prepare_bgm_selection_package.py --package-dir <package>` so any selected music bed is proven local, license-traceable, target-duration-covering, blueprint-referenced, and rebuildable before audio policy or Resolve writes.
+30ab. After transition/effect candidate blueprints exist, read `references/bgm-phrase-blueprint-engine.md` and run `prepare_bgm_phrase_blueprint.py --package-dir <package>` so BGM sections, phrase markers, clip annotations, and transition cue metadata are materialized before rhythm recut or Resolve writes.
 30b. Generate the transition bridge plan with `prepare_transition_bridge_plan.py --package-dir <package>` so every day/place/chapter boundary gets a concrete local-footage-first bridge row, licensed stock/aerial fallback queries, BGM-only transition audio policy, subtitle/title-zone guidance, and exact decision fields before asset decisions or Resolve writes.
 30c. Generate the caption story plan with `prepare_caption_story_plan.py --package-dir <package>` so sparse subtitles and unwanted voiceover become a concrete dense SRT/TXT handoff plan with per-chapter targets, title-zone suppression, and no-voiceover policy before subtitle overlay generation.
 30c1. Run `audit_audience_caption_contract.py --package-dir <package>` after subtitle/TXT generation and before subtitle overlay rendering. Rewrite any blocked caption or TXT line that reports edit status, repair actions, version labels, QA, tool names, or delivery state to the user instead of speaking naturally to the audience.

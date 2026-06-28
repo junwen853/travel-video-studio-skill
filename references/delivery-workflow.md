@@ -60,9 +60,11 @@ Expected files:
 - `bgm_cues.md`: music mood, timing, source/license status
 - `effect_motion_blueprint/resolve_timeline_blueprint_effect_motion.json`: non-destructive Resolve candidate containing restrained title/transition effect-motion metadata and markers
 - `effect_motion_blueprint/effect_motion_blueprint_report.json` / `.md`: effect-motion materialization summary, safety flags, and approval/follow-up instructions
+- `bgm_phrase_blueprint/resolve_timeline_blueprint_bgm_phrase.json`: non-destructive Resolve candidate containing BGM section/phrase rows, timeline markers, clip annotations, and per-transition phrase cues
+- `bgm_phrase_blueprint/bgm_phrase_blueprint_report.json` / `.md`: BGM phrase materialization summary, safety flags, and approval/follow-up instructions
 - `qa_checklist.md`: final delivery checklist
 - `delivery_audit.json` / `delivery_audit.md`: machine-readable final readiness audit
-- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
+- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, BGM phrase blueprint summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
 
 ## Chapter Structure
 
@@ -110,6 +112,7 @@ The package is not final until:
 - quality recuts have dense full-film captions, not only opening subtitles
 - local delivery assets report exists; title/place cards are generated or explicitly deferred, and local TTS is either generated with approval or still recorded as pending
 - BGM has source and license status
+- BGM phrase blueprint report exists before rhythm recut or Resolve apply, proving selected music became opening/body/transition/ending phrase rows, clip annotations, and per-transition cue metadata without mutating the active blueprint by default
 - aerial/stock inserts have source and license status
 - BGM and stock/aerial rows in the asset ledger are no longer `unverified`
 - asset sourcing packet exists and records official license pages plus exact decision fields before download/import

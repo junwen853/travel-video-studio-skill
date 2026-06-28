@@ -244,6 +244,29 @@ def summarize_bgm_selection_package(package: dict[str, Any] | None) -> dict[str,
     }
 
 
+def summarize_bgm_phrase_blueprint(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    outputs = report.get("outputs") if isinstance(report.get("outputs"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "baseBlueprintKind": inputs.get("baseBlueprintKind"),
+        "selectedBgmBedCount": summary.get("selectedBgmBedCount"),
+        "phraseRowCount": summary.get("phraseRowCount"),
+        "sectionRowCount": summary.get("sectionRowCount"),
+        "transitionCueCount": summary.get("transitionCueCount"),
+        "transitionsWithPhraseCue": summary.get("transitionsWithPhraseCue"),
+        "candidateTransitionCount": summary.get("candidateTransitionCount"),
+        "clipAnnotationCount": summary.get("clipAnnotationCount"),
+        "sourceAudioRiskCount": summary.get("sourceAudioRiskCount"),
+        "candidateBlueprint": outputs.get("candidateBlueprint"),
+        "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
+    }
+
+
 def summarize_transition_bridge_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -947,6 +970,22 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Forbidden effect hits: {effect_blueprint.get('forbiddenEffectHitCount')}",
             ]
         )
+    if report.get("bgmPhraseBlueprintSummary"):
+        bgm_phrase = report["bgmPhraseBlueprintSummary"]
+        lines.extend(
+            [
+                "",
+                "## BGM Phrase Blueprint",
+                f"- Exists: `{bgm_phrase.get('exists')}`",
+                f"- Status: `{bgm_phrase.get('status')}`",
+                f"- Base blueprint: `{bgm_phrase.get('baseBlueprintKind')}`",
+                f"- Selected beds: {bgm_phrase.get('selectedBgmBedCount')}",
+                f"- Phrase/section rows: {bgm_phrase.get('phraseRowCount')} / {bgm_phrase.get('sectionRowCount')}",
+                f"- Transition cues: {bgm_phrase.get('transitionCueCount')} / {bgm_phrase.get('candidateTransitionCount')}",
+                f"- Clip annotations: {bgm_phrase.get('clipAnnotationCount')}",
+                f"- Source-audio risks: {bgm_phrase.get('sourceAudioRiskCount')}",
+            ]
+        )
     if report.get("audioScenePolicySummary"):
         audio = report["audioScenePolicySummary"]
         lines.extend(
@@ -1294,6 +1333,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     effect_motion_blueprint_cmd = ["python3", str(SCRIPTS_DIR / "prepare_effect_motion_blueprint.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_effect_motion_blueprint", effect_motion_blueprint_cmd, ok_codes={0, 2}))
 
+    bgm_phrase_blueprint_cmd = ["python3", str(SCRIPTS_DIR / "prepare_bgm_phrase_blueprint.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("prepare_bgm_phrase_blueprint", bgm_phrase_blueprint_cmd, ok_codes={0, 2}))
+
     rhythm_recut_cmd = ["python3", str(SCRIPTS_DIR / "prepare_rhythm_recut_blueprint.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_rhythm_recut_blueprint", rhythm_recut_cmd))
 
@@ -1370,6 +1412,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     visual_establishing_summary = None
     effect_motion_summary = None
     effect_motion_blueprint_summary = None
+    bgm_phrase_blueprint_summary = None
     feedback_regression_plan_summary = None
     reference_batch_summary = None
     audio_scene_policy_summary = None
@@ -1446,6 +1489,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             effect_motion_summary = summarize_effect_motion_plan(payload)
         if step["id"] == "prepare_effect_motion_blueprint":
             effect_motion_blueprint_summary = summarize_effect_motion_blueprint(payload)
+        if step["id"] == "prepare_bgm_phrase_blueprint":
+            bgm_phrase_blueprint_summary = summarize_bgm_phrase_blueprint(payload)
         if step["id"] == "prepare_feedback_regression_plan":
             feedback_regression_plan_summary = summarize_feedback_regression_plan(payload)
         if step["id"] == "prepare_reference_batch_profile":
@@ -1539,6 +1584,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "effect_motion_blueprint" / "effect_motion_blueprint_report.json").exists():
         effect_motion_blueprint_summary = summarize_effect_motion_blueprint(
             load_json(package_dir / "effect_motion_blueprint" / "effect_motion_blueprint_report.json")
+        )
+    if package_dir and (package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json").exists():
+        bgm_phrase_blueprint_summary = summarize_bgm_phrase_blueprint(
+            load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json")
         )
     if package_dir and (package_dir / "feedback_regression_plan" / "feedback_regression_plan.json").exists():
         feedback_regression_plan_summary = summarize_feedback_regression_plan(
@@ -1642,6 +1691,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "visualEstablishingSummary": visual_establishing_summary,
         "effectMotionSummary": effect_motion_summary,
         "effectMotionBlueprintSummary": effect_motion_blueprint_summary,
+        "bgmPhraseBlueprintSummary": bgm_phrase_blueprint_summary,
         "feedbackRegressionPlanSummary": feedback_regression_plan_summary,
         "referenceBatchSummary": reference_batch_summary,
         "audioScenePolicySummary": audio_scene_policy_summary,
@@ -1684,6 +1734,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review visual_establishing_plan.json before trusting opening/chapter/ending aerial, landmark, or city establishing shots.",
             "Review effect_motion_plan.json before adding Resolve title, route, or transition effects.",
             "Preflight effect_motion_blueprint/resolve_timeline_blueprint_effect_motion.json before approving title or transition motion effects for Resolve.",
+            "Preflight bgm_phrase_blueprint/resolve_timeline_blueprint_bgm_phrase.json before approving BGM phrase cues, transition sync, or music-led scenic sections for Resolve.",
             "Review feedback_regression_plan.json so original user complaints stay in pre-render audio policy, post-render feedback audit, and final QA commands.",
             "Review reference_batch_profile.json when local reference videos are supplied so rhythm/style targets are based on measured reference evidence.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",

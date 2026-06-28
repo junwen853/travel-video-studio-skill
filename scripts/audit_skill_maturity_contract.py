@@ -37,6 +37,7 @@ REQUIRED_SCRIPTS = {
         "prepare_reference_batch_profile.py",
         "prepare_bgm_sourcing_brief.py",
         "prepare_bgm_selection_package.py",
+        "prepare_bgm_phrase_blueprint.py",
         "prepare_transition_bridge_plan.py",
         "prepare_caption_story_plan.py",
         "audit_audience_caption_contract.py",
@@ -86,6 +87,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bgm_no_voiceover_rule": "bgm_only_no_camera_voice",
     "bgm_sourcing_brief_rule": "prepare_bgm_sourcing_brief.py",
     "bgm_selection_package_rule": "prepare_bgm_selection_package.py",
+    "bgm_phrase_blueprint_rule": "prepare_bgm_phrase_blueprint.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
     "caption_story_plan_rule": "prepare_caption_story_plan.py",
     "audience_caption_contract_rule": "audience-facing travel-film text",
@@ -131,6 +133,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_motif_engine_rule": "transition-motif-engine.md",
     "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
+    "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
     "effect_motion_blueprint_engine_rule": "effect-motion-blueprint-engine.md",
     "reference_style_repair_engine_rule": "reference-style-repair-engine.md",
 }
@@ -149,6 +152,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_motif_engine": "transition-motif-engine.md",
     "bridge_sequence_engine": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
+    "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
     "effect_motion_blueprint_engine": "effect-motion-blueprint-engine.md",
     "reference_style_repair_engine": "reference-style-repair-engine.md",
     "opening_story_engine": "opening-story-engine.md",
@@ -170,6 +174,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "opening_route_promise": "viewer promise, destination proof",
     "transition_execution_plan": "transition execution plan",
     "transition_execution_blueprint": "transition execution blueprint",
+    "bgm_phrase_blueprint": "BGM phrase blueprint",
     "transition_motif_plan": "transition motif plan",
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
@@ -473,6 +478,157 @@ def bgm_selection_package_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("requiresLocalPathBeforeBuild") is True
         and evidence.get("requiresAudibleBgmAuditAfterRender") is True
         and not evidence.get("blockers")
+    )
+
+
+def bgm_phrase_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    outputs = data.get("outputs") if isinstance(data.get("outputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    rows = data.get("materializedRows") if isinstance(data.get("materializedRows"), list) else []
+    candidate_path = Path(str(outputs.get("candidateBlueprint") or package_dir / "bgm_phrase_blueprint" / "resolve_timeline_blueprint_bgm_phrase.json"))
+    candidate = load_json(candidate_path) or {}
+    phrase_candidates = candidate.get("bgmPhraseCandidates") if isinstance(candidate.get("bgmPhraseCandidates"), list) else []
+    clips = candidate.get("clips") if isinstance(candidate.get("clips"), list) else []
+    transitions = candidate.get("transitions") if isinstance(candidate.get("transitions"), list) else []
+    markers = [
+        marker for marker in candidate.get("timelineMarkers", [])
+        if isinstance(marker, dict) and marker.get("role") == "bgm_phrase_candidate_marker"
+    ] if isinstance(candidate.get("timelineMarkers"), list) else []
+    decision_fields = {
+        "approveCandidateBlueprint",
+        "approvedBgmPhraseRows",
+        "selectedBgmBed",
+        "resolveImplementation",
+        "preflightEvidence",
+        "timelineReadbackEvidence",
+        "audioReadbackEvidence",
+        "frameSampleEvidence",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    rows_materialized = 0
+    rows_with_decisions = 0
+    rows_bgm_only = 0
+    rows_with_bed = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if row.get("status") == "materialized":
+            rows_materialized += 1
+        if row.get("audioTreatment") == "bgm_only_no_camera_voice":
+            rows_bgm_only += 1
+        if row.get("selectedBgmBedLocal") and row.get("selectedBgmBedLicense"):
+            rows_with_bed += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decisions += 1
+    candidate_rows_with_decisions = 0
+    candidate_rows_bgm_only = 0
+    candidate_rows_with_bed = 0
+    for row in phrase_candidates:
+        if not isinstance(row, dict):
+            continue
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            candidate_rows_with_decisions += 1
+        if row.get("audioTreatment") == "bgm_only_no_camera_voice":
+            candidate_rows_bgm_only += 1
+        bed = row.get("selectedBgmBed") if isinstance(row.get("selectedBgmBed"), dict) else {}
+        if bed.get("localPath") and bed.get("licenseUrl"):
+            candidate_rows_with_bed += 1
+    clip_annotation_count = sum(len(clip.get("bgmPhraseCandidates") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("bgmPhraseCandidates"), list))
+    transition_cue_count = sum(1 for transition in transitions if isinstance(transition, dict) and isinstance(transition.get("bgmPhraseCandidate"), dict))
+    audio_plan = candidate.get("audioPlan") if isinstance(candidate.get("audioPlan"), dict) else {}
+    bgm_map = audio_plan.get("bgmPhraseMap") if isinstance(audio_plan.get("bgmPhraseMap"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "candidateBlueprint": str(candidate_path),
+        "candidateBlueprintExists": candidate_path.exists(),
+        "candidateHasBgmPhrasePlan": isinstance(candidate.get("bgmPhraseBlueprintPlan"), dict),
+        "candidateHasBgmPhraseMap": isinstance(bgm_map, dict) and isinstance(bgm_map.get("phraseRows"), list),
+        "selectedBgmBedCount": summary.get("selectedBgmBedCount"),
+        "phraseRowCount": summary.get("phraseRowCount"),
+        "sectionRowCount": summary.get("sectionRowCount"),
+        "materializedPhraseCount": summary.get("materializedPhraseCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "candidateTransitionCount": summary.get("candidateTransitionCount"),
+        "transitionCueCount": summary.get("transitionCueCount"),
+        "transitionsWithPhraseCue": summary.get("transitionsWithPhraseCue"),
+        "clipAnnotationCount": summary.get("clipAnnotationCount"),
+        "markerCount": summary.get("markerCount"),
+        "sourceAudioRiskCount": summary.get("sourceAudioRiskCount"),
+        "audioScenePolicyStatus": summary.get("audioScenePolicyStatus"),
+        "rowCount": len(rows),
+        "candidatePhraseRows": len(phrase_candidates),
+        "rowsMaterializedByRow": rows_materialized,
+        "rowsWithDecisionFieldsByRow": rows_with_decisions,
+        "rowsBgmOnly": rows_bgm_only,
+        "rowsWithSelectedBed": rows_with_bed,
+        "candidateRowsWithDecisionFields": candidate_rows_with_decisions,
+        "candidateRowsBgmOnly": candidate_rows_bgm_only,
+        "candidateRowsWithSelectedBed": candidate_rows_with_bed,
+        "candidateMarkers": len(markers),
+        "candidateClipAnnotationCount": clip_annotation_count,
+        "candidateTransitionCueCount": transition_cue_count,
+        "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "mutatesActiveBlueprintByDefault": safety.get("mutatesActiveBlueprintByDefault"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def bgm_phrase_blueprint_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("phraseRowCount") or 0)
+    transition_count = int(evidence.get("candidateTransitionCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_bgm_phrase_blueprint"
+        and evidence.get("candidateBlueprintExists")
+        and evidence.get("candidateHasBgmPhrasePlan")
+        and evidence.get("candidateHasBgmPhraseMap")
+        and int(evidence.get("selectedBgmBedCount") or 0) >= 1
+        and row_count >= 4
+        and int(evidence.get("sectionRowCount") or 0) >= 3
+        and int(evidence.get("materializedPhraseCount") or 0) == row_count
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("candidatePhraseRows") or 0) == row_count
+        and int(evidence.get("rowsMaterializedByRow") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsBgmOnly") or 0) == row_count
+        and int(evidence.get("rowsWithSelectedBed") or 0) == row_count
+        and int(evidence.get("candidateRowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("candidateRowsBgmOnly") or 0) == row_count
+        and int(evidence.get("candidateRowsWithSelectedBed") or 0) == row_count
+        and int(evidence.get("blockedRowCount") or 0) == 0
+        and int(evidence.get("sourceAudioRiskCount") or 0) == 0
+        and int(evidence.get("transitionCueCount") or 0) == int(evidence.get("candidateTransitionCueCount") or 0)
+        and int(evidence.get("transitionsWithPhraseCue") or 0) == int(evidence.get("candidateTransitionCueCount") or 0)
+        and (transition_count == 0 or int(evidence.get("candidateTransitionCueCount") or 0) == transition_count)
+        and int(evidence.get("markerCount") or 0) == row_count
+        and int(evidence.get("candidateMarkers") or 0) == row_count
+        and int(evidence.get("clipAnnotationCount") or 0) >= row_count
+        and int(evidence.get("candidateClipAnnotationCount") or 0) >= row_count
+        and evidence.get("activeBlueprintUpdated") is False
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("mutatesActiveBlueprintByDefault") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
     )
 
 
@@ -3082,6 +3238,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "BGM selection package proves music is local, license-traceable, buildable, and blueprint-referenced",
         bgm_selection_package_ready(bgm_selection_evidence),
         bgm_selection_evidence,
+    )
+    bgm_phrase_evidence = bgm_phrase_blueprint_evidence(package_dir)
+    add_check(
+        checks,
+        "BGM phrase blueprint materializes selected music into section, clip, and transition-cue metadata",
+        bgm_phrase_blueprint_ready(bgm_phrase_evidence),
+        bgm_phrase_evidence,
     )
     bridge_plan_evidence = transition_bridge_plan_evidence(package_dir)
     add_check(

@@ -45,6 +45,14 @@ python3 <skill-dir>/scripts/prepare_bgm_selection_package.py --package-dir <pack
 
 This package proves the selected music can actually ship: the final BGM bed must be local, license-traceable, long enough for the film, referenced by the active Resolve blueprint, and rebuildable from local source tracks through `build_bgm_bed.py`. A provider search URL or license homepage is not enough; the package must expose exact candidate rows, decision fields, track manifest, build command, and next BGM/audio contract audit.
 
+Record the BGM phrase blueprint as a required later step. After transition and effect candidate blueprints exist, read `bgm-phrase-blueprint-engine.md` and run:
+
+```bash
+python3 <skill-dir>/scripts/prepare_bgm_phrase_blueprint.py --package-dir <package>
+```
+
+This blueprint step turns the selected bed into section/phrase/transition-cue metadata. A BGM complaint is not closed until opening/body/transition/ending windows, clip annotations, timeline markers, and per-transition BGM cue rows exist in a non-destructive candidate blueprint.
+
 Then run:
 
 ```bash

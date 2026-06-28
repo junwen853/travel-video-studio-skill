@@ -72,6 +72,7 @@ No-voiceover cuts must let BGM and captions carry structure.
 
 - Captions should sound like travel-film observations, not editor reports.
 - BGM should change or breathe with sections: opening promise, city exploration, route transition, scenic payoff, ending aftertaste.
+- After transition/effect candidate blueprints exist, run `prepare_bgm_phrase_blueprint.py` so section changes and transition effects are tied to candidate BGM phrase markers instead of loose notes.
 - Scenic/title/transition windows should be BGM-led unless intentional ambient is approved.
 
 ## Acceptance Bar
@@ -83,5 +84,6 @@ Before calling a cut creator-like:
 - Weak or duplicate clips are explicitly rejected or demoted to utility.
 - Every chapter has establish/movement/detail/payoff/aftertaste coverage or an explicit missing-coverage row.
 - Every day/place boundary has real bridge footage before any transition effect.
+- BGM phrase blueprint rows cover opening/body/transition/ending sections and every candidate transition has a phrase cue.
 - Whip/rotation transitions are motivated by movement; they are not default decoration.
 - The ending uses quiet route aftertaste, not a leftover clip.

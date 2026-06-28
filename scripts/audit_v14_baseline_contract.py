@@ -20,6 +20,7 @@ SKILL_PATTERNS = {
     "orientation_repair": "prepare_orientation_repair_package.py",
     "visual_establishing": "prepare_visual_establishing_plan.py",
     "effect_motion_blueprint": "prepare_effect_motion_blueprint.py",
+    "bgm_phrase_blueprint": "prepare_bgm_phrase_blueprint.py",
     "bilibili_malta": "bilibili-travel-style.md",
     "reference_batch_profile": "prepare_reference_batch_profile.py",
     "footage_select": "prepare_footage_select_plan.py",
@@ -48,6 +49,7 @@ REQUIRED_SCRIPTS = [
     "audit_feedback_regressions.py",
     "prepare_bgm_sourcing_brief.py",
     "prepare_bgm_selection_package.py",
+    "prepare_bgm_phrase_blueprint.py",
     "build_bgm_bed.py",
     "audit_bgm_audio_contract.py",
     "prepare_caption_story_plan.py",
@@ -163,6 +165,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition = load_json(package_dir / "transition_bridge_plan" / "transition_bridge_plan.json") or {}
     effect = load_json(package_dir / "effect_motion_plan" / "effect_motion_plan.json") or {}
     effect_motion_blueprint = load_json(package_dir / "effect_motion_blueprint" / "effect_motion_blueprint_report.json") or {}
+    bgm_phrase_blueprint = load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json") or {}
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     opening_story = load_json(package_dir / "opening_story_plan" / "opening_story_plan.json") or {}
@@ -543,6 +546,49 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "annotatedInClipCount": annotated_in,
         },
     )
+    bgm_phrase_blueprint_summary = get_summary(bgm_phrase_blueprint)
+    bgm_phrase_blueprint_rows = int(bgm_phrase_blueprint_summary.get("phraseRowCount") or 0)
+    bgm_phrase_blueprint_outputs = bgm_phrase_blueprint.get("outputs") if isinstance(bgm_phrase_blueprint.get("outputs"), dict) else {}
+    bgm_phrase_candidate_path = Path(str(bgm_phrase_blueprint_outputs.get("candidateBlueprint") or package_dir / "bgm_phrase_blueprint" / "resolve_timeline_blueprint_bgm_phrase.json"))
+    bgm_phrase_candidate = load_json(bgm_phrase_candidate_path) or {}
+    bgm_phrase_candidates = bgm_phrase_candidate.get("bgmPhraseCandidates") if isinstance(bgm_phrase_candidate.get("bgmPhraseCandidates"), list) else []
+    bgm_phrase_markers = [
+        marker for marker in bgm_phrase_candidate.get("timelineMarkers", [])
+        if isinstance(marker, dict) and marker.get("role") == "bgm_phrase_candidate_marker"
+    ] if isinstance(bgm_phrase_candidate.get("timelineMarkers"), list) else []
+    bgm_phrase_clip_annotations = sum(len(clip.get("bgmPhraseCandidates") or []) for clip in bgm_phrase_candidate.get("clips", []) if isinstance(clip, dict) and isinstance(clip.get("bgmPhraseCandidates"), list))
+    bgm_phrase_transition_cues = sum(1 for transition in bgm_phrase_candidate.get("transitions", []) if isinstance(transition, dict) and isinstance(transition.get("bgmPhraseCandidate"), dict))
+    bgm_phrase_audio_plan = bgm_phrase_candidate.get("audioPlan") if isinstance(bgm_phrase_candidate.get("audioPlan"), dict) else {}
+    add_check(
+        checks,
+        "BGM phrase blueprint materializes selected music into candidate phrase and transition-cue metadata",
+        bgm_phrase_blueprint.get("status") == "ready_with_bgm_phrase_blueprint"
+        and bgm_phrase_blueprint_rows >= 4
+        and int(bgm_phrase_blueprint_summary.get("selectedBgmBedCount") or 0) >= 1
+        and int(bgm_phrase_blueprint_summary.get("sectionRowCount") or 0) >= 3
+        and int(bgm_phrase_blueprint_summary.get("materializedPhraseCount") or 0) == bgm_phrase_blueprint_rows
+        and int(bgm_phrase_blueprint_summary.get("rowsWithDecisionFields") or 0) == bgm_phrase_blueprint_rows
+        and int(bgm_phrase_blueprint_summary.get("blockedRowCount") or 0) == 0
+        and int(bgm_phrase_blueprint_summary.get("sourceAudioRiskCount") or 0) == 0
+        and int(bgm_phrase_blueprint_summary.get("transitionCueCount") or 0) == bgm_phrase_transition_cues
+        and int(bgm_phrase_blueprint_summary.get("transitionsWithPhraseCue") or 0) == bgm_phrase_transition_cues
+        and int(bgm_phrase_blueprint_summary.get("candidateTransitionCount") or 0) == bgm_phrase_transition_cues
+        and bgm_phrase_candidate_path.exists()
+        and isinstance(bgm_phrase_candidate.get("bgmPhraseBlueprintPlan"), dict)
+        and isinstance(bgm_phrase_audio_plan.get("bgmPhraseMap"), dict)
+        and len(bgm_phrase_candidates) == bgm_phrase_blueprint_rows
+        and len(bgm_phrase_markers) == bgm_phrase_blueprint_rows
+        and bgm_phrase_clip_annotations >= bgm_phrase_blueprint_rows,
+        {
+            "bgmPhraseBlueprintStatus": bgm_phrase_blueprint.get("status"),
+            "bgmPhraseBlueprintSummary": bgm_phrase_blueprint_summary,
+            "candidateBlueprint": str(bgm_phrase_candidate_path),
+            "candidatePhraseCount": len(bgm_phrase_candidates),
+            "markerCount": len(bgm_phrase_markers),
+            "clipAnnotationCount": bgm_phrase_clip_annotations,
+            "transitionCueCount": bgm_phrase_transition_cues,
+        },
+    )
     reference_repair_summary = get_summary(reference_repair)
     reference_batch_summary = get_summary(reference_batch)
     route_summary = get_summary(route_texture)
@@ -566,6 +612,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
         and bridge_sequence_blueprint.get("status") == "ready_with_bridge_sequence_blueprint"
         and effect_motion_blueprint.get("status") == "ready_with_effect_motion_blueprint"
+        and bgm_phrase_blueprint.get("status") == "ready_with_bgm_phrase_blueprint"
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
         and int(route_summary.get("matchedTransitions") or 0) >= 1
@@ -601,6 +648,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,
             "effectMotionBlueprintStatus": effect_motion_blueprint.get("status"),
             "effectMotionBlueprintSummary": effect_motion_blueprint_summary,
+            "bgmPhraseBlueprintStatus": bgm_phrase_blueprint.get("status"),
+            "bgmPhraseBlueprintSummary": bgm_phrase_blueprint_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
         },
