@@ -46,6 +46,7 @@ REQUIRED_SCRIPTS = {
         "prepare_audio_scene_policy_plan.py",
         "prepare_edit_rhythm_plan.py",
         "prepare_creator_cut_plan.py",
+        "prepare_transition_grammar_plan.py",
         "prepare_rhythm_recut_blueprint.py",
         "prepare_rhythm_recut_apply_package.py",
         "audit_feedback_regressions.py",
@@ -84,6 +85,7 @@ REQUIRED_SKILL_PATTERNS = {
     "audio_scene_policy_plan_rule": "prepare_audio_scene_policy_plan.py",
     "edit_rhythm_plan_rule": "prepare_edit_rhythm_plan.py",
     "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
+    "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
     "rhythm_recut_blueprint_rule": "prepare_rhythm_recut_blueprint.py",
     "rhythm_recut_apply_package_rule": "prepare_rhythm_recut_apply_package.py",
     "scenic_audio_overlap_rule": "no A1/A2 voice or source-audio clips overlapping scenic/title/transition windows",
@@ -98,6 +100,7 @@ REQUIRED_SKILL_PATTERNS = {
     "parallel_world_reference_rule": "parallel-world-vlog-style.md",
     "parallel_world_cover_rule": "high-recognition aerial/skyline/coast/landmark/route background",
     "creator_cut_engine_rule": "creator-cut-engine.md",
+    "transition_grammar_engine_rule": "transition-grammar-engine.md",
 }
 
 REQUIRED_STYLE_PATTERNS = {
@@ -105,6 +108,7 @@ REQUIRED_STYLE_PATTERNS = {
     "parallel_world_anchor": "space.bilibili.com/405004967",
     "parallel_world_profile": "parallel-world-vlog-style.md",
     "creator_cut_engine": "creator-cut-engine.md",
+    "transition_grammar_engine": "transition-grammar-engine.md",
     "full_timeline_review": "full-film timeline strips",
     "cover_title_review": "cover/title card construction",
     "local_reference_profile": "local reference film",
@@ -1239,6 +1243,121 @@ def creator_cut_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_grammar_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_grammar_plan" / "transition_grammar_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("transitionRows") if isinstance(data.get("transitionRows"), list) else []
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    decision_fields = {
+        "approvedTransitionType",
+        "fallbackTransitionType",
+        "durationFrames",
+        "requiresBridgeInsert",
+        "bridgeInsertSource",
+        "motionDirection",
+        "bgmPhraseCue",
+        "captionSuppressionNeeded",
+        "resolveImplementation",
+        "readbackEvidence",
+        "approvedBy",
+        "approvedAt",
+    }
+    rows_with_decision_fields = 0
+    rows_with_recommendation = 0
+    rows_ready = 0
+    rows_needing_bridge = 0
+    motion_allowed_rows = 0
+    bridge_evidence_rows = 0
+    style_counts: dict[str, int] = {}
+    category_counts: dict[str, int] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        category = str(row.get("boundaryCategory") or "")
+        category_counts[category] = category_counts.get(category, 0) + 1
+        if row.get("status") == "ready_with_transition_grammar":
+            rows_ready += 1
+        if row.get("status") == "needs_bridge_insert":
+            rows_needing_bridge += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+        recommendation = row.get("recommendation") if isinstance(row.get("recommendation"), dict) else {}
+        style = str(recommendation.get("recommendedTransitionType") or "")
+        if style:
+            style_counts[style] = style_counts.get(style, 0) + 1
+            rows_with_recommendation += 1
+        if recommendation.get("motionEffectAllowed") is True:
+            motion_allowed_rows += 1
+        if recommendation.get("physicalBridgeEvidence") is True:
+            bridge_evidence_rows += 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "chapterBoundaryCount": summary.get("chapterBoundaryCount"),
+        "titleBoundaryCount": summary.get("titleBoundaryCount"),
+        "timelineGapCount": summary.get("timelineGapCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "rowsNeedingBridgeInsert": summary.get("rowsNeedingBridgeInsert"),
+        "physicalBridgeEvidenceCount": summary.get("physicalBridgeEvidenceCount"),
+        "motivatedMotionEffectCandidateCount": summary.get("motivatedMotionEffectCandidateCount"),
+        "recommendedStyleCounts": summary.get("recommendedStyleCounts") or style_counts,
+        "boundaryCategoryCounts": summary.get("boundaryCategoryCounts") or category_counts,
+        "rowCount": len(rows),
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithRecommendation": rows_with_recommendation,
+        "rowsReadyByRow": rows_ready,
+        "rowsNeedingBridgeByRow": rows_needing_bridge,
+        "motionAllowedRowsByRow": motion_allowed_rows,
+        "bridgeEvidenceRowsByRow": bridge_evidence_rows,
+        "pairLevelTransitionDecisionsRequired": policy.get("pairLevelTransitionDecisionsRequired"),
+        "physicalBridgeBeforeMotionEffect": policy.get("physicalBridgeBeforeMotionEffect"),
+        "motivatedWhipOrRotationOnly": policy.get("motivatedWhipOrRotationOnly"),
+        "templateTransitionsRejected": policy.get("templateTransitionsRejected"),
+        "titleZoneSafetyRequired": policy.get("titleZoneSafetyRequired"),
+        "bgmPhraseAwarenessRequired": policy.get("bgmPhraseAwarenessRequired"),
+        "downloadsExternalAssets": policy.get("downloadsExternalAssets"),
+        "writesResolve": policy.get("writesResolve"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def transition_grammar_plan_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("transitionRowCount") or 0)
+    style_counts = evidence.get("recommendedStyleCounts") if isinstance(evidence.get("recommendedStyleCounts"), dict) else {}
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_transition_grammar_plan"
+        and row_count >= 3
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithRecommendation") or 0) == row_count
+        and int(evidence.get("rowsReadyByRow") or 0) == row_count
+        and int(evidence.get("rowsNeedingBridgeInsert") or 0) == 0
+        and int(evidence.get("rowsNeedingBridgeByRow") or 0) == 0
+        and int(evidence.get("physicalBridgeEvidenceCount") or 0) >= 1
+        and int(evidence.get("bridgeEvidenceRowsByRow") or 0) >= 1
+        and bool(style_counts)
+        and evidence.get("pairLevelTransitionDecisionsRequired") is True
+        and evidence.get("physicalBridgeBeforeMotionEffect") is True
+        and evidence.get("motivatedWhipOrRotationOnly") is True
+        and evidence.get("templateTransitionsRejected") is True
+        and evidence.get("titleZoneSafetyRequired") is True
+        and evidence.get("bgmPhraseAwarenessRequired") is True
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("writesResolve") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def rhythm_recut_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json"
     data = load_json(path) or {}
@@ -1601,6 +1720,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Creator cut plan turns reference quality into selective shot choice, bridge use, and motivated transition decisions",
         creator_cut_plan_ready(creator_cut_evidence),
         creator_cut_evidence,
+    )
+    transition_grammar_evidence = transition_grammar_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition grammar plan turns adjacent clip pairs into specific cut, dissolve, match, whip, rotation, or bridge-insert decisions",
+        transition_grammar_plan_ready(transition_grammar_evidence),
+        transition_grammar_evidence,
     )
     rhythm_recut_evidence = rhythm_recut_blueprint_evidence(package_dir)
     add_check(

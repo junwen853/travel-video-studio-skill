@@ -50,6 +50,14 @@ Allowed transition effects:
 
 Reject effects that hide weak material: random spin, flash, glitch, shake, particle, repeated whoosh, template pack, or a route jump with no physical bridge footage.
 
+After this shot-selection pass, run the pair-level transition grammar:
+
+```bash
+python3 <skill-dir>/scripts/prepare_transition_grammar_plan.py --package-dir <package>
+```
+
+Use the transition grammar rows to decide exactly how adjacent clips connect. If a row says `insert_bridge_first`, add or relabel real route footage before choosing an effect.
+
 ## Subtitle And BGM Role
 
 No-voiceover cuts must let BGM and captions carry structure.

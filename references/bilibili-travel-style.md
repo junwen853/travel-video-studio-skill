@@ -81,10 +81,11 @@ When that plan reports long raw holds, immediately generate the non-destructive 
 
 ```bash
 python3 <skill-dir>/scripts/prepare_creator_cut_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/prepare_transition_grammar_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_rhythm_recut_blueprint.py --package-dir <package>
 ```
 
-Read `references/creator-cut-engine.md` before this step. The creator cut plan must run before the recut candidate. It should be stricter than the normal rhythm plan: demote weak clips, identify hero/main/texture/utility/reject tiers, and allow whip-pan or rotation match cuts only when real movement/route evidence supports them. The recut candidate should break long holds with existing local-footage cutaways, keep total duration stable, preserve BGM-only audio policy, and be preflighted with `audit_resolve_blueprint.py --blueprint <package>/rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json --package-dir <package>` before it replaces the active blueprint.
+Read `references/creator-cut-engine.md` and `references/transition-grammar-engine.md` before this step. The creator cut plan must run before the recut candidate. It should be stricter than the normal rhythm plan: demote weak clips, identify hero/main/texture/utility/reject tiers, and allow whip-pan or rotation match cuts only when real movement/route evidence supports them. The transition grammar plan then decides exact adjacent-pair transitions. The recut candidate should break long holds with existing local-footage cutaways, keep total duration stable, preserve BGM-only audio policy, and be preflighted with `audit_resolve_blueprint.py --blueprint <package>/rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json --package-dir <package>` before it replaces the active blueprint.
 
 After candidate review, prefer a new package fork instead of in-place replacement:
 

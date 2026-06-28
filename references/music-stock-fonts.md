@@ -69,6 +69,8 @@ python3 <skill-dir>/scripts/prepare_effect_motion_plan.py --package-dir <package
 
 This plan narrows effect work into restrained opening/chapter/ending title reveal rows and day/place transition motion rows. It must tie each motion row to title typography, transition bridge, visual establishing, and blueprint `effectPlan` evidence; record exact implementation/readback decision fields; and reject glitch, random spin, flash, shake, particle, logo-reveal, or generic template-pack effects. Motivated whip-pan or rotation match cuts are allowed only when real route-motion footage supports the boundary. A client delivery cannot be a bare concatenation, but motion should support real route footage rather than hiding weak BGM, missing bridges, duplicate titles, or wrong location evidence.
 
+For shot-to-shot decisions, run `prepare_transition_grammar_plan.py` after creator-cut planning. Its rows decide exact adjacent-pair transitions before effect choices are implemented in Resolve.
+
 Then run:
 
 ```bash
