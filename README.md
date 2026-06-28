@@ -10,6 +10,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Extracts and reviews representative frames so Codex can identify likely filming locations from visual evidence.
 - Reconstructs a trip route from unordered clips, folder names, dates, OCR/signage evidence, and optional cloud or local recognition passes.
 - Scores and tiers raw footage before first assembly, so large folders are cut from hero/main/texture bridge candidates instead of filename order.
+- Plans the first three minutes as a real opening story: viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff.
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
 - Plans BGM, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, and visual bridge material.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
@@ -65,9 +66,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.6.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.6/travel-video-studio-skill-v0.1.6.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.6.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.7.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.7/travel-video-studio-skill-v0.1.7.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.7.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -138,6 +139,7 @@ A delivery package usually contains:
 - `delivery_plan.json`
 - `subtitles.srt`
 - `caption_story_plan/text_only_narration_export.txt`
+- `opening_story_plan/opening_story_plan.md`
 - `bgm_sourcing/bgm_sourcing_brief.md`
 - `transition_bridge_plan/transition_bridge_plan.md`
 - `title_typography_plan/title_typography_plan.md`

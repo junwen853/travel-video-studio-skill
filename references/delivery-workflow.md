@@ -23,6 +23,7 @@ Expected files:
 - source project `route_review/<timestamp>/route_decision_application.json` / `.md`: dry-run or approved application of route decisions back into `route_review.json`
 - source project `route_review/<timestamp>/confirmed_route_candidate.md`: approval-gated candidate or repair plan before confirmed-route writes
 - source or package `footage_select_plan/footage_select_plan.json` / `.md`: raw-footage scoring and highlight-selection plan used before first assembly
+- `opening_story_plan/opening_story_plan.json` / `.md`: first-three-minute viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff plan
 - `long_form_structure.md`: 20-minute chapter and pacing structure
 - `voiceover_script.txt`: approved or draft narration
 - `narration_text_only_v4.txt`: required when the user rejects rendered voiceover audio
@@ -87,6 +88,7 @@ The package is not final until:
 - route decision application report proves the decision sheet is either blocked, ready to apply, or applied
 - confirmed-route candidate is apply-ready before overwriting `confirmed_route_timeline.json`
 - footage select plan exists before first assembly, proves active source videos were tiered, and blocks derived/portrait/weak footage from leading the cut
+- opening story plan exists after first package build and proves all six first-three-minute beats before title, BGM, rhythm, creator-cut, director-intent, or Resolve apply claims
 - cloud/API stages have either completed or the user accepted dry-run limitations
 - voiceover audio exists or the chosen TTS command is tested
 - if the user says not to use voiceover, voiceover audio is removed from the timeline and the narration is exported as TXT only

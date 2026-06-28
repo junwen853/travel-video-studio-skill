@@ -21,6 +21,7 @@ SKILL_PATTERNS = {
     "visual_establishing": "prepare_visual_establishing_plan.py",
     "bilibili_malta": "bilibili-travel-style.md",
     "footage_select": "prepare_footage_select_plan.py",
+    "opening_story": "prepare_opening_story_plan.py",
     "creator_cut": "prepare_creator_cut_plan.py",
     "transition_grammar": "prepare_transition_grammar_plan.py",
     "route_texture": "audit_route_texture_contract.py",
@@ -47,6 +48,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_bridge_plan.py",
     "prepare_effect_motion_plan.py",
     "prepare_footage_select_plan.py",
+    "prepare_opening_story_plan.py",
     "prepare_edit_rhythm_plan.py",
     "prepare_creator_cut_plan.py",
     "prepare_transition_grammar_plan.py",
@@ -143,6 +145,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition = load_json(package_dir / "transition_bridge_plan" / "transition_bridge_plan.json") or {}
     effect = load_json(package_dir / "effect_motion_plan" / "effect_motion_plan.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
+    opening_story = load_json(package_dir / "opening_story_plan" / "opening_story_plan.json") or {}
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
     creator_cut = load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json") or {}
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
@@ -204,6 +207,26 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "titlePlanSummary": title_summary,
             "titleClipCount": title.get("titleClipCount"),
             "segmentCount": title.get("segmentCount"),
+        },
+    )
+
+    opening_summary = get_summary(opening_story)
+    add_check(
+        checks,
+        "First three minutes have V14-level opening story structure before polish",
+        opening_story.get("status") == "ready_with_opening_story_plan"
+        and int(opening_summary.get("beatRowCount") or 0) >= 6
+        and int(opening_summary.get("rowsWithEvidence") or 0) == int(opening_summary.get("beatRowCount") or -1)
+        and int(opening_summary.get("missingBeatCount") or 0) == 0
+        and int(opening_summary.get("destinationProofClipCount") or 0) >= 1
+        and int(opening_summary.get("routeArrivalClipCount") or 0) >= 1
+        and int(opening_summary.get("livedInTextureClipCount") or 0) >= 1
+        and int(opening_summary.get("titleClipCount") or 0) >= 1
+        and int(opening_summary.get("weakTitleHitCount") or 0) == 0
+        and int(opening_summary.get("firstHandoffClipCount") or 0) >= 1,
+        {
+            "openingStoryStatus": opening_story.get("status"),
+            "openingStorySummary": opening_summary,
         },
     )
 
@@ -401,7 +424,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     maturity_summary = get_summary(maturity)
     add_check(
         checks,
-        "Skill maturity preserves the V14 29-check reusable-skill floor",
+        "Skill maturity preserves the V14 29+ check reusable-skill floor",
         maturity.get("status") == "passed"
         and int(maturity_summary.get("total") or 0) >= 29
         and int(maturity_summary.get("blocked") or 0) == 0

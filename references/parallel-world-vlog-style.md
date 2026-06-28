@@ -42,6 +42,14 @@ Open with a clear viewer question or trip promise, then prove the place visually
 - Use creator-style restraint: one short title or place label over a strong image is better than stacked route/date text.
 - Avoid starting with internal project labels, editor status captions, generic country cards, or long route summaries.
 
+After the initial Resolve blueprint exists, turn this pattern into an auditable package artifact:
+
+```bash
+python3 <skill-dir>/scripts/prepare_opening_story_plan.py --package-dir <package>
+```
+
+Do not claim this reference style if `opening_story_plan/opening_story_plan.json` is missing or if any of the six opening beats lacks evidence.
+
 ## Cover And Hero Title Style
 
 The reference covers and hero title cards use a simple but high-impact formula:
@@ -147,7 +155,7 @@ Before saying a package has learned this reference style, verify:
 
 - The cover/hero title uses a high-recognition establishing background, oversized destination title, secondary English/place line, and no cluttered internal labels.
 - The opening has human/context plus real establishing footage within the first minute.
-- The first 3 minutes contain a viewer promise, destination proof, and practical route/arrival material.
+- The opening story plan proves the first 3 minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff.
 - The chapter plan includes person/context, movement, texture, payoff, and aftertaste roles.
 - Every day/place boundary has physical bridge footage or an explicit local-footage search row.
 - The edit rhythm plan targets about 3-second median rhythm with some longer breathing shots, not a flat sequence of long raw clips.

@@ -57,6 +57,14 @@ The opening must make the city/place immediately legible and premium.
 
 For `叽叽歪歪的平行世界`-style references, use the stricter opening/cover pattern in `parallel-world-vlog-style.md`: viewer promise, destination proof, practical route/arrival footage, and a cover/hero title built from a high-recognition establishing image with a huge destination title plus small English/place subtitle.
 
+After the first package blueprint exists, read `references/opening-story-engine.md` and run the opening story gate before trusting title, BGM, rhythm, or director-polish claims:
+
+```bash
+python3 <skill-dir>/scripts/prepare_opening_story_plan.py --package-dir <package>
+```
+
+The plan must prove viewer promise, destination proof, clean hero title, practical arrival, lived-in texture, and first chapter handoff in the first three minutes.
+
 ## Route Rhythm
 
 A route-aware travel edit should alternate between:
@@ -80,10 +88,11 @@ Read `references/footage-select-engine.md` before this step. The plan should ide
 Before trusting a Resolve blueprint as "not AI-made", run:
 
 ```bash
+python3 <skill-dir>/scripts/prepare_opening_story_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_edit_rhythm_plan.py --package-dir <package>
 ```
 
-Use the plan to assign every primary visual shot a function and to surface long raw holds that need trim/split/cutaway work. The Malta reference pacing profile is a target for varied rhythm, not a requirement to copy the reference shot-for-shot.
+Use the opening plan to repair missing first-three-minute story beats first. Then use the rhythm plan to assign every primary visual shot a function and to surface long raw holds that need trim/split/cutaway work. The Malta reference pacing profile is a target for varied rhythm, not a requirement to copy the reference shot-for-shot.
 
 When that plan reports long raw holds, immediately generate the non-destructive rhythm recut candidate:
 

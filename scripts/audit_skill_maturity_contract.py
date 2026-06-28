@@ -45,6 +45,7 @@ REQUIRED_SCRIPTS = {
         "prepare_feedback_regression_plan.py",
         "prepare_audio_scene_policy_plan.py",
         "prepare_footage_select_plan.py",
+        "prepare_opening_story_plan.py",
         "prepare_edit_rhythm_plan.py",
         "prepare_creator_cut_plan.py",
         "prepare_transition_grammar_plan.py",
@@ -85,6 +86,8 @@ REQUIRED_SKILL_PATTERNS = {
     "feedback_regression_plan_rule": "prepare_feedback_regression_plan.py",
     "audio_scene_policy_plan_rule": "prepare_audio_scene_policy_plan.py",
     "footage_select_plan_rule": "prepare_footage_select_plan.py",
+    "opening_story_plan_rule": "prepare_opening_story_plan.py",
+    "opening_story_engine_rule": "opening-story-engine.md",
     "edit_rhythm_plan_rule": "prepare_edit_rhythm_plan.py",
     "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
@@ -113,6 +116,7 @@ REQUIRED_STYLE_PATTERNS = {
     "footage_select_engine": "footage-select-engine.md",
     "creator_cut_engine": "creator-cut-engine.md",
     "transition_grammar_engine": "transition-grammar-engine.md",
+    "opening_story_engine": "opening-story-engine.md",
     "full_timeline_review": "full-film timeline strips",
     "cover_title_review": "cover/title card construction",
     "local_reference_profile": "local reference film",
@@ -125,6 +129,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "cover_title_formula": "Cover And Hero Title Style",
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
     "raw_footage_selection": "footage select plan",
+    "opening_story_plan": "opening_story_plan/opening_story_plan.json",
     "opening_route_promise": "viewer promise, destination proof",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
@@ -1107,6 +1112,132 @@ def footage_select_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def opening_story_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "opening_story_plan" / "opening_story_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("beatRows") if isinstance(data.get("beatRows"), list) else []
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    required_beats = {
+        "viewer_promise",
+        "destination_proof",
+        "clean_hero_title",
+        "practical_arrival",
+        "lived_in_texture",
+        "first_chapter_handoff",
+    }
+    decision_fields = {
+        "approvedBeat",
+        "selectedClipSourcePaths",
+        "targetTimelineStartSeconds",
+        "targetTimelineEndSeconds",
+        "captionOrTitleText",
+        "bgmMoodCue",
+        "audioPolicy",
+        "transitionOut",
+        "resolveImplementation",
+        "readbackEvidence",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    beat_ids: list[str] = []
+    rows_with_decision_fields = 0
+    rows_with_evidence = 0
+    rows_with_bgm_audio_policy = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        beat_id = str(row.get("beatId") or "")
+        if beat_id:
+            beat_ids.append(beat_id)
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+        if int(row.get("evidenceCount") or 0) > 0:
+            rows_with_evidence += 1
+        if decision.get("audioPolicy") == "bgm_only_no_camera_voice":
+            rows_with_bgm_audio_policy += 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "openingWindowSeconds": summary.get("openingWindowSeconds"),
+        "openingVideoClipCount": summary.get("openingVideoClipCount"),
+        "openingCoverageRatio": summary.get("openingCoverageRatio"),
+        "firstClipStartSeconds": summary.get("firstClipStartSeconds"),
+        "beatRowCount": summary.get("beatRowCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "rowsWithEvidence": summary.get("rowsWithEvidence"),
+        "missingBeatCount": summary.get("missingBeatCount"),
+        "missingBeatIds": summary.get("missingBeatIds"),
+        "destinationProofClipCount": summary.get("destinationProofClipCount"),
+        "routeArrivalClipCount": summary.get("routeArrivalClipCount"),
+        "livedInTextureClipCount": summary.get("livedInTextureClipCount"),
+        "titleClipCount": summary.get("titleClipCount"),
+        "weakTitleHitCount": summary.get("weakTitleHitCount"),
+        "firstHandoffClipCount": summary.get("firstHandoffClipCount"),
+        "rowCount": len(rows),
+        "beatIds": beat_ids,
+        "missingRequiredBeatIds": sorted(required_beats.difference(beat_ids)),
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithEvidenceByRow": rows_with_evidence,
+        "rowsWithBgmAudioPolicy": rows_with_bgm_audio_policy,
+        "firstThreeMinutesNeedViewerPromise": policy.get("firstThreeMinutesNeedViewerPromise"),
+        "destinationProofBeforeExplanation": policy.get("destinationProofBeforeExplanation"),
+        "practicalArrivalReturnsAfterHook": policy.get("practicalArrivalReturnsAfterHook"),
+        "livedInTextureBeforeMinuteThree": policy.get("livedInTextureBeforeMinuteThree"),
+        "cleanTitleNoStackedText": policy.get("cleanTitleNoStackedText"),
+        "titleZoneSubtitleSuppressionRequired": policy.get("titleZoneSubtitleSuppressionRequired"),
+        "bgmOnlyOpeningDefault": policy.get("bgmOnlyOpeningDefault"),
+        "localFootageBeforeStock": policy.get("localFootageBeforeStock"),
+        "writesResolve": policy.get("writesResolve"),
+        "downloadsExternalAssets": policy.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": policy.get("modifiesSourceFootage"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def opening_story_plan_ready(evidence: dict[str, Any]) -> bool:
+    beat_count = int(evidence.get("beatRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_opening_story_plan"
+        and beat_count >= 6
+        and int(evidence.get("rowCount") or 0) == beat_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == beat_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == beat_count
+        and int(evidence.get("rowsWithEvidence") or 0) == beat_count
+        and int(evidence.get("rowsWithEvidenceByRow") or 0) == beat_count
+        and int(evidence.get("rowsWithBgmAudioPolicy") or 0) == beat_count
+        and int(evidence.get("missingBeatCount") or 0) == 0
+        and not evidence.get("missingRequiredBeatIds")
+        and int(evidence.get("openingVideoClipCount") or 0) >= beat_count
+        and float(evidence.get("openingCoverageRatio") or 0) >= 0.5
+        and int(evidence.get("destinationProofClipCount") or 0) >= 1
+        and int(evidence.get("routeArrivalClipCount") or 0) >= 1
+        and int(evidence.get("livedInTextureClipCount") or 0) >= 1
+        and int(evidence.get("titleClipCount") or 0) >= 1
+        and int(evidence.get("weakTitleHitCount") or 0) == 0
+        and int(evidence.get("firstHandoffClipCount") or 0) >= 1
+        and evidence.get("firstThreeMinutesNeedViewerPromise") is True
+        and evidence.get("destinationProofBeforeExplanation") is True
+        and evidence.get("practicalArrivalReturnsAfterHook") is True
+        and evidence.get("livedInTextureBeforeMinuteThree") is True
+        and evidence.get("cleanTitleNoStackedText") is True
+        and evidence.get("titleZoneSubtitleSuppressionRequired") is True
+        and evidence.get("bgmOnlyOpeningDefault") is True
+        and evidence.get("localFootageBeforeStock") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def edit_rhythm_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json"
     data = load_json(path) or {}
@@ -1863,6 +1994,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Footage select plan turns the raw source pool into hero, main, texture, repair, and reject decisions before first assembly",
         footage_select_plan_ready(footage_select_evidence),
         footage_select_evidence,
+    )
+    opening_story_evidence = opening_story_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Opening story plan proves the first three minutes have viewer promise, destination proof, clean title, route arrival, lived-in texture, and handoff",
+        opening_story_plan_ready(opening_story_evidence),
+        opening_story_evidence,
     )
     rhythm_plan_evidence = edit_rhythm_plan_evidence(package_dir)
     add_check(

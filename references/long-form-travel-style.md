@@ -68,6 +68,14 @@ python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <projec
 
 This plan should exist before `build_delivery_package.py` when the user expects a strong first draft from a large folder. It scores every active source video, promotes hero/main/texture bridge candidates, rejects prior exports, flags portrait/square/unknown clips for repair, and exposes missing chapter movement/detail/payoff coverage. The first assembly should use this plan to sort local footage before stock, effects, or rhythm recut are considered.
 
+After `build_delivery_package.py`, generate `opening_story_plan/opening_story_plan.json` with:
+
+```bash
+python3 <skill-dir>/scripts/prepare_opening_story_plan.py --package-dir <package>
+```
+
+This plan should exist before title, BGM/audio, visual establishing, rhythm, or creator-cut planning. It verifies that the first three minutes have a viewer promise, destination proof, one clean hero title, practical arrival, lived-in texture, and first chapter handoff. Missing opening beats are structure blockers, not minor polish notes.
+
 Generate `edit_rhythm_plan/edit_rhythm_plan.json` with:
 
 ```bash
@@ -135,6 +143,7 @@ The package is not long-form ready unless it has:
 - coverage ratio in `resolve_timeline_blueprint.json` is high enough to support the target duration
 - `resolve_timeline_blueprint.json.longFormCoverage` explains initial selected footage, opening/transition/ending fill, final covered seconds, and target seconds
 - `footage_select_plan/footage_select_plan.json` proves source media was scored and selected before first assembly
+- `opening_story_plan/opening_story_plan.json` proves the first three minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff
 - chapter time allocations
 - transition plan between chapters/days
 - feedback regression plan preserving known rejected timestamps before final render QA
