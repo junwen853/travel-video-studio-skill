@@ -1,31 +1,35 @@
 #!/usr/bin/env python3
-"""Install the staged Travel Video Studio upgrade into the personal plugin cache."""
+"""Install Travel Video Studio into a local Codex skills directory."""
 
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 from datetime import datetime
 from pathlib import Path
+
+
+def default_codex_home() -> Path:
+    return Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser()
 
 
 def install(staging: Path, target: Path) -> list[str]:
     actions: list[str] = []
     if not staging.exists():
         raise FileNotFoundError(staging)
+    target.mkdir(parents=True, exist_ok=True)
     skill_md = target / "SKILL.md"
-    if not skill_md.exists():
-        raise FileNotFoundError(skill_md)
 
     skill_src = staging / "SKILL.md"
     if not skill_src.exists():
-        skill_src = staging / "SKILL.md.installed_snapshot"
-    if not skill_src.exists():
         raise FileNotFoundError(staging / "SKILL.md")
 
-    original = skill_md.read_text(encoding="utf-8")
-    backup = skill_md.with_suffix(f".md.bak-{datetime.now().strftime('%Y%m%d%H%M%S')}")
-    backup.write_text(original, encoding="utf-8")
+    backup = None
+    if skill_md.exists():
+        original = skill_md.read_text(encoding="utf-8")
+        backup = skill_md.with_suffix(f".md.bak-{datetime.now().strftime('%Y%m%d%H%M%S')}")
+        backup.write_text(original, encoding="utf-8")
     shutil.copy2(skill_src, skill_md)
     actions.append(f"copied {skill_src} -> {skill_md}")
 
@@ -41,7 +45,8 @@ def install(staging: Path, target: Path) -> list[str]:
             shutil.copy2(src, dst)
             actions.append(f"copied {src} -> {dst}")
 
-    actions.append(f"backup {backup}")
+    if backup:
+        actions.append(f"backup {backup}")
     return actions
 
 
@@ -49,11 +54,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--staging",
-        default="/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade",
+        default=str(Path(__file__).resolve().parents[1]),
     )
     parser.add_argument(
         "--target",
-        default="/Users/pengyang/.codex/plugins/cache/personal/travel-video-studio/0.1.0+codex.20260626173111/skills/travel-video-studio",
+        default=str(default_codex_home() / "skills" / "travel-video-studio"),
     )
     args = parser.parse_args()
     actions = install(Path(args.staging), Path(args.target))

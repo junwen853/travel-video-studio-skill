@@ -14,10 +14,10 @@ from build_asset_ledger import aerial_items, bgm_items, font_items, write_markdo
 from enrich_resolve_blueprint import apply_enrichment_to_blueprint, build_enrichment
 from prepare_asset_sourcing_packet import build_packet as build_asset_sourcing_packet
 from prepare_asset_sourcing_packet import write_packet_outputs as write_asset_sourcing_packet_outputs
-from project_discovery import discover_project_path
+from project_discovery import default_app_dir, discover_project_path
 
 
-DEFAULT_APP_DIR = Path("/Users/pengyang/Pictures/Video-make/video-claw-studio")
+DEFAULT_APP_DIR = default_app_dir()
 DEFAULT_TARGET_MINUTES = 20.0
 
 
@@ -869,7 +869,7 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
             "durationMinutes": args.target_duration_minutes,
             "format": "long-form travel film, scalable to 20-40 minutes",
             "referenceStyle": "Bilibili long-form travel documentary/vlog pacing, not a short recap",
-            "localReference": "/Users/pengyang/Downloads/马耳他终稿5.16.mp4 (~39m54s)",
+            "localReference": "optional local long-form reference via --reference or TRAVEL_VIDEO_REFERENCE",
             "fps": args.fps,
         },
         "pipeline": {

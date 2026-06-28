@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from datetime import datetime
@@ -70,7 +71,8 @@ def checks_with_text(data: dict[str, Any], needle: str) -> list[dict[str, Any]]:
 
 def run_quick_validate(skill_dir: Path, validator: Path | None) -> dict[str, Any]:
     if not validator:
-        default = Path("/Users/pengyang/.codex/skills/.system/skill-creator/scripts/quick_validate.py")
+        codex_home = Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser()
+        default = codex_home / "skills" / ".system" / "skill-creator" / "scripts" / "quick_validate.py"
         validator = default if default.exists() else None
     if not validator or not validator.exists():
         return {"available": False, "returnCode": None, "stdout": "", "stderr": "quick_validate.py not found"}

@@ -10,10 +10,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from project_discovery import default_app_dir
+
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = SKILL_DIR / "scripts"
-DEFAULT_APP_DIR = Path("/Users/pengyang/Pictures/Video-make/video-claw-studio")
+DEFAULT_APP_DIR = default_app_dir()
 
 
 def write_json(path: Path, data: Any) -> None:

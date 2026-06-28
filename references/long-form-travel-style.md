@@ -2,7 +2,7 @@
 
 ## Target
 
-Default target is a 20-minute travel film, not a short recap. A 1-2 minute output is a failure unless the user explicitly changes the target duration. The local reference file `/Users/pengyang/Downloads/马耳他终稿5.16.mp4` is about 39m54s, so the workflow must scale to 20-40 minute finished films.
+Default target is a 20-minute travel film, not a short recap. A 1-2 minute output is a failure unless the user explicitly changes the target duration. Local reference films may be 20-40 minutes, so the workflow must scale beyond short recap pacing.
 
 Use `analyze_reference_video.py` to write `reference_analysis.json` and a contact sheet before copying its pacing assumptions into a new project.
 

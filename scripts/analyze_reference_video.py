@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -15,9 +16,15 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_REFERENCE = Path("/Users/pengyang/Downloads/马耳他终稿5.16.mp4")
 FRAME_W = 426
 FRAME_H = 240
+
+
+def default_reference_video() -> str | None:
+    configured = os.environ.get("TRAVEL_VIDEO_REFERENCE")
+    if not configured:
+        return None
+    return str(Path(configured).expanduser())
 
 
 def run_json(cmd: list[str]) -> Any:
@@ -450,7 +457,7 @@ def build_report(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Analyze long-form travel reference video.")
-    parser.add_argument("--reference", default=str(DEFAULT_REFERENCE), help="Reference video path.")
+    parser.add_argument("--reference", default=default_reference_video(), help="Reference video path. Defaults to TRAVEL_VIDEO_REFERENCE when set.")
     parser.add_argument("--output-dir", required=True, help="Output directory.")
     parser.add_argument("--skip-contact-sheet", action="store_true")
     parser.add_argument("--skip-scene-detect", action="store_true")
@@ -459,6 +466,8 @@ def main() -> int:
     parser.add_argument("--frames", type=int, default=24)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
+    if not args.reference:
+        parser.error("--reference is required unless TRAVEL_VIDEO_REFERENCE is set")
     report = build_report(
         Path(args.reference).expanduser().resolve(),
         Path(args.output_dir).expanduser().resolve(),

@@ -1,70 +1,73 @@
-# Installing This Upgrade Into The Personal Plugin
+# Install Travel Video Studio Skill
 
-The active plugin cache may require filesystem approval before Codex can write into it. The safe staging copy lives here:
+This is a Codex skill. Install it into your Codex skills directory, then start a new Codex thread or restart Codex if the skill list does not refresh.
+
+## Install From Release
 
 ```bash
-/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade
+mkdir -p ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.0.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.0/travel-video-studio-skill-v0.1.0.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.0.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
-## Target Plugin Paths
+## Install From Source
 
-Copy the files into the installed personal plugin:
+```bash
+git clone https://github.com/junwen853/travel-video-studio-skill.git ~/.codex/skills/travel-video-studio
+```
+
+Update later with:
+
+```bash
+cd ~/.codex/skills/travel-video-studio
+git pull
+```
+
+## Install From A Local Checkout
+
+From this repository:
+
+```bash
+python3 scripts/install_into_plugin.py
+```
+
+The default target is:
 
 ```text
-/Users/pengyang/.codex/plugins/cache/personal/travel-video-studio/0.1.0+codex.20260626173111/skills/travel-video-studio/
+~/.codex/skills/travel-video-studio
 ```
 
-Recommended mapping for this full upgrade:
+Use a custom target if needed:
+
+```bash
+python3 scripts/install_into_plugin.py \
+  --target "$CODEX_HOME/skills/travel-video-studio"
+```
+
+## Configure Project Defaults
+
+Optional but useful:
+
+```bash
+export VIDEO_CLAW_STUDIO_DIR="$HOME/Pictures/Video-make/video-claw-studio"
+export TRAVEL_VIDEO_REFERENCE="/path/to/reference-travel-film.mp4"
+```
+
+`VIDEO_CLAW_STUDIO_DIR` lets helper scripts find your default VideoClaw Studio app or project root. `TRAVEL_VIDEO_REFERENCE` is only used when you explicitly run reference analysis.
+
+## Verify
+
+```bash
+python3 -m py_compile ~/.codex/skills/travel-video-studio/scripts/*.py
+python3 ~/.codex/skills/travel-video-studio/scripts/check_project_state.py \
+  --project-dir "$VIDEO_CLAW_STUDIO_DIR"
+```
+
+Use in Codex:
 
 ```text
-SKILL.md                               -> SKILL.md
-references/                            -> references/
-scripts/                               -> scripts/
-```
-
-The helper installer performs that full sync and creates a backup of the existing installed `SKILL.md`:
-
-```bash
-python3 /Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/scripts/install_into_plugin.py
-```
-
-After installation, validate the installed skill:
-
-```bash
-python3 /Users/pengyang/.codex/skills/.system/skill-creator/scripts/quick_validate.py /Users/pengyang/.codex/plugins/cache/personal/travel-video-studio/0.1.0+codex.20260626173111/skills/travel-video-studio
-```
-
-## Local Smoke Tests
-
-Run the visual/audio style audit on known-good segments:
-
-```bash
-python3 /Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/scripts/audit_visual_audio_style.py \
-  --video /Users/pengyang/Pictures/Video-make/video-claw-studio/projects/日本东京大阪行-6c28b7/delivery_packages/20260626_2345_codex_route_quality_v7/v9_fix_inputs/segments/v9_clean_opening_tokyo_title_only.mp4 \
-  --output-dir /Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/opening \
-  --sample-seconds "0,2,7.5" \
-  --visual-manifest /Users/pengyang/Pictures/Video-make/video-claw-studio/projects/日本东京大阪行-6c28b7/delivery_packages/20260626_2345_codex_route_quality_v7/v9_fix_inputs/v9_fix_manifest.json \
-  --require-clean-title
-```
-
-Run it on the 7:04 replacement segment:
-
-```bash
-python3 /Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/scripts/audit_visual_audio_style.py \
-  --video /Users/pengyang/Pictures/Video-make/video-claw-studio/projects/日本东京大阪行-6c28b7/delivery_packages/20260626_2345_codex_route_quality_v7/v9_fix_inputs/segments/v9_replace_vertical_0288_with_landscape_station.mp4 \
-  --output-dir /Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/replacement_704 \
-  --sample-seconds "0,6,14,24"
-```
-
-Run it on the final 20-minute render after the render file exists again:
-
-```bash
-python3 /Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/scripts/audit_visual_audio_style.py \
-  --video <final-render.mp4> \
-  --output-dir <package>/visual_audio_style_audit \
-  --sample-seconds "0,2,8,418.3,424,431.8,444.9,1193" \
-  --visual-manifest <package>/v9_fix_inputs/v9_fix_manifest.json \
-  --bgm-manifest <package>/bgm/v9_bgm_manifest.json \
-  --audio-mode bgm_only \
-  --require-clean-title
+Use $travel-video-studio to inspect /Volumes/TravelDrive/MyTrip.
+Do not modify source media. Build a route-aware DaVinci delivery package
+with BGM-only audio, TXT/SRT captions, scenic bridges, and final V14 QA.
 ```

@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 
 TEST_NAME_HINTS = ("test", "测试", "复盘", "自检", "导演脑")
 VIDEO_EXTS = {".mp4", ".mov", ".m4v", ".mts", ".mxf", ".avi", ".insv"}
+
+
+def default_app_dir() -> Path:
+    """Return the default VideoClaw Studio app directory for the current user."""
+    configured = os.environ.get("VIDEO_CLAW_STUDIO_DIR")
+    if configured:
+        return Path(configured).expanduser()
+    return Path.home() / "Pictures" / "Video-make" / "video-claw-studio"
 
 
 def collect_text_terms(value: Any) -> str:

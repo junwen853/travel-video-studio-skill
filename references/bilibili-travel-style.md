@@ -1,6 +1,6 @@
 # Bilibili Long-Form Travel Style Reference
 
-This file converts user-requested reference creators and the local Malta reference into reusable, non-copying editing rules for the Travel Video Studio skill.
+This file converts user-requested reference creators and an optional local reference film into reusable, non-copying editing rules for the Travel Video Studio skill.
 
 ## Sources To Check
 
@@ -13,7 +13,7 @@ This file converts user-requested reference creators and the local Malta referen
   - https://mixkit.co/free-stock-music/
   - https://mixkit.co/license/#musicFree
 - Pixabay Music is an alternate traceable BGM source when Mixkit does not fit the mood: https://pixabay.com/music/
-- Local pacing reference: `/Users/pengyang/Downloads/马耳他终稿5.16.mp4`
+- Optional local reference film: analyze any user-supplied long-form travel reference with `scripts/analyze_reference_video.py`.
 - User-specified creator reference: `叽叽歪歪的平行世界`
 
 The Bilibili pages may be dynamic or partially inaccessible in headless browsing. Treat them as style references to study visually when available, not as sources to copy.
@@ -148,9 +148,9 @@ Block delivery if the contact sheet shows:
 - sparse subtitles or unreadable text
 - scenic sections that rely on source-camera voice instead of music
 
-## Malta Reference Extraction
+## Local Reference Extraction
 
-For `/Users/pengyang/Downloads/马耳他终稿5.16.mp4`, analyze:
+For any user-supplied long-form local reference film, analyze:
 
 - average shot length and chapter pacing
 - where music changes happen
@@ -161,24 +161,24 @@ For `/Users/pengyang/Downloads/马耳他终稿5.16.mp4`, analyze:
 
 Use those observations as pacing targets, not as assets to copy.
 
-Observed local reference traits from the current analysis pass:
+Observed reusable traits from the V14 training reference pass:
 
 - Duration is about 39.91 minutes, so the pacing target is long-form documentary vlog rather than a compressed recap.
 - The enriched local profile detects about 406 shots at scene threshold `0.35`, with average shot length about 5.9 seconds, median about 3.1 seconds, 19 long shots over 20 seconds, and 190 quick shots under 3 seconds. Treat this as a rhythm reference: varied short connective beats plus occasional breathing shots, not a flat slideshow or a hyper-cut short.
 - The audio profile reports continuous audio with mean volume around `-22.8 dB` and no detected long silence at `-45 dB`/1s, so future no-voiceover cuts still need a continuous BGM/ambience bed instead of empty scenic/title sections.
-- The generated sample-frame worksheet should be visually classified for transport, street, lived-in detail, landmark, food/interior, talking-head/context insert, and scenic breathing shots before claiming a future package matches the Malta direction.
+- The generated sample-frame worksheet should be visually classified for transport, street, lived-in detail, landmark, food/interior, talking-head/context insert, and scenic breathing shots before claiming a future package matches the reference direction.
 - Transport is part of the story: ferry/boat-window views, road footage, car interiors, parking, train/vehicle movement, and arrival moments create route continuity.
 - Human presence matters: car conversations, restaurant/table moments, walking reactions, and occasional direct-to-camera explanation make the travel feel lived-in.
 - The edit mixes scenic payoff with practical travel texture: coastline, streets, museums/signage, food closeups, parking/arrival, night driving, and quiet observational frames.
 - Educational/context inserts can appear, such as flags, maps, museum signs, or historical panels, but they should be integrated as a travel chapter beat rather than dumped as slideshow filler.
 - A 20-minute Japan cut should keep enough breathing room for station/platform/train/street/food/weather details instead of rushing from landmark to landmark.
-- If the user rejects voiceover, the Malta-like feeling should come from subtitles, BGM, scene ordering, and natural ambient texture rather than generated narration.
+- If the user rejects voiceover, the reference-like feeling should come from subtitles, BGM, scene ordering, and natural ambient texture rather than generated narration.
 
-Current generated evidence:
+Expected generated evidence inside each delivery package:
 
 ```text
-/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_analysis.md
-/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_analysis.json
-/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_contact_sheet.jpg
-/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_frame_samples/
+<package>/reference/reference_analysis.md
+<package>/reference/reference_analysis.json
+<package>/reference/reference_contact_sheet.jpg
+<package>/reference/reference_frame_samples/
 ```

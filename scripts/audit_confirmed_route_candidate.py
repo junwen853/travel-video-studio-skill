@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from project_discovery import discover_app_and_project
+    from project_discovery import default_app_dir, discover_app_and_project
 except Exception:  # noqa: BLE001
     discover_app_and_project = None  # type: ignore[assignment]
 

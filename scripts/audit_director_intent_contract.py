@@ -251,9 +251,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
 
     checks: list[dict[str, Any]] = []
 
-    style_reference = Path(
-        "/Users/pengyang/.codex/plugins/cache/personal/travel-video-studio/0.1.0+codex.20260626173111/skills/travel-video-studio/references/bilibili-travel-style.md"
-    )
+    style_reference = Path(__file__).resolve().parents[1] / "references" / "bilibili-travel-style.md"
     style_text = style_reference.read_text(encoding="utf-8", errors="ignore") if style_reference.exists() else ""
     add_check(
         checks,

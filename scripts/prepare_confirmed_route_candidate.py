@@ -9,10 +9,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from project_discovery import discover_project_path
+from project_discovery import default_app_dir, discover_project_path
 
 
-DEFAULT_APP_DIR = Path("/Users/pengyang/Pictures/Video-make/video-claw-studio")
+DEFAULT_APP_DIR = default_app_dir()
 APPLY_DECISIONS = {"confirmed", "corrected", "split", "merge"}
 BLOCKING_DECISIONS = {"pending", "", "rerun_recognition"}
 

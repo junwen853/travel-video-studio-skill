@@ -20,3 +20,10 @@ renders/
 frames/
 ocr_frames/
 sample_frames/
+
+# Local QA evidence can contain private media paths and render locations.
+qa/
+
+# Local environment overrides.
+.env
+.env.*

@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from project_discovery import discover_project_path
+from project_discovery import default_app_dir, discover_project_path
 
 
 DERIVED_TOKENS = ("vlog", "render", "master", "highbitrate", "final", "export", "成片", "终稿", "成稿")

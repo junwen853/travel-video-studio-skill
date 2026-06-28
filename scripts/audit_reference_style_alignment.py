@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -113,6 +114,10 @@ def load_json(path: Path | None) -> Any | None:
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def skill_dir_from_script() -> Path:
+    return Path(__file__).resolve().parents[1]
 
 
 def ffprobe_duration(path: Path | None) -> float:
@@ -280,12 +285,13 @@ def find_subtitle_path(package_dir: Path, blueprint: dict[str, Any]) -> Path | N
 def find_reference_analysis(package_dir: Path, explicit: str | None) -> Path | None:
     if explicit:
         return Path(explicit).expanduser()
+    env_reference = os.environ.get("TRAVEL_VIDEO_REFERENCE_ANALYSIS")
     candidates = [
         package_dir / "reference" / "reference_analysis.json",
         package_dir / "reference" / "reference_analysis.md",
-        Path("/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_analysis.json"),
-        Path("/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_analysis.md"),
     ]
+    if env_reference:
+        candidates.insert(0, Path(env_reference).expanduser())
     return next((path for path in candidates if path.exists()), None)
 
 
@@ -398,8 +404,10 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     cues_per_minute = subtitles / (duration / 60) if duration > 0 else 0.0
     reference_analysis = find_reference_analysis(package_dir, args.reference_analysis)
     reference_evidence = reference_profile_evidence(reference_analysis)
-    style_reference = Path(args.style_reference).expanduser() if args.style_reference else Path(
-        "/Users/pengyang/.codex/plugins/cache/personal/travel-video-studio/0.1.0+codex.20260626173111/skills/travel-video-studio/references/bilibili-travel-style.md"
+    style_reference = (
+        Path(args.style_reference).expanduser()
+        if args.style_reference
+        else skill_dir_from_script() / "references" / "bilibili-travel-style.md"
     )
 
     upstream_statuses = [

@@ -14,10 +14,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from project_discovery import discover_app_and_project
+from project_discovery import default_app_dir, discover_app_and_project
 
 
-DEFAULT_APP_DIR = Path("/Users/pengyang/Pictures/Video-make/video-claw-studio")
+DEFAULT_APP_DIR = default_app_dir()
 
 
 def load_json(path: Path) -> Any:

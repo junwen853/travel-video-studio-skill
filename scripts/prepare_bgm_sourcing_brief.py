@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -260,9 +261,10 @@ def build_brief(package_dir: Path) -> dict[str, Any]:
     package_dir = package_dir.expanduser().resolve()
     delivery = load_json(package_dir / "delivery_plan.json") or {}
     blueprint = load_json(package_dir / "resolve_timeline_blueprint.json") or {}
-    reference = load_json(package_dir / "reference" / "reference_analysis.json") or load_json(
-        Path("/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_analysis.json")
-    ) or {}
+    reference_candidates = [package_dir / "reference" / "reference_analysis.json"]
+    if os.environ.get("TRAVEL_VIDEO_REFERENCE_ANALYSIS"):
+        reference_candidates.append(Path(os.environ["TRAVEL_VIDEO_REFERENCE_ANALYSIS"]).expanduser())
+    reference = next((data for data in (load_json(path) for path in reference_candidates) if isinstance(data, dict)), {})
     title = package_title(package_dir, delivery, blueprint)
     duration = infer_duration(package_dir, blueprint)
     rows = chapter_rows(delivery, title)

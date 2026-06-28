@@ -7,10 +7,10 @@ description: Complete travel video production workflow for Codex plugins. Use wh
 
 ## Operating Rule
 
-Use this skill as a delivery workflow, not just a planning checklist. The default project is:
+Use this skill as a delivery workflow, not just a planning checklist. The default project directory is the user's selected VideoClaw Studio app or project directory. When `--project-dir` is omitted, helper scripts check `VIDEO_CLAW_STUDIO_DIR` first, then fall back to:
 
 ```bash
-/Users/pengyang/Pictures/Video-make/video-claw-studio
+~/Pictures/Video-make/video-claw-studio
 ```
 
 Default to Codex visual inspection plus DaVinci Resolve API editing. Do not pull, install, or depend on local Ollama/7B vision models unless the user explicitly asks for that route. For this user's current workflow, Codex should inspect contact sheets/sampled frames itself, write auditable review notes, and then build or revise the DaVinci timeline directly through the Resolve API.
@@ -22,19 +22,19 @@ After substantial Skill changes, forward-test the Skill against more than one tr
 Start with read-only inspection:
 
 ```bash
-python3 <skill-dir>/scripts/check_project_state.py --project-dir /Users/pengyang/Pictures/Video-make/video-claw-studio
+python3 <skill-dir>/scripts/check_project_state.py --project-dir "$VIDEO_CLAW_STUDIO_DIR"
 ```
 
 Then create or update a 20-minute long-form delivery package:
 
 ```bash
-python3 <skill-dir>/scripts/build_delivery_package.py --project-dir /Users/pengyang/Pictures/Video-make/video-claw-studio --target-duration-minutes 20
+python3 <skill-dir>/scripts/build_delivery_package.py --project-dir "$VIDEO_CLAW_STUDIO_DIR" --target-duration-minutes 20
 ```
 
 For the safe local end-to-end workflow, prefer:
 
 ```bash
-python3 <skill-dir>/scripts/run_delivery_workflow.py --project-dir /Users/pengyang/Pictures/Video-make/video-claw-studio --target-duration-minutes 20
+python3 <skill-dir>/scripts/run_delivery_workflow.py --project-dir "$VIDEO_CLAW_STUDIO_DIR" --target-duration-minutes 20
 ```
 
 This writes `workflow_run_report.json`/`.md`, checks Resolve API reachability, prepares route review when needed, prepares a route decision sheet, dry-runs route decision application, builds or refreshes the package, prepares local title cards, refreshes asset sourcing/enrichment, dry-runs asset sourcing reconciliation, dry-runs the Resolve blueprint, prepares a Resolve apply approval contract, prepares a safe `render_plan.json`, and re-audits delivery readiness. It never writes Resolve, queues render jobs, downloads external assets, applies route/asset decisions, or generates local TTS unless the corresponding explicit flag is passed. Use `--skip-render-plan` only when a package-level render plan is intentionally deferred.
@@ -73,13 +73,13 @@ Use `scripts/enrich_resolve_blueprint.py` after `delivery_plan.json`, `subtitles
 
 Use `scripts/audit_resolve_blueprint.py --blueprint <package>/resolve_timeline_blueprint.json --package-dir <package>` before any Resolve `--apply`. It writes `resolve_blueprint_preflight.json`/`.md` and verifies missing media, source ranges, source-duration bounds, same-track overlaps, V1 coverage gaps, title/place cards, subtitle sidecar, markers, BGM/stock/transition placeholders, and source-audio policy without writing Resolve.
 
-Use `scripts/analyze_reference_video.py` for the local Malta reference film:
+Use `scripts/analyze_reference_video.py` for an optional local reference film:
 
 ```bash
-python3 <skill-dir>/scripts/analyze_reference_video.py --reference /Users/pengyang/Downloads/马耳他终稿5.16.mp4 --output-dir <package>/reference
+python3 <skill-dir>/scripts/analyze_reference_video.py --reference /path/to/reference-travel-film.mp4 --output-dir <package>/reference
 ```
 
-The Malta analysis must be a reusable style profile, not only a contact sheet. It should record duration, frame rate, bitrate, scene-cut pacing, average/median shot length, audio loudness/silence, sampled frame paths with timecodes, and the non-copying usage contract. Use it to calibrate shot rhythm, route texture, BGM/no-voiceover support, subtitle density, and breathing room before judging an edit as Bilibili/Malta-like.
+The local reference analysis must be a reusable style profile, not only a contact sheet. It should record duration, frame rate, bitrate, scene-cut pacing, average/median shot length, audio loudness/silence, sampled frame paths with timecodes, and the non-copying usage contract. Use it to calibrate shot rhythm, route texture, BGM/no-voiceover support, subtitle density, and breathing room before judging an edit as Bilibili/reference-like.
 
 Use `scripts/generate_title_cards.py` after `delivery_plan.json` exists to create cinematic title/place card MP4 assets and inject them into the Resolve blueprint.
 
@@ -336,7 +336,7 @@ If any required item is missing, report the missing item and the next action ins
 6. Read `references/narration-subtitles.md` before writing narration, TTS, or subtitles.
 7. Read `references/music-stock-fonts.md` before searching for BGM, aerials, stock inserts, or fonts.
 8. Read `references/output-contracts.md` when interpreting route/location JSON artifacts.
-9. Run `discover_external_media.py` when an external drive such as `/Volumes/My Passport` is mounted and the source media root is not yet confirmed.
+9. Run `discover_external_media.py` when an external drive such as `/Volumes/<drive-name>` is mounted and the source media root is not yet confirmed.
 10. Run `prepare_external_media_intake.py` before any long-form package build when multiple mounted trip roots or project/media mismatches exist.
 11. Run `run_videoclaw_media_index.py` when the selected project has no media index but mounted media roots are present; use `--apply` only after the dry-run shows the expected source videos.
 12. Run `run_videoclaw_route_pipeline.py` when frame/location/route artifacts are missing; add `--allow-cloud-call` only after the user approves real cloud recognition.
@@ -353,8 +353,8 @@ If any required item is missing, report the missing item and the next action ins
 21. Run `prepare_confirmed_route_candidate.py` after review decisions; then run `audit_confirmed_route_candidate.py` and use `--apply` only after the user approves confirmed route writes and the candidate audit is not blocked.
 22. Run the safe local workflow with `run_delivery_workflow.py` when preparing a package from scratch or refreshing all safe local artifacts.
 23. Build a delivery package with `build_delivery_package.py` when only the package skeleton is needed.
-24. Analyze the Malta reference with `analyze_reference_video.py` when calibrating long-form pacing.
-24a. Reject a stale or shallow Malta reference analysis when it lacks `pacingProfile`, `audioProfile`, at least 12 sampled frames, and a contact sheet; rerun `analyze_reference_video.py` before `audit_reference_style_alignment.py` or `audit_skill_maturity_contract.py`.
+24. Analyze the optional local reference film with `analyze_reference_video.py` when calibrating long-form pacing.
+24a. Reject a stale or shallow local reference analysis when it lacks `pacingProfile`, `audioProfile`, at least 12 sampled frames, and a contact sheet; rerun `analyze_reference_video.py` before `audit_reference_style_alignment.py` or `audit_skill_maturity_contract.py`.
 25. Generate local delivery assets with `prepare_delivery_assets.py`; add `--generate-local-voiceover` only after explicit approval for local TTS.
 26. Use `make_city_aerial_title.py` for opening/city hooks when an approved aerial or establishing clip exists.
 27. Refresh Resolve enrichment with `enrich_resolve_blueprint.py` after title, subtitle, voiceover, BGM, stock, or transition changes.

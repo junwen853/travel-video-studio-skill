@@ -13,6 +13,7 @@ from typing import Any
 from discover_external_media import DEFAULT_TERMS, discover
 from project_discovery import (
     artifact_count,
+    default_app_dir,
     discover_app_and_project,
     infer_region,
     load_json_safe,
@@ -22,7 +23,7 @@ from project_discovery import (
 )
 
 
-DEFAULT_APP_DIR = Path("/Users/pengyang/Pictures/Video-make/video-claw-studio")
+DEFAULT_APP_DIR = default_app_dir()
 
 
 def normalize_path(value: str | Path) -> str:

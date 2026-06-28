@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import statistics
 from datetime import datetime
@@ -206,10 +207,12 @@ def video_clips(blueprint: dict[str, Any]) -> list[dict[str, Any]]:
 def find_reference_analysis(package_dir: Path, explicit: str | None) -> Path | None:
     if explicit:
         return Path(explicit).expanduser().resolve()
+    env_reference = os.environ.get("TRAVEL_VIDEO_REFERENCE_ANALYSIS")
     candidates = [
         package_dir / "reference" / "reference_analysis.json",
-        Path("/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_analysis.json"),
     ]
+    if env_reference:
+        candidates.insert(0, Path(env_reference).expanduser())
     return next((path.resolve() for path in candidates if path.exists()), None)
 
 

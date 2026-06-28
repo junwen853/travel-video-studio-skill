@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -95,7 +96,7 @@ REQUIRED_SKILL_PATTERNS = {
 REQUIRED_STYLE_PATTERNS = {
     "ysjf_anchor": "space.bilibili.com/946974",
     "parallel_world_anchor": "space.bilibili.com/405004967",
-    "malta_reference": "马耳他终稿5.16.mp4",
+    "local_reference_profile": "local reference film",
     "mixkit_music": "mixkit.co/free-stock-music",
     "non_copying": "not as assets to copy",
 }
@@ -125,12 +126,13 @@ def text_contains(path: Path, patterns: dict[str, str]) -> tuple[dict[str, bool]
 
 
 def find_reference_analysis(package_dir: Path) -> Path | None:
+    env_reference = os.environ.get("TRAVEL_VIDEO_REFERENCE_ANALYSIS")
     candidates = [
         package_dir / "reference" / "reference_analysis.json",
         package_dir / "reference" / "reference_analysis.md",
-        Path("/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_analysis.json"),
-        Path("/Users/pengyang/Documents/videomake/travel-video-studio-skill-upgrade/qa/malta_reference/reference_analysis.md"),
     ]
+    if env_reference:
+        candidates.insert(0, Path(env_reference).expanduser())
     return next((path for path in candidates if path.exists()), None)
 
 
