@@ -11,6 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from audience_text_policy import audience_safe_lines, audience_text_violations, file_violations
+
 
 SRT_TIME_RE = re.compile(
     r"(?P<start>\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(?P<end>\d{2}:\d{2}:\d{2}[,.]\d{3})"
@@ -331,23 +333,11 @@ def title_zone_policy(blueprint: dict[str, Any], cues: list[dict[str, Any]]) -> 
 
 
 def write_text_export(path: Path, plan: dict[str, Any], cues: list[dict[str, Any]], source_text: str) -> None:
-    lines = [
-        "Travel Video Text-Only Narration And Caption Export",
-        "",
-        f"Package: {plan['packageDir']}",
-        f"Created: {plan['createdAt']}",
-        "",
-        "Policy:",
-        "- No generated voiceover audio unless the user explicitly approves it.",
-        "- Use this TXT with the SRT as the narration/caption source for a no-voiceover travel cut.",
-        "- Scenic, title, and transition sections remain BGM-led; subtitles stay out of title zones when rendered.",
-        "",
-    ]
+    raw_lines: list[str] = []
     if source_text.strip():
-        lines.extend(["Source narration text:", "", source_text.strip(), ""])
-    lines.extend(["Caption cues:", ""])
-    for idx, cue in enumerate(cues, start=1):
-        lines.append(f"{idx:03d} [{seconds_to_srt_time(cue['start'])} -> {seconds_to_srt_time(cue['end'])}] {cue['text']}")
+        raw_lines.extend(line.strip() for line in source_text.splitlines() if line.strip())
+    raw_lines.extend(str(cue["text"]) for cue in cues)
+    lines = audience_safe_lines(raw_lines)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
@@ -374,6 +364,11 @@ def build_plan(package_dir: Path, args: argparse.Namespace, output_dir: Path) ->
     title_policy = title_zone_policy(blueprint, cues)
     source_text_path, source_text = source_narration_text(package_dir)
     text_export_path = output_dir / "text_only_narration_export.txt"
+    cue_violations = []
+    for idx, cue in enumerate(cues, start=1):
+        for violation in audience_text_violations(cue.get("text")):
+            cue_violations.append({"cueIndex": idx, **violation})
+    source_text_violations = file_violations(source_text_path) if source_text_path else []
 
     chapter_rows: list[dict[str, Any]] = []
     for chapter in chapters:
@@ -416,6 +411,8 @@ def build_plan(package_dir: Path, args: argparse.Namespace, output_dir: Path) ->
         and title_policy["zoneCount"] >= 1
         else "needs_caption_expansion"
     )
+    if cue_violations or source_text_violations:
+        status = "blocked_editor_facing_caption_text"
 
     plan = {
         "createdAt": datetime.now().isoformat(timespec="seconds"),
@@ -448,8 +445,10 @@ def build_plan(package_dir: Path, args: argparse.Namespace, output_dir: Path) ->
             "renderedCueCount": rendered_policy.get("renderedCueCount"),
             "subtitleMode": rendered_policy.get("mode"),
             "textOnlyNarrationExport": str(text_export_path),
+            "audienceTextViolationCount": len(cue_violations) + len(source_text_violations),
         },
         "policy": {
+            "audienceFacingOnly": True,
             "voiceoverAudioAllowedByDefault": False,
             "ttsRequiresExplicitApproval": True,
             "outputTxtRequired": True,
@@ -458,6 +457,12 @@ def build_plan(package_dir: Path, args: argparse.Namespace, output_dir: Path) ->
             "titleZoneSuppressionRequired": True,
             "audioMode": "bgm_only_no_camera_voice",
             "captionRole": "Captions carry route, emotion, honesty, and lived-in detail when voiceover is rejected.",
+            "forbiddenCaptionMode": "Do not report edits, fixes, exports, QA, tools, versions, or delivery state to the user inside final captions.",
+        },
+        "audienceTextPolicy": {
+            "status": "passed" if not cue_violations and not source_text_violations else "blocked",
+            "cueViolations": cue_violations[:50],
+            "sourceTextViolations": source_text_violations[:50],
         },
         "titleZonePolicy": title_policy,
         "gapStats": gap_stats,
@@ -470,8 +475,10 @@ def build_plan(package_dir: Path, args: argparse.Namespace, output_dir: Path) ->
                 "A text-only narration export exists so no generated voiceover is needed by default.",
                 "Rendered subtitles are delivered through verified overlay/native/burned-in mode, with title-zone suppression.",
                 "Lines remain concise enough for mobile reading and do not fight BGM-led scenic sections.",
+                "All visible subtitles and TXT narration read as audience-facing travel-film text, not editor status reports.",
             ],
             "reject": [
+                "Captions say what was edited, fixed, removed, exported, rendered, QA-checked, or delivered.",
                 "The package depends on voiceover audio after the user rejected voiceover.",
                 "Subtitle density falls below the target or leaves long empty stretches in a no-voiceover cut.",
                 "Opening/chapter/ending title zones are covered by subtitle overlays.",

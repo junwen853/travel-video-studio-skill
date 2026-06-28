@@ -20,6 +20,7 @@ ACCEPTED_STATUSES = {
     "client_delivery_rules_audit": {"passed", "passed_with_warnings"},
     "longform_delivery_audit": {"passed", "passed_with_caveats", "passed_with_warnings"},
     "story_style_contract_audit": {"passed"},
+    "audience_caption_contract_audit": {"passed"},
     "title_bridge_contract_audit": {"passed", "passed_with_warnings"},
     "reference_style_alignment_audit": {"passed"},
     "director_intent_contract_audit": {"passed", "passed_with_warnings"},
@@ -287,6 +288,11 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                     "--min-video-bitrate-mbps",
                     str(args.min_video_bitrate_mbps),
                 ],
+                False,
+            ),
+            (
+                "audience_caption_contract_audit",
+                [sys.executable, str(scripts / "audit_audience_caption_contract.py"), "--package-dir", str(package_dir)],
                 False,
             ),
             (

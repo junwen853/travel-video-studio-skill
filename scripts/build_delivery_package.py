@@ -14,6 +14,7 @@ from build_asset_ledger import aerial_items, bgm_items, font_items, write_markdo
 from enrich_resolve_blueprint import apply_enrichment_to_blueprint, build_enrichment
 from prepare_asset_sourcing_packet import build_packet as build_asset_sourcing_packet
 from prepare_asset_sourcing_packet import write_packet_outputs as write_asset_sourcing_packet_outputs
+from audience_text_policy import audience_safe_lines, clean_audience_text, is_audience_safe_text
 from project_discovery import default_app_dir, discover_project_path
 
 
@@ -149,8 +150,8 @@ def route_chapters(route: dict[str, Any] | None, media_index: dict[str, Any] | N
             out.append(
                 {
                     "index": 1,
-                    "chapter": "素材整理",
-                    "place": "unknown",
+                    "chapter": "旅程开始",
+                    "place": "待确认的第一站",
                     "city": "",
                     "country": "",
                     "confidence": None,
@@ -267,30 +268,30 @@ def narration_lines(project: dict[str, Any] | None, chapters: list[dict[str, Any
         first = chapters[0]["place"]
         last = chapters[-1]["place"]
         lines = [
-            f"{title}不是一分钟的打卡视频，而是一条接近{int(target_minutes)}分钟的旅行长片。",
-            f"我们从{first}开始，把零散素材重新排成一条能被看懂、也能被感受到的路线。",
+            f"{title}，从{first}慢慢展开。",
+            f"车站、街角和路上的停顿，会把这条路线一点点带向{last}。",
         ]
     else:
-        lines = [f"{title}，先把素材整理清楚，再从画面线索里找回这趟旅行的路线。"]
+        lines = [f"{title}，先从眼前的街景、声音和移动方向开始。"]
     for idx, chapter in enumerate(chapters, 1):
         place = chapter["place"]
         if chapter.get("needsHumanReview"):
-            lines.append(f"第{idx}站，画面线索暂时指向{place}。这里不要急着下结论，先把招牌、街景和路线关系留给观众判断。")
+            lines.append(f"来到{place}，只说画面里能确认的线索，把不确定留在路上。")
         elif chapter.get("isTransit"):
-            lines.append(f"从上一站到{place}，交通和等待不是废镜头，它们负责把时间真正带过去。")
+            lines.append(f"去往{place}的路上，交通和等待也在记录时间。")
         else:
-            lines.append(f"来到{place}，节奏可以慢下来。不要只拍地标，也要保留街角、声音、路人的方向和同行人的反应。")
+            lines.append(f"来到{place}，节奏可以慢下来，看看街角、声音、光线和人的方向。")
         if idx < len(chapters):
             next_place = chapters[idx]["place"]
-            lines.append(f"转向{next_place}之前，用一段街头风景、车站、车窗或者地图线条，让第一天和下一段自然接上。")
+            lines.append(f"去往{next_place}之前，让车窗、站台或者一段街景先换一口气。")
     if chapters:
-        lines.append(f"最后回看这条路线，重要的不是证明去过多少地方，而是这些镜头为什么最后停在了{last}。")
-    return lines
+        lines.append(f"最后回到{last}，这趟路留下来的不只是地点，还有一路慢慢变化的心情。")
+    return audience_safe_lines(lines)
 
 
 def split_subtitle_text(line: str, max_len: int = 24) -> list[str]:
-    line = re.sub(r"\s+", "", line.strip())
-    if not line:
+    line = clean_audience_text(line)
+    if not line or not is_audience_safe_text(line):
         return []
     parts = re.split(r"([，。！？；、])", line)
     merged: list[str] = []

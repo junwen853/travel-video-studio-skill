@@ -48,6 +48,8 @@ If a high-quality commercial TTS is required, create a provider-specific request
 ## Subtitle Rules
 
 - Generate SRT even if timing is approximate.
+- Write every final subtitle and TXT narration line for the audience, not for the editor or user. The viewer should see travel-film narration, route context, emotion, visual observation, or honest uncertainty.
+- Never use final captions to report workflow state, such as "本次剪辑完成", "已经修复竖屏", "去掉了口播", "已通过 QA", "V14", "交付包", "DaVinci", "Resolve", "Codex", "SRT", "TXT", "A1/A2/A3", or "BGM-only".
 - Keep each subtitle short enough for mobile reading.
 - Use punctuation to create natural pauses.
 - After audio is produced, retime subtitles by actual audio duration or ASR alignment.
@@ -60,9 +62,10 @@ Run:
 
 ```bash
 python3 <skill-dir>/scripts/prepare_caption_story_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/audit_audience_caption_contract.py --package-dir <package>
 ```
 
-This plan must exist before subtitle overlay generation or maturity claims. It writes `caption_story_plan/caption_story_plan.json`, `.md`, and `text_only_narration_export.txt`. The plan records full-film and per-chapter cue targets, actual cue count, cues/minute, longest subtitle gap, title-zone suppression policy, no-voiceover/TXT/SRT policy, caption functions, rewrite decision fields, and a pass/reject rubric. If it reports `needs_caption_expansion`, add cues or rewrite the SRT/TXT before rendering.
+This plan and audit must exist before subtitle overlay generation or maturity claims. The plan writes `caption_story_plan/caption_story_plan.json`, `.md`, and `text_only_narration_export.txt`. The TXT export must contain only audience-facing narration/caption lines, not package metadata or policy notes. The plan records full-film and per-chapter cue targets, actual cue count, cues/minute, longest subtitle gap, title-zone suppression policy, no-voiceover/TXT/SRT policy, caption functions, rewrite decision fields, and a pass/reject rubric. If it reports `needs_caption_expansion` or `blocked_editor_facing_caption_text`, add or rewrite the SRT/TXT before rendering.
 
 ## Audio QA
 
