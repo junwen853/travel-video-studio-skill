@@ -53,6 +53,7 @@ REQUIRED_SCRIPTS = {
         "prepare_transition_grammar_plan.py",
         "prepare_transition_execution_plan.py",
         "prepare_transition_motif_plan.py",
+        "prepare_bridge_sequence_plan.py",
         "prepare_reference_style_repair_plan.py",
         "prepare_rhythm_recut_blueprint.py",
         "prepare_rhythm_recut_apply_package.py",
@@ -100,6 +101,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
     "transition_execution_plan_rule": "prepare_transition_execution_plan.py",
     "transition_motif_plan_rule": "prepare_transition_motif_plan.py",
+    "bridge_sequence_plan_rule": "prepare_bridge_sequence_plan.py",
     "reference_style_repair_plan_rule": "prepare_reference_style_repair_plan.py",
     "rhythm_recut_blueprint_rule": "prepare_rhythm_recut_blueprint.py",
     "rhythm_recut_apply_package_rule": "prepare_rhythm_recut_apply_package.py",
@@ -120,6 +122,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
     "transition_execution_engine_rule": "transition-execution-engine.md",
     "transition_motif_engine_rule": "transition-motif-engine.md",
+    "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
     "reference_style_repair_engine_rule": "reference-style-repair-engine.md",
 }
 
@@ -134,6 +137,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_grammar_engine": "transition-grammar-engine.md",
     "transition_execution_engine": "transition-execution-engine.md",
     "transition_motif_engine": "transition-motif-engine.md",
+    "bridge_sequence_engine": "bridge-sequence-engine.md",
     "reference_style_repair_engine": "reference-style-repair-engine.md",
     "opening_story_engine": "opening-story-engine.md",
     "full_timeline_review": "full-film timeline strips",
@@ -154,6 +158,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "opening_route_promise": "viewer promise, destination proof",
     "transition_execution_plan": "transition execution plan",
     "transition_motif_plan": "transition motif plan",
+    "bridge_sequence_plan": "bridge sequence plan",
     "reference_style_repair_plan": "reference style repair plan",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
@@ -2112,6 +2117,157 @@ def transition_motif_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def bridge_sequence_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("sequenceRows") if isinstance(data.get("sequenceRows"), list) else []
+    repairs = data.get("repairRows") if isinstance(data.get("repairRows"), list) else []
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    decision_fields = {
+        "approvedSequenceType",
+        "selectedBeatClipPaths",
+        "bridgeBeatTimelinePlacement",
+        "bgmPhraseMap",
+        "captionSuppressionWindows",
+        "resolveBlueprintUpdate",
+        "timelineReadbackEvidence",
+        "frameSampleEvidence",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    repair_decision_fields = {
+        "acceptedRepair",
+        "repairAppliedAt",
+        "postRepairArtifact",
+        "postRepairAudit",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    rows_with_decision_fields = 0
+    rows_with_two_to_five_beats = 0
+    rows_with_bgm = 0
+    rows_title_safe = 0
+    rows_with_all_candidates = 0
+    beat_count_by_row = 0
+    beats_with_candidates = 0
+    repair_rows_with_owner = 0
+    repair_rows_with_decisions = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        beats = row.get("requiredBeats") if isinstance(row.get("requiredBeats"), list) else []
+        if 2 <= len(beats) <= 5:
+            rows_with_two_to_five_beats += 1
+        beat_count_by_row += len(beats)
+        candidate_count = 0
+        for beat in beats:
+            if isinstance(beat, dict) and beat.get("localCandidateEvidence"):
+                candidate_count += 1
+        beats_with_candidates += candidate_count
+        if beats and candidate_count == len(beats):
+            rows_with_all_candidates += 1
+        if row.get("bgmPhraseCue"):
+            rows_with_bgm += 1
+        if row.get("titleZoneSafe"):
+            rows_title_safe += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+    for row in repairs:
+        if not isinstance(row, dict):
+            continue
+        if row.get("ownerScript") and row.get("requiredArtifact") and row.get("acceptanceEvidence"):
+            repair_rows_with_owner += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if repair_decision_fields.issubset(set(decision)):
+            repair_rows_with_decisions += 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "sequenceRowCount": summary.get("sequenceRowCount"),
+        "rowsReadyWithSequence": summary.get("rowsReadyWithSequence"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "totalRequiredBeatCount": summary.get("totalRequiredBeatCount"),
+        "requiredBeatsWithLocalCandidates": summary.get("requiredBeatsWithLocalCandidates"),
+        "rowsWithAllRequiredBeatCandidates": summary.get("rowsWithAllRequiredBeatCandidates"),
+        "missingBeatRowCount": summary.get("missingBeatRowCount"),
+        "rowsWithBgmPhraseCue": summary.get("rowsWithBgmPhraseCue"),
+        "titleBoundaryRowsSafe": summary.get("titleBoundaryRowsSafe"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "rowCount": len(rows),
+        "repairRows": len(repairs),
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithTwoToFiveBeatsByRow": rows_with_two_to_five_beats,
+        "totalRequiredBeatCountByRow": beat_count_by_row,
+        "requiredBeatsWithLocalCandidatesByRow": beats_with_candidates,
+        "rowsWithAllCandidatesByRow": rows_with_all_candidates,
+        "rowsWithBgmByRow": rows_with_bgm,
+        "titleRowsSafeByRow": rows_title_safe,
+        "repairRowsWithOwner": repair_rows_with_owner,
+        "repairRowsWithDecisionFields": repair_rows_with_decisions,
+        "multiShotBridgeSequencesRequired": policy.get("multiShotBridgeSequencesRequired"),
+        "twoToFiveBeatBridgeShape": policy.get("twoToFiveBeatBridgeShape"),
+        "localFootageFirst": policy.get("localFootageFirst"),
+        "effectIsLastMileOnly": policy.get("effectIsLastMileOnly"),
+        "bgmPhraseCueRequired": policy.get("bgmPhraseCueRequired"),
+        "titleZoneSafetyRequired": policy.get("titleZoneSafetyRequired"),
+        "noBlackCardHardJump": policy.get("noBlackCardHardJump"),
+        "noRandomTransitionEffectAsBridge": policy.get("noRandomTransitionEffectAsBridge"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def bridge_sequence_plan_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("sequenceRowCount") or 0)
+    repair_count = int(evidence.get("repairRowCount") or 0)
+    missing_rows = int(evidence.get("missingBeatRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_bridge_sequence_plan"
+        and row_count >= 3
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithTwoToFiveBeatsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithBgmPhraseCue") or 0) == row_count
+        and int(evidence.get("rowsWithBgmByRow") or 0) == row_count
+        and int(evidence.get("titleBoundaryRowsSafe") or 0) == row_count
+        and int(evidence.get("titleRowsSafeByRow") or 0) == row_count
+        and int(evidence.get("totalRequiredBeatCount") or 0) == int(evidence.get("totalRequiredBeatCountByRow") or 0)
+        and int(evidence.get("requiredBeatsWithLocalCandidates") or 0) == int(evidence.get("requiredBeatsWithLocalCandidatesByRow") or 0)
+        and int(evidence.get("rowsWithAllRequiredBeatCandidates") or 0) == int(evidence.get("rowsWithAllCandidatesByRow") or 0)
+        and repair_count >= missing_rows
+        and int(evidence.get("repairRows") or 0) == repair_count
+        and int(evidence.get("repairRowsWithOwner") or 0) == repair_count
+        and int(evidence.get("repairRowsWithDecisionFields") or 0) == repair_count
+        and evidence.get("multiShotBridgeSequencesRequired") is True
+        and evidence.get("twoToFiveBeatBridgeShape") is True
+        and evidence.get("localFootageFirst") is True
+        and evidence.get("effectIsLastMileOnly") is True
+        and evidence.get("bgmPhraseCueRequired") is True
+        and evidence.get("titleZoneSafetyRequired") is True
+        and evidence.get("noBlackCardHardJump") is True
+        and evidence.get("noRandomTransitionEffectAsBridge") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def reference_style_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json"
     data = load_json(path) or {}
@@ -2629,6 +2785,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition motif plan prevents repeated dissolve chains, random motion effects, and effects hiding weak route jumps",
         transition_motif_plan_ready(transition_motif_evidence),
         transition_motif_evidence,
+    )
+    bridge_sequence_evidence = bridge_sequence_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Bridge sequence plan turns important transitions into 2-5 shot route/title bridge sequences instead of single effects",
+        bridge_sequence_plan_ready(bridge_sequence_evidence),
+        bridge_sequence_evidence,
     )
     reference_repair_evidence = reference_style_repair_plan_evidence(package_dir)
     add_check(

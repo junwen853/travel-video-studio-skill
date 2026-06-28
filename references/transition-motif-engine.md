@@ -19,12 +19,15 @@ This layer prevents a technically valid transition plan from becoming a generic 
 
 ```bash
 python3 <skill-dir>/scripts/prepare_transition_motif_plan.py --package-dir <package> --json
+python3 <skill-dir>/scripts/prepare_bridge_sequence_plan.py --package-dir <package> --json
 ```
 
 Outputs:
 
 - `<package>/transition_motif_plan/transition_motif_plan.json`
 - `<package>/transition_motif_plan/transition_motif_plan.md`
+- `<package>/bridge_sequence_plan/bridge_sequence_plan.json`
+- `<package>/bridge_sequence_plan/bridge_sequence_plan.md`
 
 ## Inputs
 
@@ -61,6 +64,7 @@ Pass:
 - motion motifs cite route/bridge/two-sided motion evidence
 - bridge or motion failures create owner-script repair rows
 - repeated style runs are detected and either repaired or explicitly justified
+- important route/title/timeline-gap transitions are handed to `bridge_sequence_plan` so a single effect does not replace real connective footage
 
 Reject:
 

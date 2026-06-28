@@ -442,6 +442,26 @@ def summarize_transition_motif_plan(plan: dict[str, Any] | None) -> dict[str, An
     }
 
 
+def summarize_bridge_sequence_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "sequenceRowCount": summary.get("sequenceRowCount"),
+        "rowsReadyWithSequence": summary.get("rowsReadyWithSequence"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "totalRequiredBeatCount": summary.get("totalRequiredBeatCount"),
+        "requiredBeatsWithLocalCandidates": summary.get("requiredBeatsWithLocalCandidates"),
+        "rowsWithAllRequiredBeatCandidates": summary.get("rowsWithAllRequiredBeatCandidates"),
+        "missingBeatRowCount": summary.get("missingBeatRowCount"),
+        "rowsWithBgmPhraseCue": summary.get("rowsWithBgmPhraseCue"),
+        "titleBoundaryRowsSafe": summary.get("titleBoundaryRowsSafe"),
+        "repairRowCount": summary.get("repairRowCount"),
+    }
+
+
 def summarize_rhythm_recut_blueprint(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -1159,6 +1179,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_motif_cmd = ["python3", str(SCRIPTS_DIR / "prepare_transition_motif_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_transition_motif_plan", transition_motif_cmd, ok_codes={0, 2}))
 
+    bridge_sequence_cmd = ["python3", str(SCRIPTS_DIR / "prepare_bridge_sequence_plan.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("prepare_bridge_sequence_plan", bridge_sequence_cmd, ok_codes={0, 2}))
+
     rhythm_recut_cmd = ["python3", str(SCRIPTS_DIR / "prepare_rhythm_recut_blueprint.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_rhythm_recut_blueprint", rhythm_recut_cmd))
 
@@ -1242,6 +1265,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_grammar_summary = None
     transition_execution_summary = None
     transition_motif_summary = None
+    bridge_sequence_summary = None
     rhythm_recut_summary = None
     reference_style_repair_summary = None
     rhythm_recut_apply_summary = None
@@ -1321,6 +1345,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             transition_execution_summary = summarize_transition_execution_plan(payload)
         if step["id"] == "prepare_transition_motif_plan":
             transition_motif_summary = summarize_transition_motif_plan(payload)
+        if step["id"] == "prepare_bridge_sequence_plan":
+            bridge_sequence_summary = summarize_bridge_sequence_plan(payload)
         if step["id"] == "prepare_rhythm_recut_blueprint":
             rhythm_recut_summary = summarize_rhythm_recut_blueprint(payload)
         if step["id"] == "prepare_reference_style_repair_plan":
@@ -1421,6 +1447,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_motif_summary = summarize_transition_motif_plan(
             load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json")
         )
+    if package_dir and (package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json").exists():
+        bridge_sequence_summary = summarize_bridge_sequence_plan(
+            load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json")
+        )
     if package_dir and (package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json").exists():
         rhythm_recut_summary = summarize_rhythm_recut_blueprint(
             load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json")
@@ -1486,6 +1516,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionGrammarSummary": transition_grammar_summary,
         "transitionExecutionSummary": transition_execution_summary,
         "transitionMotifSummary": transition_motif_summary,
+        "bridgeSequenceSummary": bridge_sequence_summary,
         "rhythmRecutBlueprintSummary": rhythm_recut_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
@@ -1523,6 +1554,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",
             "Review transition_grammar_plan.json and transition_execution_plan.json before Resolve apply so every adjacent pair has an approved, source-backed execution recipe.",
             "Review transition_motif_plan.json before Resolve apply so the film does not rely on repeated dissolves, random motion, or effects hiding weak route jumps.",
+            "Review bridge_sequence_plan.json before rhythm recut or Resolve apply so important route/title/timeline-gap transitions become 2-5 shot bridge sequences instead of single effects.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "Review reference_style_repair_plan.json so blocked reference/director/QA gaps become executable repair rows before another Resolve write.",
             "When the rhythm recut candidate is approved, generate/review the rhythm recut apply package before any Resolve write.",

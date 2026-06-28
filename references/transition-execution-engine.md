@@ -20,6 +20,7 @@ Run this after `prepare_transition_grammar_plan.py` and before rhythm recut, Res
 ```bash
 python3 <skill-dir>/scripts/prepare_transition_execution_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_transition_motif_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/prepare_bridge_sequence_plan.py --package-dir <package>
 ```
 
 The script writes:
@@ -28,6 +29,8 @@ The script writes:
 - `transition_execution_plan/transition_execution_plan.md`
 - `transition_motif_plan/transition_motif_plan.json`
 - `transition_motif_plan/transition_motif_plan.md`
+- `bridge_sequence_plan/bridge_sequence_plan.json`
+- `bridge_sequence_plan/bridge_sequence_plan.md`
 
 These scripts do not write Resolve, queue renders, download assets, or modify source footage.
 
@@ -77,3 +80,4 @@ Before Resolve apply:
 - scenic/title/transition rows stay BGM-only
 - approved recipes are copied into the Resolve blueprint or apply contract only after title, BGM, and bridge safety pass
 - the transition motif plan proves the whole chain is not just repeated dissolves, random motion effects, or effects hiding weak route jumps
+- the bridge sequence plan proves important route/title/timeline-gap transitions become 2-5 shot bridge beats instead of one effect hiding a missing travel bridge

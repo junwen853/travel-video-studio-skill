@@ -28,6 +28,7 @@ SKILL_PATTERNS = {
     "transition_grammar": "prepare_transition_grammar_plan.py",
     "transition_execution": "prepare_transition_execution_plan.py",
     "transition_motif": "prepare_transition_motif_plan.py",
+    "bridge_sequence": "prepare_bridge_sequence_plan.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "route_texture": "audit_route_texture_contract.py",
     "final_qa": "run_final_qa_suite.py",
@@ -61,6 +62,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_grammar_plan.py",
     "prepare_transition_execution_plan.py",
     "prepare_transition_motif_plan.py",
+    "prepare_bridge_sequence_plan.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_style_alignment.py",
     "audit_route_texture_contract.py",
@@ -163,6 +165,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
     transition_execution = load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json") or {}
     transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
+    bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
     route_texture = load_json(package_dir / "route_texture_contract_audit.json") or {}
@@ -398,6 +401,24 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         },
     )
 
+    bridge_sequence_summary = get_summary(bridge_sequence)
+    bridge_sequence_rows = int(bridge_sequence_summary.get("sequenceRowCount") or 0)
+    add_check(
+        checks,
+        "Bridge sequence plan turns important transitions into 2-5 shot route/title bridge sequences",
+        bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
+        and bridge_sequence_rows >= 3
+        and int(bridge_sequence_summary.get("rowsWithDecisionFields") or 0) == bridge_sequence_rows
+        and int(bridge_sequence_summary.get("totalRequiredBeatCount") or 0) >= bridge_sequence_rows * 2
+        and int(bridge_sequence_summary.get("rowsWithBgmPhraseCue") or 0) == bridge_sequence_rows
+        and int(bridge_sequence_summary.get("titleBoundaryRowsSafe") or 0) == bridge_sequence_rows
+        and int(bridge_sequence_summary.get("repairRowCount") or 0) >= int(bridge_sequence_summary.get("missingBeatRowCount") or 0),
+        {
+            "bridgeSequenceStatus": bridge_sequence.get("status"),
+            "bridgeSequenceSummary": bridge_sequence_summary,
+        },
+    )
+
     rhythm_summary = get_summary(rhythm)
     footage_select_summary = get_summary(footage_select)
     chapter_arc_summary = get_summary(chapter_arc)
@@ -423,6 +444,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_grammar.get("status") == "ready_with_transition_grammar_plan"
         and transition_execution.get("status") == "ready_with_transition_execution_plan"
         and transition_motif.get("status") == "ready_with_transition_motif_plan"
+        and bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
         and int(route_summary.get("matchedTransitions") or 0) >= 1
@@ -450,6 +472,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionExecutionSummary": transition_execution_summary,
             "transitionMotifStatus": transition_motif.get("status"),
             "transitionMotifSummary": transition_motif_summary,
+            "bridgeSequenceStatus": bridge_sequence.get("status"),
+            "bridgeSequenceSummary": bridge_sequence_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
         },
