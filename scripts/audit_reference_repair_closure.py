@@ -47,6 +47,7 @@ POST_AUDIT_BY_AREA = {
     "longform_structure": ("longform_delivery_audit.json", "reference_style_alignment_audit.json"),
     "route_arc": ("director_intent_contract_audit.json", "location_truth_contract_audit.json"),
     "route_bridges": (
+        "transition_quality_contract_audit.json",
         "transition_polish_blueprint/transition_polish_blueprint_report.json",
         "transition_execution_blueprint/transition_execution_blueprint_report.json",
         "transition_bridge_plan/transition_bridge_plan.json",
@@ -106,7 +107,19 @@ def contains_readback_or_frame_evidence(value: Any, depth: int = 0) -> bool:
     if isinstance(value, dict):
         for key, item in value.items():
             lowered = str(key).lower()
-            if any(token in lowered for token in ("readback", "frame", "sample", "contactsheet", "contact_sheet", "screenshot")):
+            evidence_key = (
+                "readback" in lowered
+                or "framesample" in lowered
+                or "frame_sample" in lowered
+                or "sampleframe" in lowered
+                or "sample_frame" in lowered
+                or "renderframe" in lowered
+                or "render_frame" in lowered
+                or "contactsheet" in lowered
+                or "contact_sheet" in lowered
+                or "screenshot" in lowered
+            )
+            if evidence_key and "keyframe" not in lowered:
                 if item not in (None, "", [], {}):
                     return True
             if contains_readback_or_frame_evidence(item, depth + 1):

@@ -42,11 +42,20 @@ Reject or mark repair-needed if:
 - `transition_polish_blueprint/resolve_timeline_blueprint_transition_polish.json`
 - `transition_polish_blueprint/transition_polish_blueprint_report.json`
 - `transition_polish_blueprint/transition_polish_blueprint_report.md`
+- `transition_quality_contract_audit.json`
+- `transition_quality_contract_audit.md`
 
 Before Resolve apply, run:
 
 ```bash
+python3 <skill-dir>/scripts/audit_transition_quality_contract.py \
+  --package-dir <package>
+
 python3 <skill-dir>/scripts/audit_resolve_blueprint.py \
   --blueprint <package>/transition_polish_blueprint/resolve_timeline_blueprint_transition_polish.json \
   --package-dir <package>
 ```
+
+## Transition Quality Contract
+
+The quality audit must pass before a final-quality claim. It checks that the best available transition-polish candidate covers every adjacent visual boundary, carries BGM-hit timing, suppresses title/subtitle collisions, keeps BGM-only audio policy, requires motion evidence for whip/rotation/speed-ramp effects, rejects template/glitch/flash/shake styles, and blocks repeated decorative-effect chains.

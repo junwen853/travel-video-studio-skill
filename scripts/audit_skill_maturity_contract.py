@@ -39,6 +39,7 @@ REQUIRED_SCRIPTS = {
         "prepare_bgm_selection_package.py",
         "prepare_bgm_phrase_blueprint.py",
         "prepare_transition_polish_blueprint.py",
+        "audit_transition_quality_contract.py",
         "prepare_transition_bridge_plan.py",
         "prepare_caption_story_plan.py",
         "audit_audience_caption_contract.py",
@@ -91,6 +92,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bgm_selection_package_rule": "prepare_bgm_selection_package.py",
     "bgm_phrase_blueprint_rule": "prepare_bgm_phrase_blueprint.py",
     "transition_polish_blueprint_rule": "prepare_transition_polish_blueprint.py",
+    "transition_quality_contract_rule": "audit_transition_quality_contract.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
     "caption_story_plan_rule": "prepare_caption_story_plan.py",
     "audience_caption_contract_rule": "audience-facing travel-film text",
@@ -182,6 +184,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_execution_blueprint": "transition execution blueprint",
     "bgm_phrase_blueprint": "BGM phrase blueprint",
     "transition_polish_blueprint": "transition polish blueprint",
+    "transition_quality_contract": "transition quality contract",
     "transition_motif_plan": "transition motif plan",
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
@@ -3292,6 +3295,75 @@ def transition_polish_blueprint_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_quality_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_quality_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "transitionCoverageRatio": summary.get("transitionCoverageRatio"),
+        "rowsWithBgmHit": summary.get("rowsWithBgmHit"),
+        "rowsTitleSafe": summary.get("rowsTitleSafe"),
+        "rowsWithKeyframesOrCleanCut": summary.get("rowsWithKeyframesOrCleanCut"),
+        "bgmOnlyAudioRows": summary.get("bgmOnlyAudioRows"),
+        "motionRowCount": summary.get("motionRowCount"),
+        "motionRowsWithEvidence": summary.get("motionRowsWithEvidence"),
+        "craftedTransitionCount": summary.get("craftedTransitionCount"),
+        "minimumCraftedTransitionCount": summary.get("minimumCraftedTransitionCount"),
+        "bridgeRequiredRows": summary.get("bridgeRequiredRows"),
+        "bridgeSatisfiedRows": summary.get("bridgeSatisfiedRows"),
+        "forbiddenHitCount": summary.get("forbiddenHitCount"),
+        "decorativeRepeatedRunMax": summary.get("decorativeRepeatedRunMax"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "warningCount": len(data.get("warnings") or []),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+    }
+
+
+def transition_quality_contract_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("transitionRowCount") or 0)
+    boundary_count = int(evidence.get("visualBoundaryCount") or 0)
+    motion_rows = int(evidence.get("motionRowCount") or 0)
+    bridge_rows = int(evidence.get("bridgeRequiredRows") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintKind") == "transition_polish_candidate"
+        and evidence.get("blueprintExists") is True
+        and row_count > 0
+        and row_count >= boundary_count
+        and float(evidence.get("transitionCoverageRatio") or 0) >= 1.0
+        and int(evidence.get("rowsWithBgmHit") or 0) == row_count
+        and int(evidence.get("rowsTitleSafe") or 0) == row_count
+        and int(evidence.get("rowsWithKeyframesOrCleanCut") or 0) == row_count
+        and int(evidence.get("bgmOnlyAudioRows") or 0) == row_count
+        and int(evidence.get("motionRowsWithEvidence") or 0) == motion_rows
+        and int(evidence.get("craftedTransitionCount") or 0) >= int(evidence.get("minimumCraftedTransitionCount") or 0)
+        and int(evidence.get("bridgeSatisfiedRows") or 0) == bridge_rows
+        and int(evidence.get("forbiddenHitCount") or 0) == 0
+        and int(evidence.get("decorativeRepeatedRunMax") or 0) < 4
+        and int(evidence.get("blockedRowCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+    )
+
+
 def rhythm_recut_apply_package_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json"
     if not path.exists():
@@ -3667,6 +3739,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition polish blueprint turns final transitions into BGM-hit, title-safe, motion-proven Resolve metadata",
         transition_polish_blueprint_ready(transition_polish_evidence),
         transition_polish_evidence,
+    )
+    transition_quality_evidence = transition_quality_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition quality contract proves the final candidate covers every visual boundary without random or repeated effects",
+        transition_quality_contract_ready(transition_quality_evidence),
+        transition_quality_evidence,
     )
     rhythm_recut_apply_evidence = rhythm_recut_apply_package_evidence(package_dir)
     add_check(

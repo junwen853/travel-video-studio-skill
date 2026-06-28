@@ -611,6 +611,32 @@ def summarize_transition_polish_blueprint(report: dict[str, Any] | None) -> dict
     }
 
 
+def summarize_transition_quality_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "transitionCoverageRatio": summary.get("transitionCoverageRatio"),
+        "rowsWithBgmHit": summary.get("rowsWithBgmHit"),
+        "rowsTitleSafe": summary.get("rowsTitleSafe"),
+        "bgmOnlyAudioRows": summary.get("bgmOnlyAudioRows"),
+        "motionRowCount": summary.get("motionRowCount"),
+        "motionRowsWithEvidence": summary.get("motionRowsWithEvidence"),
+        "craftedTransitionCount": summary.get("craftedTransitionCount"),
+        "minimumCraftedTransitionCount": summary.get("minimumCraftedTransitionCount"),
+        "decorativeRepeatedRunMax": summary.get("decorativeRepeatedRunMax"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_reference_style_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -1188,6 +1214,23 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Blocked rows: {polish.get('blockedRowCount')}",
             ]
         )
+    if report.get("transitionQualitySummary"):
+        quality = report["transitionQualitySummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Quality Contract",
+                f"- Exists: `{quality.get('exists')}`",
+                f"- Status: `{quality.get('status')}`",
+                f"- Blueprint kind: `{quality.get('blueprintKind')}`",
+                f"- Boundaries/transitions: {quality.get('visualBoundaryCount')} / {quality.get('transitionRowCount')}",
+                f"- BGM/title/audio rows: {quality.get('rowsWithBgmHit')} / {quality.get('rowsTitleSafe')} / {quality.get('bgmOnlyAudioRows')}",
+                f"- Motion rows/evidence: {quality.get('motionRowCount')} / {quality.get('motionRowsWithEvidence')}",
+                f"- Crafted transitions: {quality.get('craftedTransitionCount')} / {quality.get('minimumCraftedTransitionCount')}",
+                f"- Decorative repeated run max: {quality.get('decorativeRepeatedRunMax')}",
+                f"- Blocked rows: {quality.get('blockedRowCount')}",
+            ]
+        )
     if report.get("referenceStyleRepairSummary"):
         repair = report["referenceStyleRepairSummary"]
         lines.extend(
@@ -1443,6 +1486,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_polish_cmd = ["python3", str(SCRIPTS_DIR / "prepare_transition_polish_blueprint.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_transition_polish_blueprint", transition_polish_cmd, ok_codes={0, 2}))
 
+    transition_quality_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_quality_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_transition_quality_contract", transition_quality_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -1533,6 +1579,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     bridge_sequence_blueprint_summary = None
     rhythm_recut_summary = None
     transition_polish_summary = None
+    transition_quality_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
     rhythm_recut_apply_summary = None
@@ -1626,6 +1673,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             rhythm_recut_summary = summarize_rhythm_recut_blueprint(payload)
         if step["id"] == "prepare_transition_polish_blueprint":
             transition_polish_summary = summarize_transition_polish_blueprint(payload)
+        if step["id"] == "audit_transition_quality_contract":
+            transition_quality_summary = summarize_transition_quality_contract(payload)
+            if transition_quality_summary and transition_quality_summary.get("status") == "blocked":
+                blockers.extend(f"Transition quality blocker: {item}" for item in transition_quality_summary.get("blockers") or [])
+            if transition_quality_summary and transition_quality_summary.get("warnings"):
+                warnings.extend(f"Transition quality warning: {item}" for item in transition_quality_summary.get("warnings") or [])
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -1758,6 +1811,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_polish_summary = summarize_transition_polish_blueprint(
             load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json")
         )
+    if package_dir and (package_dir / "transition_quality_contract_audit.json").exists():
+        transition_quality_summary = summarize_transition_quality_contract(
+            load_json(package_dir / "transition_quality_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -1830,6 +1887,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,
         "rhythmRecutBlueprintSummary": rhythm_recut_summary,
         "transitionPolishBlueprintSummary": transition_polish_summary,
+        "transitionQualitySummary": transition_quality_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,

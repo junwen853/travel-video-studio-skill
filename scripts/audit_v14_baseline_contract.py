@@ -35,6 +35,7 @@ SKILL_PATTERNS = {
     "bridge_sequence_blueprint": "prepare_bridge_sequence_blueprint.py",
     "rhythm_recut_blueprint": "prepare_rhythm_recut_blueprint.py",
     "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
+    "transition_quality_contract": "audit_transition_quality_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure": "audit_reference_repair_closure.py",
     "route_texture": "audit_route_texture_contract.py",
@@ -76,6 +77,7 @@ REQUIRED_SCRIPTS = [
     "prepare_bridge_sequence_blueprint.py",
     "prepare_rhythm_recut_blueprint.py",
     "prepare_transition_polish_blueprint.py",
+    "audit_transition_quality_contract.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_repair_closure.py",
     "audit_reference_style_alignment.py",
@@ -186,6 +188,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     bridge_sequence_blueprint = load_json(package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json") or {}
     rhythm_recut_blueprint = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
     transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
+    transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
@@ -698,6 +701,39 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "markerCount": len(transition_polish_markers),
         },
     )
+    transition_quality_summary = get_summary(transition_quality)
+    transition_quality_inputs = transition_quality.get("inputs") if isinstance(transition_quality.get("inputs"), dict) else {}
+    transition_quality_rows = int(transition_quality_summary.get("transitionRowCount") or 0)
+    transition_quality_boundaries = int(transition_quality_summary.get("visualBoundaryCount") or 0)
+    transition_quality_motion = int(transition_quality_summary.get("motionRowCount") or 0)
+    transition_quality_bridge = int(transition_quality_summary.get("bridgeRequiredRows") or 0)
+    add_check(
+        checks,
+        "Transition quality contract covers every visual boundary with BGM-hit, title-safe, non-template transitions",
+        transition_quality.get("status") == "passed"
+        and transition_quality_inputs.get("blueprintKind") == "transition_polish_candidate"
+        and transition_quality_inputs.get("blueprintExists") is True
+        and transition_quality_rows >= transition_quality_boundaries
+        and transition_quality_rows >= 1
+        and float(transition_quality_summary.get("transitionCoverageRatio") or 0) >= 1.0
+        and int(transition_quality_summary.get("rowsWithBgmHit") or 0) == transition_quality_rows
+        and int(transition_quality_summary.get("rowsTitleSafe") or 0) == transition_quality_rows
+        and int(transition_quality_summary.get("rowsWithKeyframesOrCleanCut") or 0) == transition_quality_rows
+        and int(transition_quality_summary.get("bgmOnlyAudioRows") or 0) == transition_quality_rows
+        and int(transition_quality_summary.get("motionRowsWithEvidence") or 0) == transition_quality_motion
+        and int(transition_quality_summary.get("craftedTransitionCount") or 0) >= int(transition_quality_summary.get("minimumCraftedTransitionCount") or 0)
+        and int(transition_quality_summary.get("bridgeSatisfiedRows") or 0) == transition_quality_bridge
+        and int(transition_quality_summary.get("forbiddenHitCount") or 0) == 0
+        and int(transition_quality_summary.get("decorativeRepeatedRunMax") or 0) < 4
+        and int(transition_quality_summary.get("blockedRowCount") or 0) == 0
+        and not transition_quality.get("blockers"),
+        {
+            "transitionQualityStatus": transition_quality.get("status"),
+            "transitionQualitySummary": transition_quality_summary,
+            "blueprintKind": transition_quality_inputs.get("blueprintKind"),
+            "blueprint": transition_quality_inputs.get("blueprint"),
+        },
+    )
     reference_repair_summary = get_summary(reference_repair)
     reference_repair_closure_summary = get_summary(reference_repair_closure)
     reference_repair_closure_rows = reference_repair_closure.get("closureRows") if isinstance(reference_repair_closure.get("closureRows"), list) else []
@@ -756,6 +792,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and bgm_phrase_blueprint.get("status") == "ready_with_bgm_phrase_blueprint"
         and rhythm_recut_blueprint.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}
         and transition_polish_blueprint.get("status") == "ready_with_transition_polish_blueprint"
+        and transition_quality.get("status") == "passed"
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and reference_repair_closure.get("status") in {"passed", "passed_with_evidence_warnings"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
@@ -798,6 +835,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "rhythmRecutBlueprintSummary": rhythm_recut_blueprint_summary,
             "transitionPolishBlueprintStatus": transition_polish_blueprint.get("status"),
             "transitionPolishBlueprintSummary": transition_polish_summary,
+            "transitionQualityStatus": transition_quality.get("status"),
+            "transitionQualitySummary": transition_quality_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
             "referenceRepairClosureStatus": reference_repair_closure.get("status"),

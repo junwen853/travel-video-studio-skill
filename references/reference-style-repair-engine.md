@@ -8,6 +8,7 @@ The repair engine turns vague style feedback into a concrete repair queue. It do
 
 ```bash
 python3 <skill-dir>/scripts/prepare_reference_style_repair_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/audit_transition_quality_contract.py --package-dir <package>
 python3 <skill-dir>/scripts/audit_reference_repair_closure.py --package-dir <package>
 ```
 
@@ -23,6 +24,8 @@ Outputs:
 
 - `reference_style_repair_plan/reference_style_repair_plan.json`
 - `reference_style_repair_plan/reference_style_repair_plan.md`
+- `transition_quality_contract_audit.json`
+- `transition_quality_contract_audit.md`
 - `reference_repair_closure_audit.json`
 - `reference_repair_closure_audit.md`
 
