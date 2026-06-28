@@ -400,6 +400,25 @@ def summarize_rhythm_recut_blueprint(plan: dict[str, Any] | None) -> dict[str, A
     }
 
 
+def summarize_reference_style_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    targets = plan.get("referenceTargets") if isinstance(plan.get("referenceTargets"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "p0RepairRowCount": summary.get("p0RepairRowCount"),
+        "areaCounts": summary.get("areaCounts"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "safeNoWriteRows": summary.get("safeNoWriteRows"),
+        "referenceProfileAvailable": summary.get("referenceProfileAvailable"),
+        "referenceAverageShotLengthSeconds": targets.get("averageShotLengthSeconds"),
+        "referenceMedianShotLengthSeconds": targets.get("medianShotLengthSeconds"),
+    }
+
+
 def summarize_rhythm_recut_apply_package(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -844,6 +863,20 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Forbidden recipe hits: {execution.get('forbiddenRecipeHitCount')}",
             ]
         )
+    if report.get("referenceStyleRepairSummary"):
+        repair = report["referenceStyleRepairSummary"]
+        lines.extend(
+            [
+                "",
+                "## Reference Style Repair Plan",
+                f"- Exists: `{repair.get('exists')}`",
+                f"- Status: `{repair.get('status')}`",
+                f"- Repair rows: {repair.get('repairRowCount')}",
+                f"- P0 repair rows: {repair.get('p0RepairRowCount')}",
+                f"- Area counts: `{repair.get('areaCounts')}`",
+                f"- Reference profile available: `{repair.get('referenceProfileAvailable')}`",
+            ]
+        )
     if report.get("dryRunSummary"):
         dry = report["dryRunSummary"]
         lines.extend(
@@ -1030,6 +1063,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     rhythm_recut_cmd = ["python3", str(SCRIPTS_DIR / "prepare_rhythm_recut_blueprint.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_rhythm_recut_blueprint", rhythm_recut_cmd))
 
+    reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
+
     if args.prepare_rhythm_recut_apply_package:
         rhythm_recut_apply_cmd = [
             "python3",
@@ -1105,6 +1141,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_grammar_summary = None
     transition_execution_summary = None
     rhythm_recut_summary = None
+    reference_style_repair_summary = None
     rhythm_recut_apply_summary = None
     resolve_apply_contract_summary = None
     resolve_blueprint_preflight_summary = None
@@ -1178,6 +1215,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             transition_execution_summary = summarize_transition_execution_plan(payload)
         if step["id"] == "prepare_rhythm_recut_blueprint":
             rhythm_recut_summary = summarize_rhythm_recut_blueprint(payload)
+        if step["id"] == "prepare_reference_style_repair_plan":
+            reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "prepare_rhythm_recut_apply_package":
             rhythm_recut_apply_summary = summarize_rhythm_recut_apply_package(payload)
         if step["id"] == "prepare_resolve_apply_contract":
@@ -1266,6 +1305,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         rhythm_recut_summary = summarize_rhythm_recut_blueprint(
             load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json")
         )
+    if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
+        reference_style_repair_summary = summarize_reference_style_repair_plan(
+            load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
+        )
     if package_dir and (package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json").exists():
         rhythm_recut_apply_summary = summarize_rhythm_recut_apply_package(
             load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json")
@@ -1321,6 +1364,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionGrammarSummary": transition_grammar_summary,
         "transitionExecutionSummary": transition_execution_summary,
         "rhythmRecutBlueprintSummary": rhythm_recut_summary,
+        "referenceStyleRepairSummary": reference_style_repair_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "resolveApplyContractSummary": resolve_apply_contract_summary,
         "resolveBlueprintPreflightSummary": resolve_blueprint_preflight_summary,
@@ -1354,6 +1398,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",
             "Review transition_grammar_plan.json and transition_execution_plan.json before Resolve apply so every adjacent pair has an approved, source-backed execution recipe.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
+            "Review reference_style_repair_plan.json so blocked reference/director/QA gaps become executable repair rows before another Resolve write.",
             "When the rhythm recut candidate is approved, generate/review the rhythm recut apply package before any Resolve write.",
             "Approve local TTS, recorded voiceover, or imported narration audio.",
             "Approve resolve_apply_contract.json only after delivery audit blockers are cleared.",

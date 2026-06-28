@@ -91,9 +91,10 @@ python3 <skill-dir>/scripts/prepare_creator_cut_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_transition_grammar_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_transition_execution_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_rhythm_recut_blueprint.py --package-dir <package>
+python3 <skill-dir>/scripts/prepare_reference_style_repair_plan.py --package-dir <package>
 ```
 
-The creator cut plan must run first. It decides which clips are hero, main story, texture bridge, utility, or reject/review; assigns creator functions; and records whether any whip-pan or rotation transition is truly motivated by route motion. The transition grammar plan gives every adjacent clip pair an exact transition recommendation and fallback, then the transition execution plan turns those rows into Resolve recipes with effect names, duration frames, bridge requirements, BGM cues, subtitle policy, and readback fields. The rhythm recut candidate then turns the diagnosis into an executable Resolve blueprint draft without touching the original blueprint by default. It should shorten flat holds into main segments plus existing-footage cutaways, preserve the package duration, keep inserted clips video-only/BGM-led, and pass `audit_resolve_blueprint.py --blueprint <candidate> --package-dir <package>` before any `--update-blueprint` or Resolve apply.
+The creator cut plan must run first. It decides which clips are hero, main story, texture bridge, utility, or reject/review; assigns creator functions; and records whether any whip-pan or rotation transition is truly motivated by route motion. The transition grammar plan gives every adjacent clip pair an exact transition recommendation and fallback, then the transition execution plan turns those rows into Resolve recipes with effect names, duration frames, bridge requirements, BGM cues, subtitle policy, and readback fields. The rhythm recut candidate then turns the diagnosis into an executable Resolve blueprint draft without touching the original blueprint by default. It should shorten flat holds into main segments plus existing-footage cutaways, preserve the package duration, keep inserted clips video-only/BGM-led, and pass `audit_resolve_blueprint.py --blueprint <candidate> --package-dir <package>` before any `--update-blueprint` or Resolve apply. The reference style repair plan converts blocked style/director/QA checks into P0/P1 repair rows with scripts and acceptance evidence.
 
 When the candidate is approved, use a package fork before touching Resolve:
 
@@ -146,6 +147,7 @@ The package is not long-form ready unless it has:
 - `footage_select_plan/footage_select_plan.json` proves source media was scored and selected before first assembly
 - `opening_story_plan/opening_story_plan.json` proves the first three minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff
 - `transition_execution_plan/transition_execution_plan.json` proves adjacent-pair transitions have Resolve-ready recipes and no bridge-missing row is hidden behind an effect
+- `reference_style_repair_plan/reference_style_repair_plan.json` proves blocked reference/director/QA style gaps become executable repair rows before another Resolve write
 - chapter time allocations
 - transition plan between chapters/days
 - feedback regression plan preserving known rejected timestamps before final render QA

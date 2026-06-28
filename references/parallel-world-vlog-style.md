@@ -127,6 +127,8 @@ The reference feeling comes from selective shot choice plus route evidence. Effe
 
 After creator cut selection, run `prepare_transition_grammar_plan.py` so each adjacent pair has a specific cut/dissolve/match/whip/rotation/speed-ramp/bridge-insert decision. Then run `prepare_transition_execution_plan.py` so those decisions become Resolve-ready recipes with effect names, duration frames, bridge requirements, BGM cues, subtitle policy, and readback fields. This is the guard against vague "add some transition" editing.
 
+After reference-style, director-intent, director-polish, or final QA checks run, use `prepare_reference_style_repair_plan.py` so every blocked check becomes a repair row with an owner script, required artifact, acceptance evidence, and post-repair audit. Do not allow "closer to the reference" to remain an unassigned note.
+
 ## Audio And Caption Behavior
 
 The references rely on continuous sound support and frequent viewer-facing subtitles.
@@ -163,6 +165,7 @@ Before saying a package has learned this reference style, verify:
 - The creator cut plan rejects/demotes weak clips, assigns every kept clip a creator function, and allows whip/rotation transitions only when motion evidence supports them.
 - The transition grammar plan gives every adjacent pair a recommended transition and fallback, and marks missing bridge footage as `insert_bridge_first`.
 - The transition execution plan converts every adjacent-pair decision into a concrete Resolve recipe and keeps bridge-missing rows blocked instead of hiding them with spin/flash/template effects.
+- The reference style repair plan converts blocked reference/director/QA checks into P0/P1 repair rows before the next Resolve write.
 - Effect motion rows prefer fade/dissolve/match-cut/subtle motion and reject template-heavy effects.
 - BGM/audio policy protects scenic/title/transition windows from accidental source voice.
 - Subtitle/TXT/SRT lines are for viewers, not for the user/editor.

@@ -50,6 +50,7 @@ REQUIRED_SCRIPTS = {
         "prepare_creator_cut_plan.py",
         "prepare_transition_grammar_plan.py",
         "prepare_transition_execution_plan.py",
+        "prepare_reference_style_repair_plan.py",
         "prepare_rhythm_recut_blueprint.py",
         "prepare_rhythm_recut_apply_package.py",
         "audit_feedback_regressions.py",
@@ -93,6 +94,7 @@ REQUIRED_SKILL_PATTERNS = {
     "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
     "transition_execution_plan_rule": "prepare_transition_execution_plan.py",
+    "reference_style_repair_plan_rule": "prepare_reference_style_repair_plan.py",
     "rhythm_recut_blueprint_rule": "prepare_rhythm_recut_blueprint.py",
     "rhythm_recut_apply_package_rule": "prepare_rhythm_recut_apply_package.py",
     "scenic_audio_overlap_rule": "no A1/A2 voice or source-audio clips overlapping scenic/title/transition windows",
@@ -110,6 +112,7 @@ REQUIRED_SKILL_PATTERNS = {
     "creator_cut_engine_rule": "creator-cut-engine.md",
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
     "transition_execution_engine_rule": "transition-execution-engine.md",
+    "reference_style_repair_engine_rule": "reference-style-repair-engine.md",
 }
 
 REQUIRED_STYLE_PATTERNS = {
@@ -120,6 +123,7 @@ REQUIRED_STYLE_PATTERNS = {
     "creator_cut_engine": "creator-cut-engine.md",
     "transition_grammar_engine": "transition-grammar-engine.md",
     "transition_execution_engine": "transition-execution-engine.md",
+    "reference_style_repair_engine": "reference-style-repair-engine.md",
     "opening_story_engine": "opening-story-engine.md",
     "full_timeline_review": "full-film timeline strips",
     "cover_title_review": "cover/title card construction",
@@ -136,6 +140,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "opening_story_plan": "opening_story_plan/opening_story_plan.json",
     "opening_route_promise": "viewer promise, destination proof",
     "transition_execution_plan": "transition execution plan",
+    "reference_style_repair_plan": "reference style repair plan",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
 }
@@ -1783,6 +1788,112 @@ def transition_execution_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def reference_style_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("repairRows") if isinstance(data.get("repairRows"), list) else []
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    decision_fields = {
+        "acceptedRepair",
+        "repairOwner",
+        "repairAppliedAt",
+        "resolveBlueprintEvidence",
+        "resolveTimelineReadback",
+        "renderFrameSampleEvidence",
+        "postRepairAudit",
+    }
+    rows_with_decision_fields = 0
+    rows_with_owner_script = 0
+    rows_with_required_artifact = 0
+    rows_with_acceptance = 0
+    p0_rows = 0
+    safe_rows = 0
+    area_counts: dict[str, int] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+        if row.get("ownerScript"):
+            rows_with_owner_script += 1
+        if row.get("requiredArtifact"):
+            rows_with_required_artifact += 1
+        if row.get("acceptanceEvidence") and row.get("repairAction"):
+            rows_with_acceptance += 1
+        if row.get("priority") == "P0":
+            p0_rows += 1
+        if (row.get("safety") or {}).get("writesResolve") is False:
+            safe_rows += 1
+        area = str(row.get("area") or "")
+        if area:
+            area_counts[area] = area_counts.get(area, 0) + 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "p0RepairRowCount": summary.get("p0RepairRowCount"),
+        "areaCounts": summary.get("areaCounts") or area_counts,
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "safeNoWriteRows": summary.get("safeNoWriteRows"),
+        "rowCount": len(rows),
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithOwnerScript": rows_with_owner_script,
+        "rowsWithRequiredArtifact": rows_with_required_artifact,
+        "rowsWithAcceptanceEvidence": rows_with_acceptance,
+        "p0RowsByRow": p0_rows,
+        "safeRowsByRow": safe_rows,
+        "referenceProfileAvailable": summary.get("referenceProfileAvailable"),
+        "referenceAverageShotLengthSeconds": summary.get("referenceAverageShotLengthSeconds"),
+        "referenceMedianShotLengthSeconds": summary.get("referenceMedianShotLengthSeconds"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def reference_style_repair_plan_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("repairRowCount") or 0)
+    if evidence.get("status") == "ready_no_reference_style_repairs_needed":
+        return (
+            evidence.get("exists")
+            and row_count == 0
+            and evidence.get("writesResolve") is False
+            and evidence.get("queuesRender") is False
+            and evidence.get("downloadsExternalAssets") is False
+            and evidence.get("modifiesSourceFootage") is False
+            and evidence.get("hasPassRubric") is True
+            and evidence.get("hasRejectRubric") is True
+        )
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_reference_style_repair_plan"
+        and row_count >= 1
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithOwnerScript") or 0) == row_count
+        and int(evidence.get("rowsWithRequiredArtifact") or 0) == row_count
+        and int(evidence.get("rowsWithAcceptanceEvidence") or 0) == row_count
+        and int(evidence.get("safeNoWriteRows") or 0) == row_count
+        and int(evidence.get("safeRowsByRow") or 0) == row_count
+        and int(evidence.get("p0RepairRowCount") or 0) == int(evidence.get("p0RowsByRow") or 0)
+        and bool(evidence.get("areaCounts"))
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def rhythm_recut_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json"
     data = load_json(path) or {}
@@ -2173,6 +2284,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition execution plan turns adjacent-pair transition choices into Resolve-ready recipes with bridge, BGM, subtitle, and readback fields",
         transition_execution_plan_ready(transition_execution_evidence),
         transition_execution_evidence,
+    )
+    reference_repair_evidence = reference_style_repair_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Reference style repair plan turns blocked reference, director, and QA checks into executable repair rows",
+        reference_style_repair_plan_ready(reference_repair_evidence),
+        reference_repair_evidence,
     )
     rhythm_recut_evidence = rhythm_recut_blueprint_evidence(package_dir)
     add_check(

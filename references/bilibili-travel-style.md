@@ -102,9 +102,10 @@ python3 <skill-dir>/scripts/prepare_creator_cut_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_transition_grammar_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_transition_execution_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_rhythm_recut_blueprint.py --package-dir <package>
+python3 <skill-dir>/scripts/prepare_reference_style_repair_plan.py --package-dir <package>
 ```
 
-Read `references/footage-select-engine.md`, `references/creator-cut-engine.md`, `references/transition-grammar-engine.md`, and `references/transition-execution-engine.md` before this step. The package-level footage select fallback proves the selected timeline came from triaged source material. The creator cut plan must run before the recut candidate. It should be stricter than the normal rhythm plan: demote weak clips, identify hero/main/texture/utility/reject tiers, and allow whip-pan or rotation match cuts only when real movement/route evidence supports them. The transition grammar plan decides exact adjacent-pair transitions, then the transition execution plan converts those choices into Resolve-ready recipes. The recut candidate should break long holds with existing local-footage cutaways, keep total duration stable, preserve BGM-only audio policy, and be preflighted with `audit_resolve_blueprint.py --blueprint <package>/rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json --package-dir <package>` before it replaces the active blueprint.
+Read `references/footage-select-engine.md`, `references/creator-cut-engine.md`, `references/transition-grammar-engine.md`, `references/transition-execution-engine.md`, and `references/reference-style-repair-engine.md` before this step. The package-level footage select fallback proves the selected timeline came from triaged source material. The creator cut plan must run before the recut candidate. It should be stricter than the normal rhythm plan: demote weak clips, identify hero/main/texture/utility/reject tiers, and allow whip-pan or rotation match cuts only when real movement/route evidence supports them. The transition grammar plan decides exact adjacent-pair transitions, then the transition execution plan converts those choices into Resolve-ready recipes. The recut candidate should break long holds with existing local-footage cutaways, keep total duration stable, preserve BGM-only audio policy, and be preflighted with `audit_resolve_blueprint.py --blueprint <package>/rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json --package-dir <package>` before it replaces the active blueprint. The reference repair plan should convert blocked reference/director/final-QA checks into exact repair rows instead of leaving "make it closer to the reference" as prose.
 
 After candidate review, prefer a new package fork instead of in-place replacement:
 
@@ -200,6 +201,7 @@ Observed reusable traits from the V14 training reference pass:
 - Educational/context inserts can appear, such as flags, maps, museum signs, or historical panels, but they should be integrated as a travel chapter beat rather than dumped as slideshow filler.
 - A 20-minute Japan cut should keep enough breathing room for station/platform/train/street/food/weather details instead of rushing from landmark to landmark.
 - If the user rejects voiceover, the reference-like feeling should come from subtitles, BGM, scene ordering, and natural ambient texture rather than generated narration.
+- When reference-style, director-intent, director-polish, or final QA audits are blocked, generate `reference_style_repair_plan/reference_style_repair_plan.json` and fix P0 rows before another Resolve write.
 
 Expected generated evidence inside each delivery package:
 
