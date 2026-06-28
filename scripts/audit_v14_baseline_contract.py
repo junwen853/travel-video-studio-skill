@@ -29,6 +29,7 @@ SKILL_PATTERNS = {
     "transition_execution": "prepare_transition_execution_plan.py",
     "transition_motif": "prepare_transition_motif_plan.py",
     "bridge_sequence": "prepare_bridge_sequence_plan.py",
+    "bridge_sequence_blueprint": "prepare_bridge_sequence_blueprint.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "route_texture": "audit_route_texture_contract.py",
     "final_qa": "run_final_qa_suite.py",
@@ -63,6 +64,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_execution_plan.py",
     "prepare_transition_motif_plan.py",
     "prepare_bridge_sequence_plan.py",
+    "prepare_bridge_sequence_blueprint.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_style_alignment.py",
     "audit_route_texture_contract.py",
@@ -166,6 +168,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_execution = load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json") or {}
     transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
+    bridge_sequence_blueprint = load_json(package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
     route_texture = load_json(package_dir / "route_texture_contract_audit.json") or {}
@@ -419,6 +422,35 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         },
     )
 
+    bridge_sequence_blueprint_summary = get_summary(bridge_sequence_blueprint)
+    bridge_sequence_blueprint_rows = int(bridge_sequence_blueprint_summary.get("sequenceRowCount") or 0)
+    bridge_sequence_blueprint_outputs = bridge_sequence_blueprint.get("outputs") if isinstance(bridge_sequence_blueprint.get("outputs"), dict) else {}
+    candidate_path = Path(str(bridge_sequence_blueprint_outputs.get("candidateBlueprint") or package_dir / "bridge_sequence_blueprint" / "resolve_timeline_blueprint_bridge_sequence.json"))
+    candidate_blueprint = load_json(candidate_path) or {}
+    candidate_clips = candidate_blueprint.get("clips") if isinstance(candidate_blueprint.get("clips"), list) else []
+    bridge_insert_clips = [clip for clip in candidate_clips if isinstance(clip, dict) and clip.get("role") == "bridge_sequence_insert"]
+    add_check(
+        checks,
+        "Bridge sequence blueprint materializes planned bridge beats into a Resolve candidate",
+        bridge_sequence_blueprint.get("status") == "ready_with_bridge_sequence_blueprint"
+        and bridge_sequence_blueprint_rows >= 3
+        and int(bridge_sequence_blueprint_summary.get("materializedRowCount") or 0) == bridge_sequence_blueprint_rows
+        and int(bridge_sequence_blueprint_summary.get("rowsWithDecisionFields") or 0) == bridge_sequence_blueprint_rows
+        and int(bridge_sequence_blueprint_summary.get("insertedBeatClipCount") or 0) == len(bridge_insert_clips)
+        and int(bridge_sequence_blueprint_summary.get("insertedBeatClipCount") or 0) > 0
+        and int(bridge_sequence_blueprint_summary.get("missingBeatCount") or 0) == 0
+        and int(bridge_sequence_blueprint_summary.get("incompleteRowCount") or 0) == 0
+        and candidate_path.exists()
+        and isinstance(candidate_blueprint.get("bridgeSequenceBlueprintPlan"), dict)
+        and all(clip.get("includeSourceAudio") is False for clip in bridge_insert_clips),
+        {
+            "bridgeSequenceBlueprintStatus": bridge_sequence_blueprint.get("status"),
+            "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,
+            "candidateBlueprint": str(candidate_path),
+            "bridgeInsertClipCount": len(bridge_insert_clips),
+        },
+    )
+
     rhythm_summary = get_summary(rhythm)
     footage_select_summary = get_summary(footage_select)
     chapter_arc_summary = get_summary(chapter_arc)
@@ -445,6 +477,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_execution.get("status") == "ready_with_transition_execution_plan"
         and transition_motif.get("status") == "ready_with_transition_motif_plan"
         and bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
+        and bridge_sequence_blueprint.get("status") == "ready_with_bridge_sequence_blueprint"
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
         and int(route_summary.get("matchedTransitions") or 0) >= 1
@@ -474,6 +507,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionMotifSummary": transition_motif_summary,
             "bridgeSequenceStatus": bridge_sequence.get("status"),
             "bridgeSequenceSummary": bridge_sequence_summary,
+            "bridgeSequenceBlueprintStatus": bridge_sequence_blueprint.get("status"),
+            "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
         },

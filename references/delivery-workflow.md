@@ -37,6 +37,8 @@ Expected files:
 - `transition_execution_plan/transition_execution_plan.json` / `.md`: Resolve-ready transition recipes for adjacent-pair cuts, dissolves, whip/rotation/speed ramps, bridge inserts, BGM cues, and readback evidence
 - `transition_motif_plan/transition_motif_plan.json` / `.md`: film-level transition motif audit for repeated dissolves, random motion effects, BGM phrase cues, title-zone safety, and owner-script repairs
 - `bridge_sequence_plan/bridge_sequence_plan.json` / `.md`: 2-5 shot route/title bridge sequence plan for important transitions that cannot be solved by a single effect
+- `bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json`: non-destructive Resolve candidate containing video-only materialized bridge sequence inserts
+- `bridge_sequence_blueprint/bridge_sequence_blueprint_report.json` / `.md`: bridge sequence materialization summary, safety flags, and approval/follow-up instructions
 - `reference_style_repair_plan/reference_style_repair_plan.json` / `.md`: exact repair rows for blocked reference-style, director-intent, director-polish, or final-QA gaps
 - `resolve_blueprint_preflight.json` / `.md`: no-write Resolve blueprint safety audit covering source files, source ranges, track overlaps, V1 gaps, title cards, subtitles, markers, and source audio
 - `resolve_apply_contract.json` / `.md`: approval contract before any actual DaVinci timeline write
@@ -115,6 +117,7 @@ The package is not final until:
 - transition execution plan exists before Resolve apply when transition grammar exists; bridge-missing rows must remain blocked until real bridge footage is inserted
 - transition motif plan exists after transition execution and before Resolve apply, proving repeated/template transitions, missing BGM cues, title-zone risk, and unmotivated motion effects are repaired or explicitly assigned
 - bridge sequence plan exists after transition motif and before rhythm recut/Resolve apply, proving important route/title/timeline-gap transitions have 2-5 shot bridge beats or owner-script repairs
+- bridge sequence blueprint report exists before Resolve apply when local bridge candidates are available, proving those beats became video-only candidate clips without mutating the active blueprint by default
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
 - Resolve blueprint preflight is present and not blocked before any `--apply`
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves

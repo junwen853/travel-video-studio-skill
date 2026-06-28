@@ -4,7 +4,7 @@ Use this reference when transitions still feel like single effects instead of ob
 
 ## Purpose
 
-`prepare_bridge_sequence_plan.py` turns adjacent-pair transition logic into a 2-5 shot bridge sequence. It is the layer that prevents a cut from jumping from clip A to clip B with only a dissolve, spin, black card, or title card.
+`prepare_bridge_sequence_plan.py` turns adjacent-pair transition logic into a 2-5 shot bridge sequence. `prepare_bridge_sequence_blueprint.py` then materializes approved local beats into a non-destructive Resolve candidate blueprint. Together they prevent a cut from jumping from clip A to clip B with only a dissolve, spin, black card, or title card.
 
 The sequence should explain the move:
 
@@ -20,12 +20,16 @@ This is non-copying reference application: use the Parallel World/Malta lesson t
 
 ```bash
 python3 <skill-dir>/scripts/prepare_bridge_sequence_plan.py --package-dir <package> --json
+python3 <skill-dir>/scripts/prepare_bridge_sequence_blueprint.py --package-dir <package> --json
 ```
 
 Outputs:
 
 - `<package>/bridge_sequence_plan/bridge_sequence_plan.json`
 - `<package>/bridge_sequence_plan/bridge_sequence_plan.md`
+- `<package>/bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json`
+- `<package>/bridge_sequence_blueprint/bridge_sequence_blueprint_report.json`
+- `<package>/bridge_sequence_blueprint/bridge_sequence_blueprint_report.md`
 
 ## Inputs
 
@@ -57,16 +61,18 @@ The plan creates repair rows instead of hiding weak continuity:
 - missing bridge beats -> `prepare_footage_select_plan.py`
 - title-zone overlap -> `prepare_title_typography_plan.py`
 - upstream motif repair -> the owner script named by `transition_motif_plan.json`
-- final timeline materialization -> `prepare_rhythm_recut_blueprint.py` or a Resolve apply contract after approval
+- bridge beat materialization -> `prepare_bridge_sequence_blueprint.py`
+- final active timeline replacement -> package fork, `--update-blueprint` after approval, or a Resolve apply contract after preflight
 
 ## Acceptance Bar
 
 Pass:
 
 - `bridge_sequence_plan.json` exists and status is `ready_with_bridge_sequence_plan`
+- `bridge_sequence_blueprint_report.json` exists and status is `ready_with_bridge_sequence_blueprint` when local beat candidates are available
 - every sequence row has decision fields, BGM phrase cue, title-zone safety, and required beat rows
 - missing local candidates create repair rows with owner scripts and acceptance evidence
-- important route/title/timeline-gap boundaries are represented as sequence beats, not only one transition effect
+- important route/title/timeline-gap boundaries are represented as materialized candidate sequence beats, not only one transition effect
 
 Reject:
 
@@ -74,3 +80,4 @@ Reject:
 - a missing route-motion or lived-in beat is hidden by a flashy effect
 - title bridge beats contain subtitles, route/date clutter, stacked titles, or workflow labels
 - selected bridge footage has no local source path and no verified licensed fallback decision
+- a bridge sequence plan remains prose-only when local candidate footage exists and can be placed in a candidate blueprint

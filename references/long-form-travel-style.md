@@ -102,11 +102,12 @@ python3 <skill-dir>/scripts/prepare_transition_grammar_plan.py --package-dir <pa
 python3 <skill-dir>/scripts/prepare_transition_execution_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_transition_motif_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_bridge_sequence_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/prepare_bridge_sequence_blueprint.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_rhythm_recut_blueprint.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_reference_style_repair_plan.py --package-dir <package>
 ```
 
-The creator cut plan must run first. It decides which clips are hero, main story, texture bridge, utility, or reject/review; assigns creator functions; and records whether any whip-pan or rotation transition is truly motivated by route motion. The transition grammar plan gives every adjacent clip pair an exact transition recommendation and fallback, the transition execution plan turns those rows into Resolve recipes, the transition motif plan audits the whole chain for repeated dissolves, random motion, missing BGM phrase cues, title-zone risk, or effects hiding weak route jumps, and the bridge sequence plan turns important route/title/timeline-gap changes into 2-5 shot connective beats. The rhythm recut candidate then turns the diagnosis into an executable Resolve blueprint draft without touching the original blueprint by default. It should shorten flat holds into main segments plus existing-footage cutaways, preserve the package duration, keep inserted clips video-only/BGM-led, and pass `audit_resolve_blueprint.py --blueprint <candidate> --package-dir <package>` before any `--update-blueprint` or Resolve apply. The reference style repair plan converts blocked style/director/QA checks into P0/P1 repair rows with scripts and acceptance evidence.
+The creator cut plan must run first. It decides which clips are hero, main story, texture bridge, utility, or reject/review; assigns creator functions; and records whether any whip-pan or rotation transition is truly motivated by route motion. The transition grammar plan gives every adjacent clip pair an exact transition recommendation and fallback, the transition execution plan turns those rows into Resolve recipes, the transition motif plan audits the whole chain for repeated dissolves, random motion, missing BGM phrase cues, title-zone risk, or effects hiding weak route jumps, the bridge sequence plan turns important route/title/timeline-gap changes into 2-5 shot connective beats, and the bridge sequence blueprint turns local bridge beats into a preflightable Resolve candidate. The rhythm recut candidate then turns the diagnosis into an executable Resolve blueprint draft without touching the original blueprint by default. It should shorten flat holds into main segments plus existing-footage cutaways, preserve the package duration, keep inserted clips video-only/BGM-led, and pass `audit_resolve_blueprint.py --blueprint <candidate> --package-dir <package>` before any `--update-blueprint` or Resolve apply. The reference style repair plan converts blocked style/director/QA checks into P0/P1 repair rows with scripts and acceptance evidence.
 
 When the candidate is approved, use a package fork before touching Resolve:
 
@@ -163,6 +164,7 @@ The package is not long-form ready unless it has:
 - `transition_execution_plan/transition_execution_plan.json` proves adjacent-pair transitions have Resolve-ready recipes and no bridge-missing row is hidden behind an effect
 - `transition_motif_plan/transition_motif_plan.json` proves the whole transition chain avoids repeated/template defaults and has BGM/title-zone/repair evidence
 - `bridge_sequence_plan/bridge_sequence_plan.json` proves important route/title/timeline-gap transitions have 2-5 shot bridge beats or owner-script repairs
+- `bridge_sequence_blueprint/bridge_sequence_blueprint_report.json` proves local bridge beats were materialized into a non-destructive candidate blueprint before Resolve apply
 - `reference_style_repair_plan/reference_style_repair_plan.json` proves blocked reference/director/QA style gaps become executable repair rows before another Resolve write
 - chapter time allocations
 - transition plan between chapters/days

@@ -54,6 +54,7 @@ REQUIRED_SCRIPTS = {
         "prepare_transition_execution_plan.py",
         "prepare_transition_motif_plan.py",
         "prepare_bridge_sequence_plan.py",
+        "prepare_bridge_sequence_blueprint.py",
         "prepare_reference_style_repair_plan.py",
         "prepare_rhythm_recut_blueprint.py",
         "prepare_rhythm_recut_apply_package.py",
@@ -102,6 +103,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_execution_plan_rule": "prepare_transition_execution_plan.py",
     "transition_motif_plan_rule": "prepare_transition_motif_plan.py",
     "bridge_sequence_plan_rule": "prepare_bridge_sequence_plan.py",
+    "bridge_sequence_blueprint_rule": "prepare_bridge_sequence_blueprint.py",
     "reference_style_repair_plan_rule": "prepare_reference_style_repair_plan.py",
     "rhythm_recut_blueprint_rule": "prepare_rhythm_recut_blueprint.py",
     "rhythm_recut_apply_package_rule": "prepare_rhythm_recut_apply_package.py",
@@ -123,6 +125,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_execution_engine_rule": "transition-execution-engine.md",
     "transition_motif_engine_rule": "transition-motif-engine.md",
     "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
+    "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
     "reference_style_repair_engine_rule": "reference-style-repair-engine.md",
 }
 
@@ -138,6 +141,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_execution_engine": "transition-execution-engine.md",
     "transition_motif_engine": "transition-motif-engine.md",
     "bridge_sequence_engine": "bridge-sequence-engine.md",
+    "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
     "reference_style_repair_engine": "reference-style-repair-engine.md",
     "opening_story_engine": "opening-story-engine.md",
     "full_timeline_review": "full-film timeline strips",
@@ -159,6 +163,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_execution_plan": "transition execution plan",
     "transition_motif_plan": "transition motif plan",
     "bridge_sequence_plan": "bridge sequence plan",
+    "bridge_sequence_blueprint": "bridge sequence blueprint",
     "reference_style_repair_plan": "reference style repair plan",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
@@ -2268,6 +2273,112 @@ def bridge_sequence_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def bridge_sequence_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    outputs = data.get("outputs") if isinstance(data.get("outputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    rows = data.get("materializedRows") if isinstance(data.get("materializedRows"), list) else []
+    candidate_path = Path(str(outputs.get("candidateBlueprint") or package_dir / "bridge_sequence_blueprint" / "resolve_timeline_blueprint_bridge_sequence.json"))
+    candidate = load_json(candidate_path) or {}
+    clips = candidate.get("clips") if isinstance(candidate.get("clips"), list) else []
+    overlay_track = int(summary.get("overlayTrackIndex") or 0)
+    insert_clips = [
+        clip for clip in clips
+        if isinstance(clip, dict) and clip.get("role") == "bridge_sequence_insert"
+    ]
+    decision_fields = {
+        "approveCandidateBlueprint",
+        "selectedBridgeBeatRows",
+        "resolveImplementation",
+        "preflightEvidence",
+        "timelineReadbackEvidence",
+        "frameSampleEvidence",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    rows_with_decision_fields = 0
+    rows_materialized = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if row.get("status") == "materialized":
+            rows_materialized += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "candidateBlueprint": str(candidate_path),
+        "candidateBlueprintExists": candidate_path.exists(),
+        "candidateHasBridgeSequencePlan": isinstance(candidate.get("bridgeSequenceBlueprintPlan"), dict),
+        "sequenceRowCount": summary.get("sequenceRowCount"),
+        "materializedRowCount": summary.get("materializedRowCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "insertedBeatClipCount": summary.get("insertedBeatClipCount"),
+        "missingBeatRowCount": summary.get("missingBeatRowCount"),
+        "missingBeatCount": summary.get("missingBeatCount"),
+        "incompleteRowCount": summary.get("incompleteRowCount"),
+        "overlayTrackIndex": overlay_track,
+        "candidateClipCount": summary.get("candidateClipCount"),
+        "sourceClipCount": summary.get("sourceClipCount"),
+        "materializedRows": len(rows),
+        "rowsMaterializedByRow": rows_materialized,
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "candidateBridgeSequenceInsertClipCount": len(insert_clips),
+        "insertClipsVideoOnly": all(clip.get("includeSourceAudio") is False for clip in insert_clips),
+        "insertClipsOnOverlayTrack": all(int(clip.get("trackIndex") or -1) == overlay_track for clip in insert_clips),
+        "insertClipsHaveBeatMetadata": all(isinstance(clip.get("bridgeSequence"), dict) and clip["bridgeSequence"].get("beatFunction") for clip in insert_clips),
+        "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "mutatesActiveBlueprintByDefault": safety.get("mutatesActiveBlueprintByDefault"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def bridge_sequence_blueprint_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("sequenceRowCount") or 0)
+    inserted_count = int(evidence.get("insertedBeatClipCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_bridge_sequence_blueprint"
+        and evidence.get("candidateBlueprintExists")
+        and evidence.get("candidateHasBridgeSequencePlan")
+        and row_count >= 3
+        and int(evidence.get("materializedRowCount") or 0) == row_count
+        and int(evidence.get("materializedRows") or 0) == row_count
+        and int(evidence.get("rowsMaterializedByRow") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and inserted_count > 0
+        and int(evidence.get("candidateBridgeSequenceInsertClipCount") or 0) == inserted_count
+        and int(evidence.get("missingBeatRowCount") or 0) == 0
+        and int(evidence.get("missingBeatCount") or 0) == 0
+        and int(evidence.get("incompleteRowCount") or 0) == 0
+        and int(evidence.get("overlayTrackIndex") or 0) >= 2
+        and evidence.get("insertClipsVideoOnly") is True
+        and evidence.get("insertClipsOnOverlayTrack") is True
+        and evidence.get("insertClipsHaveBeatMetadata") is True
+        and evidence.get("activeBlueprintUpdated") is False
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("mutatesActiveBlueprintByDefault") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def reference_style_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json"
     data = load_json(path) or {}
@@ -2792,6 +2903,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Bridge sequence plan turns important transitions into 2-5 shot route/title bridge sequences instead of single effects",
         bridge_sequence_plan_ready(bridge_sequence_evidence),
         bridge_sequence_evidence,
+    )
+    bridge_sequence_blueprint = bridge_sequence_blueprint_evidence(package_dir)
+    add_check(
+        checks,
+        "Bridge sequence blueprint materializes planned bridge beats into a non-destructive Resolve candidate",
+        bridge_sequence_blueprint_ready(bridge_sequence_blueprint),
+        bridge_sequence_blueprint,
     )
     reference_repair_evidence = reference_style_repair_plan_evidence(package_dir)
     add_check(

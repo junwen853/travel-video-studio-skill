@@ -20,6 +20,7 @@ This layer prevents a technically valid transition plan from becoming a generic 
 ```bash
 python3 <skill-dir>/scripts/prepare_transition_motif_plan.py --package-dir <package> --json
 python3 <skill-dir>/scripts/prepare_bridge_sequence_plan.py --package-dir <package> --json
+python3 <skill-dir>/scripts/prepare_bridge_sequence_blueprint.py --package-dir <package> --json
 ```
 
 Outputs:
@@ -28,6 +29,9 @@ Outputs:
 - `<package>/transition_motif_plan/transition_motif_plan.md`
 - `<package>/bridge_sequence_plan/bridge_sequence_plan.json`
 - `<package>/bridge_sequence_plan/bridge_sequence_plan.md`
+- `<package>/bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json`
+- `<package>/bridge_sequence_blueprint/bridge_sequence_blueprint_report.json`
+- `<package>/bridge_sequence_blueprint/bridge_sequence_blueprint_report.md`
 
 ## Inputs
 
@@ -52,6 +56,7 @@ The motif plan creates repair rows instead of hiding weak transitions:
 - missing BGM phrase cue -> `prepare_bgm_selection_package.py`
 - repeated transition style run -> `prepare_transition_grammar_plan.py`
 - unsafe execution recipe -> `prepare_transition_execution_plan.py`
+- bridge sequence planned but not placed -> `prepare_bridge_sequence_blueprint.py`
 
 P0 rows must be resolved before final render or V14 baseline claims. P1 rows require review; repeated style is acceptable only when it is justified by real same-scene continuity.
 
@@ -65,6 +70,7 @@ Pass:
 - bridge or motion failures create owner-script repair rows
 - repeated style runs are detected and either repaired or explicitly justified
 - important route/title/timeline-gap transitions are handed to `bridge_sequence_plan` so a single effect does not replace real connective footage
+- local bridge beats are handed to `bridge_sequence_blueprint` so the motif decision becomes a preflightable timeline candidate
 
 Reject:
 
@@ -72,3 +78,4 @@ Reject:
 - spin, flash, glitch, shake, ramp, or rotation is used to hide weak footage
 - a route jump has no physical bridge and no repair row
 - title-boundary transitions lack subtitle/title-zone safety
+- a bridge plan with local candidates remains advisory prose instead of a candidate blueprint
