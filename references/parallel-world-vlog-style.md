@@ -16,6 +16,8 @@ Do not rely on a few random extracted frames when learning from local reference 
 
 Future reference-learning passes should use the same standard before writing durable Skill rules. Contact sheets are a navigation aid; the useful learning comes from the whole beginning-to-end timeline, transition context, opening construction, and ending construction.
 
+When multiple local reference videos are available, run `prepare_reference_batch_profile.py` first. The batch profile should aggregate scene-cut rhythm, audio continuity, sampled frame worksheets, and non-copying style targets before edit rhythm or reference-style audits use the reference.
+
 ## Measured Batch Profile
 
 The 2026-06-28 local reference pass analyzed four downloaded videos, about `95.48` total minutes.
@@ -156,6 +158,7 @@ Good ending candidates:
 Before saying a package has learned this reference style, verify:
 
 - The cover/hero title uses a high-recognition establishing background, oversized destination title, secondary English/place line, and no cluttered internal labels.
+- The reference batch profile exists when multiple local references were supplied, with aggregate pacing/audio/sample-frame targets and a non-copying usage contract.
 - The opening has human/context plus real establishing footage within the first minute.
 - The opening story plan proves the first 3 minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff.
 - The chapter plan includes person/context, movement, texture, payoff, and aftertaste roles.

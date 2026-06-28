@@ -187,6 +187,14 @@ For any user-supplied long-form local reference film, analyze:
 
 Use those observations as pacing targets, not as assets to copy.
 
+When multiple local reference videos are available, generate a batch profile before rhythm/style judgments:
+
+```bash
+python3 <skill-dir>/scripts/prepare_reference_batch_profile.py --reference-dir <reference-folder> --package-dir <package>
+```
+
+This writes `reference/reference_batch_profile.json` and a compatibility `reference/reference_analysis.json` so edit rhythm, reference-style, and repair planning use aggregate measured pacing/audio/sample-frame targets instead of a few screenshots.
+
 When the user asks to learn from the four downloaded `叽叽歪歪的平行世界` videos, do not stop at random frame sampling. Review full-film timeline strips, opening strips, ending strips, transition context, and cover screenshots, then apply `parallel-world-vlog-style.md` as the reusable non-copying standard.
 
 Observed reusable traits from the V14 training reference pass:
@@ -208,6 +216,8 @@ Expected generated evidence inside each delivery package:
 ```text
 <package>/reference/reference_analysis.md
 <package>/reference/reference_analysis.json
+<package>/reference/reference_batch_profile.json
+<package>/reference/reference_batch_profile.md
 <package>/reference/reference_contact_sheet.jpg
 <package>/reference/reference_frame_samples/
 ```

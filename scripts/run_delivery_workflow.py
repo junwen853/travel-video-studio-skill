@@ -310,6 +310,26 @@ def summarize_feedback_regression_plan(plan: dict[str, Any] | None) -> dict[str,
     }
 
 
+def summarize_reference_batch_profile(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    pacing = plan.get("pacingProfile") if isinstance(plan.get("pacingProfile"), dict) else {}
+    audio = plan.get("audioProfile") if isinstance(plan.get("audioProfile"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "referenceVideoCount": summary.get("referenceVideoCount"),
+        "failedReferenceCount": summary.get("failedReferenceCount"),
+        "totalDurationMinutes": summary.get("totalDurationMinutes"),
+        "estimatedShotCount": pacing.get("estimatedShotCount"),
+        "averageShotLengthSeconds": pacing.get("averageShotLengthSeconds"),
+        "medianShotLengthSeconds": pacing.get("medianShotLengthSeconds"),
+        "audioMeanVolumeDb": audio.get("meanVolumeDb"),
+        "sampleFrameCount": summary.get("sampleFrameCount"),
+    }
+
+
 def summarize_edit_rhythm_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -805,6 +825,21 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Audio-policy probes: {feedback.get('audioPolicyProbeCount')}",
             ]
         )
+    if report.get("referenceBatchSummary"):
+        reference = report["referenceBatchSummary"]
+        lines.extend(
+            [
+                "",
+                "## Reference Batch Profile",
+                f"- Exists: `{reference.get('exists')}`",
+                f"- Status: `{reference.get('status')}`",
+                f"- Reference videos: {reference.get('referenceVideoCount')}",
+                f"- Total minutes: {reference.get('totalDurationMinutes')}",
+                f"- Estimated shots: {reference.get('estimatedShotCount')}",
+                f"- Average/median shot: {reference.get('averageShotLengthSeconds')} / {reference.get('medianShotLengthSeconds')}",
+                f"- Sample frames: {reference.get('sampleFrameCount')}",
+            ]
+        )
     if report.get("editRhythmSummary"):
         rhythm = report["editRhythmSummary"]
         lines.extend(
@@ -1002,6 +1037,22 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
 
     package_dir = discover_output_dir(steps[-1], args.output_dir)
 
+    if args.reference or args.reference_dir:
+        reference_batch_cmd = [
+            "python3",
+            str(SCRIPTS_DIR / "prepare_reference_batch_profile.py"),
+            "--package-dir",
+            str(package_dir),
+            "--json",
+        ]
+        for reference in args.reference or []:
+            reference_batch_cmd += ["--reference", str(Path(reference).expanduser())]
+        for reference_dir in args.reference_dir or []:
+            reference_batch_cmd += ["--reference-dir", str(Path(reference_dir).expanduser())]
+        if args.reference_recursive:
+            reference_batch_cmd.append("--recursive")
+        steps.append(run_step("prepare_reference_batch_profile", reference_batch_cmd, ok_codes={0, 2}))
+
     opening_story_cmd = ["python3", str(SCRIPTS_DIR / "prepare_opening_story_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_opening_story_plan", opening_story_cmd, ok_codes={0, 2}))
 
@@ -1135,6 +1186,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     visual_establishing_summary = None
     effect_motion_summary = None
     feedback_regression_plan_summary = None
+    reference_batch_summary = None
     audio_scene_policy_summary = None
     edit_rhythm_summary = None
     creator_cut_summary = None
@@ -1203,6 +1255,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             effect_motion_summary = summarize_effect_motion_plan(payload)
         if step["id"] == "prepare_feedback_regression_plan":
             feedback_regression_plan_summary = summarize_feedback_regression_plan(payload)
+        if step["id"] == "prepare_reference_batch_profile":
+            reference_batch_summary = summarize_reference_batch_profile(payload)
         if step["id"] == "prepare_audio_scene_policy_plan":
             audio_scene_policy_summary = summarize_audio_scene_policy_plan(payload)
         if step["id"] == "prepare_edit_rhythm_plan":
@@ -1281,6 +1335,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         feedback_regression_plan_summary = summarize_feedback_regression_plan(
             load_json(package_dir / "feedback_regression_plan" / "feedback_regression_plan.json")
         )
+    if package_dir and (package_dir / "reference" / "reference_batch_profile.json").exists():
+        reference_batch_summary = summarize_reference_batch_profile(
+            load_json(package_dir / "reference" / "reference_batch_profile.json")
+        )
     if package_dir and (package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json").exists():
         audio_scene_policy_summary = summarize_audio_scene_policy_plan(
             load_json(package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json")
@@ -1358,6 +1416,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "visualEstablishingSummary": visual_establishing_summary,
         "effectMotionSummary": effect_motion_summary,
         "feedbackRegressionPlanSummary": feedback_regression_plan_summary,
+        "referenceBatchSummary": reference_batch_summary,
         "audioScenePolicySummary": audio_scene_policy_summary,
         "editRhythmSummary": edit_rhythm_summary,
         "creatorCutSummary": creator_cut_summary,
@@ -1393,6 +1452,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review visual_establishing_plan.json before trusting opening/chapter/ending aerial, landmark, or city establishing shots.",
             "Review effect_motion_plan.json before adding Resolve title, route, or transition effects.",
             "Review feedback_regression_plan.json so original user complaints stay in pre-render audio policy, post-render feedback audit, and final QA commands.",
+            "Review reference_batch_profile.json when local reference videos are supplied so rhythm/style targets are based on measured reference evidence.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",
             "Review edit_rhythm_plan.json before Resolve apply so long raw clips, missing cutaways, and weak chapter variety are fixed before the edit feels AI-assembled.",
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",
@@ -1416,6 +1476,9 @@ def main() -> int:
     parser.add_argument("--project-dir", default=str(DEFAULT_APP_DIR))
     parser.add_argument("--project-name")
     parser.add_argument("--output-dir")
+    parser.add_argument("--reference", action="append", default=[], help="Reference video path for batch style profiling. Can be repeated.")
+    parser.add_argument("--reference-dir", action="append", default=[], help="Directory of reference videos for batch style profiling. Can be repeated.")
+    parser.add_argument("--reference-recursive", action="store_true", help="Search --reference-dir recursively.")
     parser.add_argument("--target-duration-minutes", type=float, default=20.0)
     parser.add_argument("--generate-local-voiceover", action="store_true")
     parser.add_argument("--force-title-cards", action="store_true")

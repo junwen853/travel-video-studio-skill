@@ -6,6 +6,8 @@ Default target is a 20-minute travel film, not a short recap. A 1-2 minute outpu
 
 Use `analyze_reference_video.py` to write `reference_analysis.json` and a contact sheet before copying its pacing assumptions into a new project.
 
+Use `prepare_reference_batch_profile.py` when the user provides multiple reference videos. The generated `reference_batch_profile.json` should become the pacing/audio/sample-frame source for rhythm planning and reference-style audits.
+
 Use Bilibili long-form travel creators such as `叽叽歪歪的平行世界` as a pacing reference, not as material to copy. The useful traits are sustained route, lived-in travel reality, chapter breathing, transport, street texture, food/waiting/weather details, natural reactions, and a watchable documentary-vlog rhythm. Do not copy titles, narration lines, thumbnails, music, or footage.
 
 The film should feel like a real trip being reconstructed, not a montage of scenic shots. Every chapter needs a reason to exist in the route: arrival, exploration, transition, mistake, meal, weather change, landmark, night walk, hotel, train, airport, or emotional callback.
@@ -145,6 +147,7 @@ The package is not long-form ready unless it has:
 - coverage ratio in `resolve_timeline_blueprint.json` is high enough to support the target duration
 - `resolve_timeline_blueprint.json.longFormCoverage` explains initial selected footage, opening/transition/ending fill, final covered seconds, and target seconds
 - `footage_select_plan/footage_select_plan.json` proves source media was scored and selected before first assembly
+- `reference/reference_batch_profile.json` exists when multiple reference videos are supplied, and exposes aggregate pacing/audio/sample-frame targets
 - `opening_story_plan/opening_story_plan.json` proves the first three minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff
 - `transition_execution_plan/transition_execution_plan.json` proves adjacent-pair transitions have Resolve-ready recipes and no bridge-missing row is hidden behind an effect
 - `reference_style_repair_plan/reference_style_repair_plan.json` proves blocked reference/director/QA style gaps become executable repair rows before another Resolve write

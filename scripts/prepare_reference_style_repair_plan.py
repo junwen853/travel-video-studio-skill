@@ -211,8 +211,8 @@ def find_reference_analysis(package_dir: Path, explicit: str | None) -> Path | N
         candidates.append(Path(explicit).expanduser())
     candidates.extend(
         [
-            package_dir / "reference" / "reference_analysis.json",
             package_dir / "reference" / "reference_batch_profile.json",
+            package_dir / "reference" / "reference_analysis.json",
         ]
     )
     return next((path.resolve() for path in candidates if path.exists()), None)
@@ -235,7 +235,7 @@ def reference_targets(reference_path: Path | None) -> dict[str, Any]:
             "source": "local_reference_analysis",
             "referenceAnalysis": str(reference_path),
             "profileAvailable": True,
-            "durationMinutes": summary.get("durationMinutes") or data.get("durationMinutes"),
+            "durationMinutes": summary.get("durationMinutes") or summary.get("totalDurationMinutes") or data.get("durationMinutes"),
             "averageShotLengthSeconds": avg if avg else targets["averageShotLengthSeconds"],
             "medianShotLengthSeconds": median if median else targets["medianShotLengthSeconds"],
             "estimatedShotCount": pacing.get("estimatedShotCount"),

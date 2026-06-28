@@ -209,6 +209,7 @@ def find_reference_analysis(package_dir: Path, explicit: str | None) -> Path | N
         return Path(explicit).expanduser().resolve()
     env_reference = os.environ.get("TRAVEL_VIDEO_REFERENCE_ANALYSIS")
     candidates = [
+        package_dir / "reference" / "reference_batch_profile.json",
         package_dir / "reference" / "reference_analysis.json",
     ]
     if env_reference:

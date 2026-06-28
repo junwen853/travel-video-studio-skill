@@ -287,6 +287,7 @@ def find_reference_analysis(package_dir: Path, explicit: str | None) -> Path | N
         return Path(explicit).expanduser()
     env_reference = os.environ.get("TRAVEL_VIDEO_REFERENCE_ANALYSIS")
     candidates = [
+        package_dir / "reference" / "reference_batch_profile.json",
         package_dir / "reference" / "reference_analysis.json",
         package_dir / "reference" / "reference_analysis.md",
     ]
@@ -311,7 +312,7 @@ def reference_profile_evidence(path: Path | None) -> dict[str, Any]:
     evidence.update(
         {
             "profileAvailable": True,
-            "durationMinutes": summary.get("durationMinutes") or data.get("durationMinutes"),
+            "durationMinutes": summary.get("durationMinutes") or summary.get("totalDurationMinutes") or data.get("durationMinutes"),
             "pacingStatus": pacing.get("status"),
             "estimatedShotCount": pacing.get("estimatedShotCount"),
             "averageShotLengthSeconds": pacing.get("averageShotLengthSeconds"),

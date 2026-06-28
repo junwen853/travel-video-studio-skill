@@ -45,6 +45,7 @@ Expected files:
 - `quality_recut_report.json` / `.md`: required when revising a weak draft into a higher-quality 59.94/60fps, high-bitrate, no-voiceover, dense-caption version
 - `title_cards/title_cards_manifest.json`: generated title/place cards when enabled
 - `reference/reference_analysis.json`: Malta/reference-film analysis when available
+- `reference/reference_batch_profile.json` / `.md`: aggregate profile for multiple supplied reference videos
 - `asset_search_plan.md`: aerial, BGM, font, and optional stock queries
 - `asset_ledger/asset_license_ledger.json`: machine-readable licensing status
 - `asset_sourcing/asset_sourcing_packet.json` / `.md`: provider/license directory, exact selection fields, approval evidence requirements, and sourcing next actions
@@ -90,6 +91,7 @@ The package is not final until:
 - route decision application report proves the decision sheet is either blocked, ready to apply, or applied
 - confirmed-route candidate is apply-ready before overwriting `confirmed_route_timeline.json`
 - footage select plan exists before first assembly, proves active source videos were tiered, and blocks derived/portrait/weak footage from leading the cut
+- reference batch profile exists before rhythm/style claims when multiple reference videos were supplied
 - opening story plan exists after first package build and proves all six first-three-minute beats before title, BGM, rhythm, creator-cut, director-intent, or Resolve apply claims
 - cloud/API stages have either completed or the user accepted dry-run limitations
 - voiceover audio exists or the chosen TTS command is tested

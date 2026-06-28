@@ -34,6 +34,7 @@ REQUIRED_SCRIPTS = {
     ],
     "user_regression_gates": [
         "analyze_reference_video.py",
+        "prepare_reference_batch_profile.py",
         "prepare_bgm_sourcing_brief.py",
         "prepare_bgm_selection_package.py",
         "prepare_transition_bridge_plan.py",
@@ -108,6 +109,7 @@ REQUIRED_SKILL_PATTERNS = {
     "v14_baseline_rule": "audit_v14_baseline_contract.py",
     "parallel_world_reference_rule": "parallel-world-vlog-style.md",
     "parallel_world_cover_rule": "high-recognition aerial/skyline/coast/landmark/route background",
+    "reference_batch_profile_rule": "prepare_reference_batch_profile.py",
     "footage_select_engine_rule": "footage-select-engine.md",
     "creator_cut_engine_rule": "creator-cut-engine.md",
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
@@ -119,6 +121,7 @@ REQUIRED_STYLE_PATTERNS = {
     "ysjf_anchor": "space.bilibili.com/946974",
     "parallel_world_anchor": "space.bilibili.com/405004967",
     "parallel_world_profile": "parallel-world-vlog-style.md",
+    "reference_batch_profile": "reference-batch-profile-engine.md",
     "footage_select_engine": "footage-select-engine.md",
     "creator_cut_engine": "creator-cut-engine.md",
     "transition_grammar_engine": "transition-grammar-engine.md",
@@ -134,6 +137,7 @@ REQUIRED_STYLE_PATTERNS = {
 
 REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "full_review_method": "full-film timeline strips every 10 seconds",
+    "batch_reference_profile": "reference batch profile",
     "cover_title_formula": "Cover And Hero Title Style",
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
     "raw_footage_selection": "footage select plan",
@@ -172,6 +176,7 @@ def text_contains(path: Path, patterns: dict[str, str]) -> tuple[dict[str, bool]
 def find_reference_analysis(package_dir: Path) -> Path | None:
     env_reference = os.environ.get("TRAVEL_VIDEO_REFERENCE_ANALYSIS")
     candidates = [
+        package_dir / "reference" / "reference_batch_profile.json",
         package_dir / "reference" / "reference_analysis.json",
         package_dir / "reference" / "reference_analysis.md",
     ]
@@ -196,7 +201,7 @@ def reference_profile_evidence(path: Path | None) -> dict[str, Any]:
     evidence.update(
         {
             "profileAvailable": True,
-            "durationMinutes": summary.get("durationMinutes") or data.get("durationMinutes"),
+            "durationMinutes": summary.get("durationMinutes") or summary.get("totalDurationMinutes") or data.get("durationMinutes"),
             "pacingStatus": pacing.get("status"),
             "estimatedShotCount": pacing.get("estimatedShotCount"),
             "averageShotLengthSeconds": pacing.get("averageShotLengthSeconds"),
@@ -221,6 +226,76 @@ def reference_profile_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("estimatedShotCount") or 0) >= 50
         and float(evidence.get("averageShotLengthSeconds") or 0) > 0
         and int(evidence.get("sampleFrameCount") or 0) >= 12
+    )
+
+
+def reference_batch_profile_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "reference" / "reference_batch_profile.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    pacing = data.get("pacingProfile") if isinstance(data.get("pacingProfile"), dict) else {}
+    audio = data.get("audioProfile") if isinstance(data.get("audioProfile"), dict) else {}
+    samples = data.get("sampleFrames") if isinstance(data.get("sampleFrames"), list) else []
+    reports = data.get("referenceReports") if isinstance(data.get("referenceReports"), list) else []
+    contract = data.get("referenceUsageContract") if isinstance(data.get("referenceUsageContract"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rubric = data.get("acceptanceRubric") if isinstance(data.get("acceptanceRubric"), dict) else {}
+    reports_with_analysis = sum(1 for row in reports if isinstance(row, dict) and row.get("analysisPath"))
+    reports_with_pacing = sum(1 for row in reports if isinstance(row, dict) and row.get("pacingStatus") == "analyzed")
+    reports_with_audio = sum(1 for row in reports if isinstance(row, dict) and row.get("audioStatus") == "analyzed")
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "referenceVideoCount": summary.get("referenceVideoCount"),
+        "failedReferenceCount": summary.get("failedReferenceCount"),
+        "totalDurationMinutes": summary.get("totalDurationMinutes"),
+        "estimatedShotCount": pacing.get("estimatedShotCount"),
+        "averageShotLengthSeconds": pacing.get("averageShotLengthSeconds"),
+        "medianShotLengthSeconds": pacing.get("medianShotLengthSeconds"),
+        "pacingStatus": pacing.get("status"),
+        "audioStatus": audio.get("status"),
+        "audioMeanVolumeDb": audio.get("meanVolumeDb"),
+        "sampleFrameCount": summary.get("sampleFrameCount") or len(samples),
+        "referenceReportCount": len(reports),
+        "reportsWithAnalysisPath": reports_with_analysis,
+        "reportsWithPacing": reports_with_pacing,
+        "reportsWithAudio": reports_with_audio,
+        "usageAllowed": contract.get("allowed"),
+        "usageForbidden": contract.get("forbidden"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def reference_batch_profile_ready(evidence: dict[str, Any]) -> bool:
+    count = int(evidence.get("referenceVideoCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_reference_batch_profile"
+        and count >= 2
+        and int(evidence.get("failedReferenceCount") or 0) == 0
+        and int(evidence.get("referenceReportCount") or 0) == count
+        and int(evidence.get("reportsWithAnalysisPath") or 0) == count
+        and int(evidence.get("reportsWithPacing") or 0) == count
+        and int(evidence.get("reportsWithAudio") or 0) == count
+        and evidence.get("pacingStatus") == "analyzed"
+        and evidence.get("audioStatus") == "analyzed"
+        and int(evidence.get("estimatedShotCount") or 0) > 0
+        and float(evidence.get("averageShotLengthSeconds") or 0) > 0
+        and int(evidence.get("sampleFrameCount") or 0) >= count
+        and "non-copying" in str(evidence.get("usageAllowed") or "").lower()
+        and "copy" in str(evidence.get("usageForbidden") or "").lower()
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
     )
 
 
@@ -2179,6 +2254,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Malta reference analysis is a reusable pacing/audio/sample-frame profile",
         reference_profile_ready(reference_evidence),
         reference_evidence,
+    )
+    reference_batch_evidence = reference_batch_profile_evidence(package_dir)
+    add_check(
+        checks,
+        "Reference batch profile learns from multiple supplied creator/reference videos without copying assets",
+        reference_batch_profile_ready(reference_batch_evidence),
+        reference_batch_evidence,
     )
     bgm_evidence = bgm_sourcing_evidence(package_dir)
     add_check(
