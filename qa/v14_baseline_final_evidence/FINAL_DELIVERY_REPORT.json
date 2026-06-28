@@ -1,0 +1,91 @@
+{
+  "createdAt": "2026-06-28T03:37:56",
+  "status": "passed",
+  "packageDir": "/Users/pengyang/Pictures/Video-make/video-claw-studio/projects/日本东京大阪行-6c28b7/delivery_packages/20260628_0240_davinci_v14_orientation_repair",
+  "finalOutput": "/Users/pengyang/Pictures/Video-make/video-claw-studio/projects/日本东京大阪行-6c28b7/delivery_packages/20260628_0240_davinci_v14_orientation_repair/renders/japan_tokyo_osaka_v14_orientation_repair_4k59.mp4",
+  "durationSeconds": 1200.170667,
+  "video": {
+    "codec": "h264",
+    "width": 3840,
+    "height": 2160,
+    "avgFrameRate": "60000/1001",
+    "frameRateValue": 59.94005994005994,
+    "bitrateMbps": 79.97,
+    "frames": "71934"
+  },
+  "audio": {
+    "codec": "aac",
+    "channels": 2,
+    "sampleRate": "48000",
+    "durationSeconds": 1200.170667
+  },
+  "blackdetect": {
+    "returnCode": 0,
+    "log": "/Users/pengyang/Pictures/Video-make/video-claw-studio/projects/日本东京大阪行-6c28b7/delivery_packages/20260628_0240_davinci_v14_orientation_repair/blackdetect_verification.log",
+    "blackSegmentCount": 0,
+    "maxBlackDuration": 0,
+    "segments": []
+  },
+  "subtitleEvidence": null,
+  "projectName": "日本东京大阪行 Resolve Longform v14 Orientation Repair",
+  "timelineName": "日本东京大阪行 20min Master v14 Orientation Repair",
+  "resolveTrackSummary": {
+    "video": [
+      {
+        "index": 1,
+        "name": "V1 Main travel footage",
+        "itemCount": 55
+      },
+      {
+        "index": 2,
+        "name": "V2 Titles maps aerial inserts",
+        "itemCount": 8
+      },
+      {
+        "index": 3,
+        "name": "V3 Burned subtitle overlay",
+        "itemCount": 92
+      }
+    ],
+    "audio": [
+      {
+        "index": 1,
+        "name": "A1 Source audio",
+        "itemCount": 0
+      },
+      {
+        "index": 2,
+        "name": "A2 Voiceover",
+        "itemCount": 0
+      },
+      {
+        "index": 3,
+        "name": "A3 BGM",
+        "itemCount": 1
+      },
+      {
+        "index": 4,
+        "name": "A4 Ambience",
+        "itemCount": 0
+      }
+    ],
+    "subtitle": [
+      {
+        "index": 1,
+        "name": "S1 Chinese subtitles",
+        "itemCount": 0
+      }
+    ]
+  },
+  "clientDeliveryStatus": "passed",
+  "bgmAudioStatus": "passed",
+  "storyStyleStatus": "passed",
+  "packageIntegrityStatus": "passed",
+  "routeCaveat": "No GPS metadata is available; this is non-GPS visual route reconstruction from frames, filenames, and itinerary evidence, not verified per-clip geolocation.",
+  "deliverableNotes": [
+    "Resolve timeline was created through the official DaVinci Resolve Python API and read back before render.",
+    "Final MP4 passed render verification for duration, 4K resolution, high frame rate, high bitrate, audio stream, sampled frames, and black-frame scan.",
+    "BGM-only delivery is intentional: A1/A2 readback are empty and A3 contains the BGM bed.",
+    "Narration remains text-only; no rendered voiceover audio is included."
+  ]
+}

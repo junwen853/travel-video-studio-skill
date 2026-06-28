@@ -1,0 +1,476 @@
+#!/usr/bin/env python3
+"""Run the final Travel Video Studio QA gates in one reproducible suite."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+
+ACCEPTED_STATUSES = {
+    "render_delivery_verification": {"passed"},
+    "visual_audio_style_audit": {"passed"},
+    "bgm_audio_contract_audit": {"passed", "passed_with_warnings"},
+    "location_truth_contract_audit": {"passed", "passed_with_caveats", "passed_with_warnings"},
+    "client_delivery_rules_audit": {"passed", "passed_with_warnings"},
+    "longform_delivery_audit": {"passed", "passed_with_caveats", "passed_with_warnings"},
+    "story_style_contract_audit": {"passed"},
+    "title_bridge_contract_audit": {"passed", "passed_with_warnings"},
+    "reference_style_alignment_audit": {"passed"},
+    "director_intent_contract_audit": {"passed", "passed_with_warnings"},
+    "route_texture_contract_audit": {"passed", "passed_with_warnings"},
+    "stock_aerial_closure_audit": {"passed", "passed_with_warnings"},
+    "director_polish_contract_audit": {"passed", "passed_with_warnings"},
+    "feedback_regression_audit": {"passed", "passed_with_warnings"},
+    "package_integrity_audit": {"passed"},
+    "package_integrity_audit_strict_portable": {"passed"},
+    "skill_maturity_contract_audit": {"passed", "passed_with_warnings"},
+    "v14_baseline_contract_audit": {"passed"},
+}
+
+
+def load_json(path: Path | None) -> Any | None:
+    if not path or not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def script_dir() -> Path:
+    return Path(__file__).resolve().parent
+
+
+def infer_output(package_dir: Path, explicit: str | None) -> Path | None:
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+    for report_name in ("render_delivery_verification.json", "FINAL_DELIVERY_REPORT.json"):
+        report = load_json(package_dir / report_name) or {}
+        candidate = report.get("output") or report.get("finalOutput")
+        if candidate:
+            path = Path(str(candidate)).expanduser()
+            if path.exists():
+                return path.resolve()
+    renders = sorted((package_dir / "renders").glob("*.mp4"), key=lambda path: path.stat().st_mtime, reverse=True)
+    return renders[0].resolve() if renders else None
+
+
+def infer_visual_manifest(package_dir: Path, explicit: str | None) -> Path | None:
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+    candidates = [
+        package_dir / "clean_scenic_title_bridges" / "clean_scenic_title_bridges_manifest.json",
+        package_dir / "v8_visual_polish" / "v8_visual_polish_manifest.json",
+        package_dir / "v9_fix_inputs" / "v9_fix_manifest.json",
+        package_dir / "v12_visual_manifest.json",
+    ]
+    return next((path.resolve() for path in candidates if path.exists()), None)
+
+
+def infer_bgm_manifest(package_dir: Path, explicit: str | None) -> Path | None:
+    if explicit:
+        return Path(explicit).expanduser().resolve()
+    blueprint = load_json(package_dir / "resolve_timeline_blueprint.json") or {}
+    assets = blueprint.get("assets") if isinstance(blueprint.get("assets"), dict) else {}
+    for key in ("bgmManifest", "bgm_manifest"):
+        if assets.get(key):
+            path = Path(str(assets[key])).expanduser()
+            if path.exists():
+                return path.resolve()
+    cues = (blueprint.get("audioPlan") or {}).get("bgmCues") or []
+    for cue in cues:
+        if isinstance(cue, dict) and cue.get("manifest"):
+            path = Path(str(cue["manifest"])).expanduser()
+            if path.exists():
+                return path.resolve()
+    candidates = sorted((package_dir / "bgm").glob("*manifest*.json"))
+    return candidates[-1].resolve() if candidates else None
+
+
+def manifest_sample_seconds(path: Path | None) -> list[float]:
+    data = load_json(path) or {}
+    out: list[float] = [0.0, 2.0, 7.5]
+    for item in data.get("segments") or []:
+        if not isinstance(item, dict):
+            continue
+        mode = str(item.get("mode") or "").lower()
+        if mode not in {"opening", "chapter", "ending", "transition"}:
+            continue
+        try:
+            start = float(item.get("timeline_start", item.get("timelineStartSeconds")))
+            duration = float(item.get("duration", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            continue
+        out.append(max(0.0, start))
+        if duration > 0:
+            out.append(max(0.0, start + min(2.0, duration / 2.0)))
+    unique: list[float] = []
+    seen: set[int] = set()
+    for second in out:
+        key = round(second * 1000)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(round(second, 3))
+    return unique
+
+
+def run_command(name: str, cmd: list[str]) -> dict[str, Any]:
+    proc = subprocess.run(cmd, check=False, capture_output=True, text=True)
+    return {
+        "name": name,
+        "command": cmd,
+        "returnCode": proc.returncode,
+        "stdout": proc.stdout[-4000:],
+        "stderr": proc.stderr[-4000:],
+    }
+
+
+def report_status(path: Path) -> str | None:
+    data = load_json(path) or {}
+    return data.get("status") if isinstance(data, dict) else None
+
+
+def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) -> Path:
+    if stage == "visual_audio_style_audit":
+        return package_dir / "visual_audio_style_audit" / "visual_audio_style_audit.json"
+    if stage == "feedback_regression_audit":
+        return package_dir / "feedback_regression_audit" / "feedback_regression_audit.json"
+    if stage == "package_integrity_audit_strict_portable":
+        return package_dir / "package_integrity_audit_strict_portable.json"
+    return package_dir / f"{stage}.json"
+
+
+def evaluate_stage(package_dir: Path, stage: str, command_result: dict[str, Any] | None = None) -> dict[str, Any]:
+    path = stage_report_path(package_dir, stage)
+    status = report_status(path)
+    accepted = ACCEPTED_STATUSES.get(stage, {"passed"})
+    ok = status in accepted
+    command_ok = command_result is None or command_result.get("returnCode") == 0
+    return {
+        "stage": stage,
+        "status": status,
+        "acceptedStatuses": sorted(accepted),
+        "report": str(path),
+        "reportExists": path.exists(),
+        "commandReturnCode": command_result.get("returnCode") if command_result else None,
+        "passed": bool(ok and command_ok and path.exists()),
+        "command": command_result.get("command") if command_result else None,
+    }
+
+
+def copy_package_integrity_strict(package_dir: Path) -> None:
+    src_json = package_dir / "package_integrity_audit.json"
+    src_md = package_dir / "package_integrity_audit.md"
+    if src_json.exists():
+        (package_dir / "package_integrity_audit_strict_portable.json").write_bytes(src_json.read_bytes())
+    if src_md.exists():
+        (package_dir / "package_integrity_audit_strict_portable.md").write_bytes(src_md.read_bytes())
+
+
+def build_suite(args: argparse.Namespace) -> dict[str, Any]:
+    package_dir = Path(args.package_dir).expanduser().resolve()
+    scripts = script_dir()
+    output = infer_output(package_dir, args.output)
+    visual_manifest = infer_visual_manifest(package_dir, args.visual_manifest)
+    bgm_manifest = infer_bgm_manifest(package_dir, args.bgm_manifest)
+    commands: list[tuple[str, list[str], bool]] = []
+
+    render_status = report_status(package_dir / "render_delivery_verification.json")
+    if args.rerun_render_verification or render_status not in ACCEPTED_STATUSES["render_delivery_verification"]:
+        if not output:
+            raise FileNotFoundError("Final output MP4 could not be inferred for render verification.")
+        commands.append(
+            (
+                "render_delivery_verification",
+                [
+                    sys.executable,
+                    str(scripts / "verify_render_delivery.py"),
+                    "--package-dir",
+                    str(package_dir),
+                    "--output",
+                    str(output),
+                    "--min-fps",
+                    str(args.min_fps),
+                    "--min-video-bitrate-mbps",
+                    str(args.min_video_bitrate_mbps),
+                    "--expect-subtitles",
+                    args.expect_subtitles,
+                ]
+                + (["--skip-blackdetect"] if args.skip_blackdetect else []),
+                False,
+            )
+        )
+
+    visual_status = report_status(package_dir / "visual_audio_style_audit" / "visual_audio_style_audit.json")
+    if args.rerun_visual_audio or visual_status not in ACCEPTED_STATUSES["visual_audio_style_audit"]:
+        if not output:
+            raise FileNotFoundError("Final output MP4 could not be inferred for visual/audio audit.")
+        sample_seconds = args.sample_seconds or ",".join(str(x) for x in manifest_sample_seconds(visual_manifest))
+        cmd = [
+            sys.executable,
+            str(scripts / "audit_visual_audio_style.py"),
+            "--video",
+            str(output),
+            "--output-dir",
+            str(package_dir / "visual_audio_style_audit"),
+            "--sample-seconds",
+            sample_seconds,
+            "--audio-mode",
+            args.audio_mode,
+            "--require-clean-title",
+        ]
+        if visual_manifest:
+            cmd += ["--visual-manifest", str(visual_manifest)]
+        if bgm_manifest:
+            cmd += ["--bgm-manifest", str(bgm_manifest)]
+        commands.append(("visual_audio_style_audit", cmd, False))
+
+    commands.extend(
+        [
+            (
+                "bgm_audio_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_bgm_audio_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                    "--audio-mode",
+                    args.audio_mode,
+                ],
+                False,
+            ),
+            (
+                "client_delivery_rules_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_client_delivery_rules.py"),
+                    "--package-dir",
+                    str(package_dir),
+                    "--min-fps",
+                    str(args.min_fps),
+                    "--min-video-bitrate-mbps",
+                    str(args.min_video_bitrate_mbps),
+                ],
+                False,
+            ),
+            (
+                "location_truth_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_location_truth_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "longform_delivery_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_longform_delivery.py"),
+                    "--package-dir",
+                    str(package_dir),
+                    "--min-fps",
+                    str(args.min_fps),
+                    "--min-video-bitrate-mbps",
+                    str(args.min_video_bitrate_mbps),
+                ],
+                False,
+            ),
+            (
+                "story_style_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_story_style_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                    "--audio-mode",
+                    args.audio_mode,
+                    "--require-rendered-subtitles",
+                ],
+                False,
+            ),
+            (
+                "reference_style_alignment_audit",
+                [sys.executable, str(scripts / "audit_reference_style_alignment.py"), "--package-dir", str(package_dir)],
+                False,
+            ),
+            (
+                "director_intent_contract_audit",
+                [sys.executable, str(scripts / "audit_director_intent_contract.py"), "--package-dir", str(package_dir)],
+                False,
+            ),
+            (
+                "route_texture_contract_audit",
+                [sys.executable, str(scripts / "audit_route_texture_contract.py"), "--package-dir", str(package_dir)],
+                False,
+            ),
+            (
+                "title_bridge_contract_audit",
+                [sys.executable, str(scripts / "audit_title_bridge_contract.py"), "--package-dir", str(package_dir)],
+                False,
+            ),
+            (
+                "stock_aerial_closure_audit",
+                [sys.executable, str(scripts / "audit_stock_aerial_closure.py"), "--package-dir", str(package_dir)],
+                False,
+            ),
+            (
+                "director_polish_contract_audit",
+                [sys.executable, str(scripts / "audit_director_polish_contract.py"), "--package-dir", str(package_dir)],
+                False,
+            ),
+            (
+                "feedback_regression_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_feedback_regressions.py"),
+                    "--package-dir",
+                    str(package_dir),
+                    "--feedback-timestamps",
+                    args.feedback_timestamps,
+                    "--include-title-points",
+                ],
+                False,
+            ),
+            (
+                "package_integrity_audit_strict_portable",
+                [
+                    sys.executable,
+                    str(scripts / "audit_package_integrity.py"),
+                    "--package-dir",
+                    str(package_dir),
+                    "--strict-portable",
+                ],
+                True,
+            ),
+            (
+                "package_integrity_audit",
+                [sys.executable, str(scripts / "audit_package_integrity.py"), "--package-dir", str(package_dir)],
+                False,
+            ),
+            (
+                "skill_maturity_contract_audit",
+                [sys.executable, str(scripts / "audit_skill_maturity_contract.py"), "--package-dir", str(package_dir)],
+                False,
+            ),
+            (
+                "v14_baseline_contract_audit",
+                [sys.executable, str(scripts / "audit_v14_baseline_contract.py"), "--package-dir", str(package_dir)],
+                False,
+            ),
+        ]
+    )
+
+    command_results: dict[str, dict[str, Any]] = {}
+    stages: list[dict[str, Any]] = []
+    failed_command = False
+    for stage, cmd, copy_strict in commands:
+        result = run_command(stage, cmd)
+        command_results[stage] = result
+        if copy_strict:
+            copy_package_integrity_strict(package_dir)
+        stage_eval = evaluate_stage(package_dir, stage, result)
+        stages.append(stage_eval)
+        if result["returnCode"] != 0 and not stage_eval["passed"]:
+            failed_command = True
+            if args.stop_on_failure:
+                break
+
+    # Evaluate reports that may have been reused rather than rerun.
+    for stage in ACCEPTED_STATUSES:
+        if any(row["stage"] == stage for row in stages):
+            continue
+        stages.append(evaluate_stage(package_dir, stage))
+
+    blockers = [row for row in stages if not row["passed"]]
+    status = "blocked" if blockers or failed_command else "passed"
+    report = {
+        "createdAt": datetime.now().isoformat(timespec="seconds"),
+        "status": status,
+        "packageDir": str(package_dir),
+        "finalOutput": str(output) if output else None,
+        "visualManifest": str(visual_manifest) if visual_manifest else None,
+        "bgmManifest": str(bgm_manifest) if bgm_manifest else None,
+        "feedbackTimestamps": args.feedback_timestamps,
+        "rerunRenderVerification": args.rerun_render_verification,
+        "rerunVisualAudio": args.rerun_visual_audio,
+        "stages": sorted(stages, key=lambda row: row["stage"]),
+        "blockers": [row["stage"] for row in blockers],
+        "commandResults": command_results,
+        "summary": {
+            "passedStages": len([row for row in stages if row["passed"]]),
+            "blockedStages": len(blockers),
+            "totalStages": len(stages),
+        },
+    }
+    write_json(package_dir / "final_qa_suite_report.json", report)
+    write_markdown(package_dir / "final_qa_suite_report.md", report)
+    return report
+
+
+def write_markdown(path: Path, report: dict[str, Any]) -> None:
+    lines = [
+        "# Final QA Suite Report",
+        "",
+        f"Status: `{report['status']}`",
+        f"Package: `{report['packageDir']}`",
+        f"Final output: `{report.get('finalOutput')}`",
+        f"Passed stages: `{report['summary']['passedStages']}/{report['summary']['totalStages']}`",
+        "",
+        "## Stages",
+    ]
+    for row in report["stages"]:
+        lines.append(
+            f"- `{row['stage']}`: status=`{row.get('status')}`, passed=`{row['passed']}`, report=`{row['report']}`"
+        )
+    if report.get("blockers"):
+        lines.extend(["", "## Blockers"])
+        lines.extend(f"- {item}" for item in report["blockers"])
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Run final QA gates for a Travel Video Studio delivery package.")
+    parser.add_argument("--package-dir", required=True)
+    parser.add_argument("--output")
+    parser.add_argument("--visual-manifest")
+    parser.add_argument("--bgm-manifest")
+    parser.add_argument("--feedback-timestamps", default="opening_title=0")
+    parser.add_argument("--sample-seconds")
+    parser.add_argument("--audio-mode", choices=["bgm_only", "preserve_source"], default="bgm_only")
+    parser.add_argument("--min-fps", type=float, default=50.0)
+    parser.add_argument("--min-video-bitrate-mbps", type=float, default=60.0)
+    parser.add_argument("--expect-subtitles", choices=["none", "any", "sidecar", "embedded", "burned-in"], default="burned-in")
+    parser.add_argument("--rerun-render-verification", action="store_true")
+    parser.add_argument("--rerun-visual-audio", action="store_true")
+    parser.add_argument("--skip-blackdetect", action="store_true")
+    parser.add_argument("--stop-on-failure", action="store_true")
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    try:
+        report = build_suite(args)
+    except Exception as exc:
+        print(f"run_final_qa_suite failed: {exc}", file=sys.stderr)
+        return 1
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+    else:
+        print(json.dumps({"status": report["status"], "blockers": report["blockers"], "summary": report["summary"]}, ensure_ascii=False, indent=2))
+    return 2 if report["status"] == "blocked" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

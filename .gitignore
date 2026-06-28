@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.DS_Store
+
+# Local video/editing outputs. Keep source media and rendered drafts out of git.
+*.mp4
+*.mov
+*.m4v
+*.mkv
+*.avi
+*.wav
+*.m4a
+*.mp3
+
+# Large/generated workflow artifacts.
+delivery_packages/
+outputs/
+renders/
+frames/
+ocr_frames/
+sample_frames/

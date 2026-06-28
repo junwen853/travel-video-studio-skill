@@ -1,0 +1,433 @@
+---
+name: travel-video-studio
+description: Complete travel video production workflow for Codex plugins. Use when Codex must turn unordered travel footage into a deliverable edit package with full-folder location recognition, route reconstruction, recognition/route MD reports, SRT captions, BGM cues, licensed aerial/stock footage search, typography, day-to-day transitions, and FFmpeg/FCPXML/DaVinci/Premiere/Final Cut handoff without relying on Computer Use unless no direct path exists.
+---
+
+# Travel Video Studio
+
+## Operating Rule
+
+Use this skill as a delivery workflow, not just a planning checklist. The default project is:
+
+```bash
+/Users/pengyang/Pictures/Video-make/video-claw-studio
+```
+
+Default to Codex visual inspection plus DaVinci Resolve API editing. Do not pull, install, or depend on local Ollama/7B vision models unless the user explicitly asks for that route. For this user's current workflow, Codex should inspect contact sheets/sampled frames itself, write auditable review notes, and then build or revise the DaVinci timeline directly through the Resolve API.
+
+Treat every live edit as Skill regression testing. The primary goal is to improve this reusable Skill so future unordered travel-footage folders can be delivered with less user correction; the current film is only the test case. When a draft exposes a failure such as bad titles, missing BGM, sparse subtitles, portrait regressions, weak transitions, route uncertainty, Resolve/API gaps, stale QA evidence, or style mismatch, fix the current package only after generalizing the lesson into at least one durable Skill asset: a `SKILL.md` rule, script behavior, audit check, Definition-of-Done item, or reusable reference. Do not call a turn complete when it only patches one output and leaves the Skill unable to prevent or detect the same failure next time.
+
+After substantial Skill changes, forward-test the Skill against more than one trip when suitable evidence is available. A credible forward-test should include at least one known-good rendered package, one separate matched project that is correctly blocked before cutting, and any unknown mounted media roots that must be identified rather than silently selected. This proves the Skill is learning reusable behavior instead of only overfitting the current film.
+
+Start with read-only inspection:
+
+```bash
+python3 <skill-dir>/scripts/check_project_state.py --project-dir /Users/pengyang/Pictures/Video-make/video-claw-studio
+```
+
+Then create or update a 20-minute long-form delivery package:
+
+```bash
+python3 <skill-dir>/scripts/build_delivery_package.py --project-dir /Users/pengyang/Pictures/Video-make/video-claw-studio --target-duration-minutes 20
+```
+
+For the safe local end-to-end workflow, prefer:
+
+```bash
+python3 <skill-dir>/scripts/run_delivery_workflow.py --project-dir /Users/pengyang/Pictures/Video-make/video-claw-studio --target-duration-minutes 20
+```
+
+This writes `workflow_run_report.json`/`.md`, checks Resolve API reachability, prepares route review when needed, prepares a route decision sheet, dry-runs route decision application, builds or refreshes the package, prepares local title cards, refreshes asset sourcing/enrichment, dry-runs asset sourcing reconciliation, dry-runs the Resolve blueprint, prepares a Resolve apply approval contract, prepares a safe `render_plan.json`, and re-audits delivery readiness. It never writes Resolve, queues render jobs, downloads external assets, applies route/asset decisions, or generates local TTS unless the corresponding explicit flag is passed. Use `--skip-render-plan` only when a package-level render plan is intentionally deferred.
+
+Use `scripts/make_voiceover_audio.py` after the narration script is approved or when the user explicitly asks for local TTS audio.
+
+Use `scripts/prepare_delivery_assets.py` after `delivery_plan.json` and `resolve_timeline_blueprint.json` exist. It generates local title/place card media, refreshes Resolve enrichment, and writes `delivery_assets_report.json`/`.md`. It only generates local TTS voiceover when called with `--generate-local-voiceover`.
+
+Use `scripts/check_resolve_api.py` after DaVinci Resolve is installed. Use `scripts/build_resolve_timeline.py` only after the package writes `resolve_timeline_blueprint.json`.
+
+Use `scripts/discover_external_media.py --volume-root /Volumes` after the user plugs in a travel footage drive. It discovers likely mounted travel media roots, filters `._` AppleDouble shadow files, reports video counts/sizes/sample paths, and flags Japan/Tokyo/Osaka/Hong Kong/Macau naming cues without modifying the drive.
+
+Use `scripts/prepare_external_media_intake.py --volume-root /Volumes` when a mounted drive contains multiple trips, when the app has multiple candidate projects, or when a project title/route may not match its media root. It writes an auditable project/media-root choice packet and prevents the workflow from silently using a mismatched default project.
+
+Use `scripts/run_videoclaw_media_index.py` when a selected VideoClaw project has mounted `mediaRoots` but no `media_index.json`. Run it without `--apply` first to verify video counts and missing roots; add `--apply` only when writing `media_index.json`, `duplicate_groups.json`, and `scan.json` into the project directory is approved. It never modifies the source drive.
+
+Use `scripts/run_videoclaw_route_pipeline.py` after `media_index.json` exists but route/location artifacts are missing. By default it runs local project writes only: media index refresh, frame extraction, frame index, visual scoring, local prefilter, route scaffolding attempts, and reports. It keeps real cloud location recognition disabled unless `--allow-cloud-call` is explicitly passed.
+
+Use `scripts/run_local_ollama_vision_recognition.py` only when the user explicitly requests a local 7B/8B vision-model pass. It reads extracted frames, sends representative frames to an Ollama vision model such as `qwen2.5vl:7b`, and writes `local_vision_recognition/<timestamp>/local_ollama_vision_recognition.md` plus a local location-map candidate. By default it does not overwrite `video_location_map.json`; use `--update-project-location-map` only after reviewing the local results.
+
+Use `scripts/run_local_tesseract_ocr.py` only as an optional helper when the user allows local OCR or when visible signs/station names need text extraction. It runs Tesseract locally with Japanese/English/Chinese language packs and writes `local_ocr_recognition/<timestamp>/local_tesseract_ocr_recognition.md` plus an OCR-only location-map candidate. OCR evidence is not enough for GPS-grade certainty, but it is useful for route review.
+
+Use `scripts/prepare_footage_recognition_report.py` after media indexing and location recognition, before building or refreshing any delivery package. It writes `recognition_reports/<timestamp>/footage_recognition_route_report.md` and `.json`, plus `latest_footage_recognition_route_report.json`. This is a required customer-facing evidence document: it must list all source videos, recognized/unknown places, confidence, route-readiness, orientation, derived-source warnings, and next actions. If it says `blocked`, do not cut.
+
+Use `scripts/audit_location_truth_contract.py` after the footage recognition report and before any route/location claim. It distinguishes route-aware edit readiness from verified per-video location truth: full visual/Codex coverage may be `passed_with_caveats`, but exact per-clip geolocation can only be claimed when GPS, user-confirmed, or verified cloud/per-video evidence exists. Run with `--require-verified-per-clip-location` only when the user requires GPS-grade/per-video truth; otherwise keep the caveat explicit and do not label visual reconstruction as exact.
+
+Use `scripts/prepare_blocked_project_recovery_plan.py` whenever `prepare_footage_recognition_report.py`, `audit_location_truth_contract.py`, or the forward-test contract blocks a matched project before cutting. This writes a blocked-project recovery plan with ordered phases, exact next commands, approval gates, and safety flags so the next agent can move from "matched but unsafe" to route-ready without cutting the wrong material, modifying the source drive, calling cloud vision, writing Resolve, downloading assets, or applying route files by default. If a ready confirmed-route candidate already exists, the recovery plan must surface it in `summary.confirmedRouteCandidate`, mark route confirmation as `candidate_ready_awaiting_approval`, and keep `editingAllowedNow=false` until the route is explicitly applied and truth gates pass.
+
+Use `scripts/prepare_codex_visual_confirmed_route.py` after Codex visual inspection has produced a stable route review markdown file such as `codex_visual_route_review.md`. It converts Codex-reviewed day/place chapters into a fresh `confirmed_route_timeline.json`, backs up the previous route file, marks the review decision as `codex_visual_confirmed`, and removes human-review blockers when all source videos are covered. This is the preferred route confirmation path for this user's workflow; do not run a local 7B/Ollama pass just to create the confirmed route unless the user explicitly asks for it. When multiple route nodes occur on the same date, the Codex visual report must provide explicit `videoNames`, `videoIds`, or `videoPaths` for each chapter so the script does not duplicate all same-day videos into every chapter. Never hard-code `country`/region from a previous project such as Japan; infer it from the project and Codex visual chapter, and keep Hong Kong/Macau, Europe, or other multi-region trips labeled honestly.
+
+Use `scripts/audit_confirmed_route_candidate.py` after `prepare_codex_visual_confirmed_route.py` or `prepare_confirmed_route_candidate.py` writes a candidate and before any route `--apply`. It must prove the candidate is apply-ready, matches the selected project/media index, assigns every active source video exactly once, has no unknown/excluded/duplicated source references, keeps same-date multi-stop chapters explicitly mapped, and does not inherit the wrong trip country such as Japan on a Hong Kong/Macau project. A `passed_with_caveats` result may allow route-aware editing only with explicit non-GPS/visual-reconstruction wording; a `blocked` result forbids writing `confirmed_route_timeline.json`.
+
+`build_delivery_package.py` must produce a Resolve blueprint whose `longFormCoverage.finalVideoCoverageSeconds` can sustain the requested long-form target when enough source media exists. Opening, bridge, and ending gaps should be filled with labeled visual-bed clips instead of silently leaving a 20-minute timeline under-covered.
+
+Use `scripts/enrich_resolve_blueprint.py` after `delivery_plan.json`, `subtitles.srt`, voiceover audio, title cards, BGM cues, and asset search/ledger data change. It writes `resolve_timeline_enrichment.json` and updates `resolve_timeline_blueprint.json` with subtitle cues, voiceover/BGM mix plan, stock/aerial placeholders, transition cues, and Resolve timeline markers.
+
+Use `scripts/audit_resolve_blueprint.py --blueprint <package>/resolve_timeline_blueprint.json --package-dir <package>` before any Resolve `--apply`. It writes `resolve_blueprint_preflight.json`/`.md` and verifies missing media, source ranges, source-duration bounds, same-track overlaps, V1 coverage gaps, title/place cards, subtitle sidecar, markers, BGM/stock/transition placeholders, and source-audio policy without writing Resolve.
+
+Use `scripts/analyze_reference_video.py` for the local Malta reference film:
+
+```bash
+python3 <skill-dir>/scripts/analyze_reference_video.py --reference /Users/pengyang/Downloads/马耳他终稿5.16.mp4 --output-dir <package>/reference
+```
+
+The Malta analysis must be a reusable style profile, not only a contact sheet. It should record duration, frame rate, bitrate, scene-cut pacing, average/median shot length, audio loudness/silence, sampled frame paths with timecodes, and the non-copying usage contract. Use it to calibrate shot rhythm, route texture, BGM/no-voiceover support, subtitle density, and breathing room before judging an edit as Bilibili/Malta-like.
+
+Use `scripts/generate_title_cards.py` after `delivery_plan.json` exists to create cinematic title/place card MP4 assets and inject them into the Resolve blueprint.
+
+Use `scripts/make_city_aerial_title.py` for the opening and major city chapter hooks. It composites clean English city typography such as `TOKYO`, `OSAKA`, `PARIS`, or `LOS ANGELES` onto licensed aerial/establishing footage. Do not use a black title slate as the opening hook for a client delivery.
+
+Use `scripts/build_asset_ledger.py` after `delivery_plan.json` exists to create the BGM/aerial/font license ledger. Final render is not allowed while BGM or stock/aerial rows remain `unverified`.
+
+Use `scripts/prepare_asset_sourcing_packet.py` after the asset ledger exists. It writes `asset_sourcing/asset_sourcing_packet.json` and `.md` with official provider/license URLs, exact decision fields, approval evidence requirements, and next actions for BGM, aerial/stock, and font sourcing.
+
+Use `scripts/prepare_bgm_sourcing_brief.py` after `prepare_asset_sourcing_packet.py` and before asset decisions. It writes `bgm_sourcing/bgm_sourcing_brief.json` and `.md` with a proactive long-form travel BGM search strategy: Mixkit/Pixabay-first searches, paid-library fallbacks, mood buckets by chapter, continuous-bed/opening/transition/ending section plans, decision fields, and a selection rubric. It does not download music or claim licensing; it prevents the recurring missing-BGM failure by making the exact search/selection work explicit even when no BGM has been chosen yet.
+
+Use `scripts/prepare_bgm_selection_package.py` after the BGM sourcing brief and before transition/audio planning. It writes `bgm_selection_package/bgm_selection_package.json` and `.md`, plus `track_manifest_for_build_bed.json` when local source tracks exist. The package proves whether the selected BGM is local, license-traceable, target-duration-covering, referenced by the active Resolve blueprint, and rebuildable with `build_bgm_bed.py`. It never downloads music or writes Resolve; it turns "find a suitable travel BGM" into an auditable selection/build contract.
+
+Use `scripts/prepare_transition_bridge_plan.py` after the BGM sourcing brief and before asset/stock decisions. It writes `transition_bridge_plan/transition_bridge_plan.json` and `.md` with one boundary row per day/place/chapter transition, local-footage-first search hints, licensed stock/aerial fallback queries, BGM-only/no-camera-voice audio policy, subtitle/title-zone policy, restrained effect guidance, bridge evidence read from the Resolve blueprint, exact decision fields, and pass/reject rubric. It does not download assets or write Resolve; it prevents hard-cut day jumps, black-card transitions, and generic AI-looking route changes before the edit is built.
+
+Use `scripts/prepare_caption_story_plan.py` after the transition bridge plan and before subtitle overlay generation. It writes `caption_story_plan/caption_story_plan.json`, `.md`, and `text_only_narration_export.txt` with full-film and per-chapter subtitle density targets, cue/gap evidence, title-zone suppression policy, no-voiceover/TXT/SRT handoff policy, caption function rows, rewrite decision fields, and pass/reject rubric. It does not generate TTS or write Resolve; it prevents the recurring sparse-subtitle and unwanted-voiceover failures by making the text-only narration/SRT plan explicit before the edit is rendered.
+
+Use `scripts/prepare_title_typography_plan.py` before generating or trusting scenic title bridge media. It writes `title_typography_plan/title_typography_plan.json` and `.md` with one row for each opening/chapter/ending title window, approved title/subtitle text fields, font and license evidence, scenic background/segment evidence, title-safe rules, forbidden visible text, subtitle title-zone suppression, and stacked/ghosted-title evidence from the title contract. It does not render title media or write Resolve; it prevents duplicate/ghosted opening titles, route/date text behind the hero title, generic slates, and silent font fallback before final render.
+
+Use `scripts/prepare_visual_establishing_plan.py` after the title typography plan and before trusting aerial/stock/title-bridge coverage. It writes `visual_establishing_plan/visual_establishing_plan.json` and `.md` with one row for the opening, every chapter establishing moment, and the ending; each row includes local-footage-first search hints, famous-place/landmark hints derived from the selected trip city, licensed stock/aerial fallback searches, BGM-only/no-camera-voice policy, title typography evidence, existing timeline evidence, exact decision fields, and pass/reject rubric. It does not download assets or write Resolve; it prevents missing city aerials, generic establishing shots, black/title-card openings, and stale previous-trip landmark defaults before the edit is built.
+
+Use `scripts/prepare_effect_motion_plan.py` after the visual establishing plan and before Resolve effect decisions. It writes `effect_motion_plan/effect_motion_plan.json` and `.md` with restrained opening/chapter/ending title reveal rows and route-transition motion rows, tied to title typography, transition bridge, visual establishing, and blueprint `effectPlan` evidence. It records subtle fade/dissolve/match-cut/route-marker guidance, title-zone checks, BGM-only/no-camera-voice policy, exact implementation/readback decision fields, and a pass/reject rubric. It does not write Resolve; it prevents bare concatenation, black-card jumps, and template-heavy AI-looking effects before final director-polish claims.
+
+Use `scripts/prepare_feedback_regression_plan.py` after effect motion planning and before audio scene policy. It writes `feedback_regression_plan/feedback_regression_plan.json` and `.md` with reusable probes for concrete rejected draft failures such as `opening_title=0`, `reported_vertical_clip=7:04`, `reported_voice_at_7_04=7:04`, and `opening_bgm_no_voice=0`. The plan produces the exact `--feedback-timestamps` strings for `prepare_audio_scene_policy_plan.py`, `audit_feedback_regressions.py`, and `run_final_qa_suite.py`. It does not write Resolve, queue renders, download assets, or touch source media; it makes the user's complaint set machine-readable before the next edit.
+
+Use `scripts/prepare_audio_scene_policy_plan.py` after the feedback regression plan and before asset decisions or Resolve writes. It writes `audio_scene_policy_plan/audio_scene_policy_plan.json` and `.md` with opening, title, visual-establishing, transition, effect, and feedback-timestamp audio windows; every row must be A3 BGM-led, `bgm_only_no_camera_voice`, and free of A1/A2 source-camera or voiceover leakage unless an explicit ambient exception is approved. It also consumes `feedback_regression_plan.json` and keeps known user feedback probes such as `7:04` scenic/voice complaints as reusable regression rows. It does not download assets or write Resolve; it prevents missing-BGM and accidental user/source-voice failures before the timeline is built.
+
+Use `scripts/prepare_edit_rhythm_plan.py` after the audio scene policy plan and before asset decisions or Resolve writes. It writes `edit_rhythm_plan/edit_rhythm_plan.json` and `.md` with one row per primary visual shot, one row per chapter, Malta/reference pacing targets, rhythm-role categories, long-shot/cutaway risks, recommended trim/split/cutaway treatments, exact Resolve/readback decision fields, and pass/reject rubric. It does not write Resolve; it prevents bare concatenation and AI-looking flat pacing by forcing every shot to have a route, street, lived-in, landmark, scenic, title, transition, or ending function before the cut is trusted.
+
+Use `scripts/prepare_rhythm_recut_blueprint.py` after the edit rhythm plan and before asset decisions or Resolve writes. It writes `rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json` plus JSON/MD reports that convert long-shot diagnosis into a non-destructive Resolve blueprint candidate: long raw holds are split into shorter main segments with existing-footage cutaways, total timeline duration is preserved, A1/A2/source audio stays disabled for inserted video, and the original `resolve_timeline_blueprint.json` is not modified unless `--update-blueprint` is explicitly requested. Always preflight this candidate with `audit_resolve_blueprint.py --blueprint <candidate> --package-dir <package>` before any Resolve apply.
+
+Use `scripts/prepare_rhythm_recut_apply_package.py` after the rhythm-recut candidate is reviewed and before any Resolve write. It forks a new package, copies only reusable input/assets/plans instead of stale final render proof, rewrites package-internal paths, makes the candidate blueprint the new package's active `resolve_timeline_blueprint.json`, runs optional preflight, and writes `rhythm_recut_apply_package_report.json`/`.md`. This is the safe bridge from "candidate looks good" to "new Resolve-ready package"; do not manually overwrite the source package blueprint unless the user explicitly asks for an in-place update.
+
+Use `scripts/build_route_coverage_scaffold.py` when `route_timeline.json` covers too little media. It builds a full-media route scaffold from ordered media plus chapter/map filename cues, writes `route_coverage_scaffold.json`, `.md`, `contact_sheet.jpg`, and `latest_route_coverage_scaffold.json`, and marks every scaffold chapter as needing human review.
+
+Use `scripts/prepare_route_review.py` whenever route chapters need human review, the project title/route conflicts with recognized media, or `confirmed_route_timeline.json` is stale. It writes `route_review.json`, `route_review.md`, `contact_sheet.jpg`, and `latest_route_review.json`.
+
+Use `scripts/prepare_route_decision_sheet.py` after a route review packet exists. It writes `route_decision_sheet.json`/`.md` with suggested per-chapter decisions and a region-mismatch approval block. It never applies decisions or writes `confirmed_route_timeline.json`.
+
+Use `scripts/apply_route_decision_sheet.py` after `route_decision_sheet.json` has been reviewed and approved. By default it writes `route_decision_application.json`/`.md` only. Use `--apply` only after the user explicitly approves writing decisions back into `route_review.json`; it still never writes `confirmed_route_timeline.json`.
+
+Use `scripts/prepare_confirmed_route_candidate.py` after route review decisions are made. It writes a gated `confirmed_route_candidate.json`/`.md` and only writes `confirmed_route_timeline.json` with `--apply` when all route gates pass and the user explicitly approves.
+
+Use `scripts/apply_asset_sourcing_decisions.py` after exact BGM/stock/aerial/font choices are filled in `asset_sourcing_packet.json`. By default it writes `asset_decision_reconciliation.json`/`.md` only. Use `--apply` only after every final asset row has exact asset, license, approval, and local/URL evidence.
+
+Use `scripts/audit_delivery_package.py` before claiming the package is ready. It writes `delivery_audit.json` and `delivery_audit.md` with blockers and next actions.
+
+Use `scripts/prepare_resolve_apply_contract.py` after the Resolve blueprint and delivery audit exist. It writes `resolve_apply_contract.json`/`.md` with project/timeline name, tracks, source counts, clip counts, write/readback commands, current blockers, and approval fields. It never writes Resolve.
+
+Use `scripts/prepare_resolve_render.py` after the Resolve timeline is written and read back. It writes `render_plan.json` by default without changing Resolve and must include a `VideoQuality` high-bitrate target, normally numeric `80000` or higher for 4K long-form masters. `--queue` and `--start` require explicit user approval plus a clean delivery audit and `resolve_audit.json`.
+
+Use `scripts/verify_render_delivery.py` after any Resolve or FFmpeg final render before claiming delivery. It verifies the final MP4 with `ffprobe`, full-film `blackdetect`, sampled frame extraction/luma checks, audio/video stream checks, and subtitle evidence. A render that exists but fails this verification is not deliverable.
+
+Use `scripts/audit_longform_delivery.py` after `verify_render_delivery.py` passes. It writes `longform_delivery_audit.json`/`.md` and checks the whole 20-minute-film promise: final MP4, duration, 4K video, audio, black-frame scan, DaVinci readback, voiceover, subtitles, BGM, aerial/stock evidence, title cards, transitions, route-recognition artifacts, route honesty, and handoff documents. `passed_with_caveats` is acceptable for a rough travel film when the caveat is explicitly about non-GPS/per-clip route certainty; it is not acceptable if the user requires verified per-clip locations.
+
+Use `scripts/audit_client_delivery_rules.py` before claiming a film is usable for a customer. It blocks if recognition did not cover the whole folder, the confirmed route is a single scaffold chapter, derived exports are mixed into raw footage, portrait/rotated media lacks a normalization policy, the actual Resolve blueprint source paths contain any raw portrait/square/unknown video clip in the 16:9 master, the opening does not start with city aerial/establishing footage plus clean city title typography, title text exposes internal IDs or placeholder Chinese, opening/chapter/ending title moments are black slates instead of scenic video bridges, SRT is missing/sparse, BGM is not on A3, transitions are not represented by visual bridge clips, effects are not planned, licenses are unverified, the final render is not valid 4K high-frame-rate/high-bitrate, or render verification has not passed.
+
+When a draft has already rendered but its first frame, chapter cards, or ending feel like generic AI output, create a `visual_polish` or `v8_visual_polish` package before re-verification. This package must include a manifest with route-aware opening, chapter, and ending replacement segments. Each segment must use real approved video footage or licensed stock/aerial footage as its background, not PNG/JPG title cards, `title_cards` black slates, random project IDs, generic `JAPAN` labels, phone/hand-obstructed frames, or placeholder Chinese.
+
+Do not trust a visual-polish manifest by itself. The final Resolve blueprint must actually reference the scenic title/bridge clips on V2. `audit_client_delivery_rules.py` must inspect the blueprint source paths and block if any opening/chapter/ending title moment still points to `title_cards/*.mp4`, PNG/JPG slates, missing media, or long place-description text that can crop at 4K. Use a role such as `chapter_title_bridge` for scenic chapter title clips that replace old `place_card` slates.
+
+Use `scripts/prepare_quality_recut.py` when a draft looks too AI-made, too low frame-rate, too sparse, or too narration-heavy. It prepares a v4-style package with 59.94fps defaults, no rendered voiceover audio, text-only narration export, dense full-film captions, BGM kept as a required audible asset, and opening/ending aerial inserts. After rendering such a package, run `verify_render_delivery.py` with `--min-fps 50 --min-video-bitrate-mbps 60`.
+
+Use `scripts/prepare_scenic_title_bridges.py` whenever opening/chapter/ending title moments contain black slates, stale `title_cards`, full-route labels, generic date labels, subtitles over the hero title, or template-looking lower-corner route text. It regenerates scenic title bridge videos from approved aerial/establishing/travel footage, draws only a clean main title plus optional short day/place subtitle, writes a contact sheet, and can update the Resolve blueprint. The default title policy forbids global route labels such as `TOKYO / OSAKA`, `JAPAN 2025`, `OSAKA - TOKYO - OSAKA`, or `OSAKA -> TOKYO -> OSAKA` inside final title bridge media.
+
+Use `scripts/audit_feedback_regressions.py` after any concrete user complaint about a rendered draft. Pass the exact timestamps from the user, for example `--feedback-timestamps opening_title=0,reported_vertical_clip=7:04 --include-title-points`. It turns the complaint into a reusable regression gate by checking the final Resolve render, clean title policy, sampled frames, portrait/pillarbox metrics, BGM audibility, A1/A2/A3 Resolve readback, no source-camera/voiceover leakage in scenic sections, dense V3 subtitle overlays, and title-zone subtitle suppression. Do not close a feedback loop until this audit passes or the remaining blockers are written as explicit next actions.
+
+Use `scripts/audit_reference_style_alignment.py` after `audit_story_style_contract.py` when the user wants the Skill to approach Bilibili/Malta-style long-form travel quality rather than merely pass technical checks. It scores reference material, long-form duration, route chapters, transport connective tissue, street/lived-in/landmark balance, real-footage variety, scenic title/bridge structure, no-voiceover BGM/caption support, and upstream QA evidence. Treat it as the "does this still feel like a travel film instead of an AI assembly" gate.
+
+Use `scripts/audit_director_intent_contract.py` after reference-style alignment and before director-polish claims. It writes `director_intent_manifest.json` plus `director_intent_contract_audit.json`/`.md`, proving the cut has an explicit director intent: opening mission and city signal, chapter beat categories, arrival-to-return route arc, long-form shot pacing, caption-led story/honesty, BGM/no-voiceover support, and an ending with scenic aftertaste. This is the reusable guard against technically valid but emotionally flat AI assemblies.
+
+Use `scripts/audit_route_texture_contract.py` after reference-style alignment and before title/package-integrity handoff. It verifies that route transitions are backed by actual bridge clips on the timeline, chapter title moments have nearby route connective tissue, every chapter has lived-in texture beyond title cards, and the global cut balances movement, street life, daily detail, and landmark payoff. This is the deterministic guard against landmark-only montages, hard-cut day jumps, or AI-looking travel assemblies that technically render but do not feel traveled.
+
+Use `scripts/audit_director_polish_contract.py` after title, BGM, route-texture, and reference-style audits. It cross-checks the director-level delivery promise: verified aerial/establishing opening, clean typography and font evidence, travel-appropriate BGM mood/licensing, restrained title/transition effects, dense rendered subtitles, Resolve track readback, and 4K high-frame-rate/high-bitrate output. Treat `passed_with_warnings` as acceptable only when the warnings are explicit handoff risks such as optional stock/aerial search placeholders that have not been materialized; do not hide those warnings.
+
+Use `scripts/audit_stock_aerial_closure.py` after route-texture and title audits, and before director polish. It verifies that every stock/aerial search placeholder in `stockInsertPlan` is either materialized as a verified local asset or explicitly closed as not used in the final Resolve render and covered by real local route/title footage. Run with `--update-blueprint` when you want `resolve_timeline_blueprint.json` to record the closure policy. Do not fabricate that a stock clip was downloaded; unresolved placeholders must remain blockers.
+
+Use `scripts/audit_package_integrity.py` before any handoff claim, especially after copying or deriving a package from an older package. It verifies that final render evidence points at the current package, Resolve readback identity matches the current blueprint, core QA reports have acceptable statuses, and stale/cross-package paths are visible. A historical cross-package voiceover marker may be closed only when Resolve readback has zero A1/A2 items, A3 BGM exists, and BGM/story contracts prove BGM-only no-voiceover delivery. Run `--strict-portable` before giving the package to another editor, another AI, or a client; strict mode blocks when active core package evidence still depends on previous delivery package paths.
+
+Use `scripts/audit_title_bridge_contract.py` after scenic title bridges are generated and again after the final Resolve render. It verifies that the clean title-bridge manifest, segment files, overlay files, Resolve V2 title clips, single-city opening title, forbidden visible text, no stacked text or subtitle overlay layers inside title windows, video-only scenic source policy, and subtitle title-zone suppression all agree. This is the deterministic guard for the user's repeated opening-title complaint; OCR is useful evidence, but the title contract is the stronger structural proof.
+
+Use `scripts/audit_bgm_audio_contract.py` after BGM is selected/built and again after the final Resolve render. It verifies that the BGM manifest output, Resolve blueprint `assets.bgm`, A3 cue, current-package materialized audio bed, asset ledger BGM row, DaVinci A1/A2/A3 readback, visual/audio loudness, feedback timestamp audio windows, no-camera/no-voiceover policy, and no A1/A2 voice or source-audio clips overlapping scenic/title/transition windows all agree. This is the deterministic guard for the user's repeated BGM complaint: scenic openings, title moments, and transition/landscape sections must be BGM-led and must not leak source-camera/user voice.
+
+Use `scripts/audit_skill_maturity_contract.py` after package-integrity QA when judging whether the reusable Skill, not just one film, covers the user's repeated delivery failures. It checks Skill instructions, bundled scripts, Bilibili/Malta style anchors, render quality, feedback regressions, clean non-duplicated opening title, proactive BGM, transition-bridge, caption-story, title-typography, visual-establishing, effect-motion, audio-scene-policy, edit-rhythm planning, rhythm-recut candidate blueprints, rhythm-recut apply package forks, BGM/no-voiceover, recognition/route evidence, director intent, route texture, stock/aerial closure, director polish, and strict portable handoff. Treat it as one-package evidence; it does not prove the long-term Skill goal complete without more forward tests on other trips.
+
+Use `scripts/audit_trip_generalization_contract.py` after adding or changing any rescue/repair script that was born from a specific trip failure. It blocks if reusable package, style-fix, orientation-repair, quality-recut, or route-decision scripts still force previous-trip defaults such as TOKYO/Japan/Tokyo-to-Osaka instead of deriving titles, countries, Resolve names, BGM mood, and route labels from the selected project or explicit arguments. Passing it does not prove the film is good; it proves the Skill will not silently contaminate a Hong Kong/Macau, Europe, or future trip with stale Japan-specific rescue logic.
+
+Use `scripts/audit_skill_forward_test_contract.py` after substantial Skill revisions or before claiming the Skill is mature across trips. It consumes an external media intake packet, a known-good package, a separate blocked project/location-truth report, and that blocked project's recovery plan to prove the Skill can both deliver a ready trip, refuse unsafe/mismatched trip states, and hand the next agent an actionable recovery route. The known-good package must pass both its full final QA suite and the current client delivery audit, including the latest actual-blueprint source-orientation gate; do not trust a stale final QA report generated before a new regression gate existed. A credible run should look like `audit_skill_forward_test_contract.py --intake-json <external_media_intake.json> --ready-package-dir <passed-package> --blocked-project-dir <separate-trip-project> --blocked-location-truth-json <blocked-location-truth.json> --blocked-recovery-plan-json <blocked_project_recovery_plan.json> --output-dir <skill-upgrade>/qa/<forward-test-run>`. Passing it is stronger than one-package QA, but still not a universal completion proof.
+
+Use `scripts/run_final_qa_suite.py` as the final handoff gate after a Resolve render exists. It infers the final MP4, visual title-bridge manifest, and BGM manifest when possible, then runs or verifies render delivery, visual/audio style, BGM/audio contract, location truth contract, client rules, long-form delivery, story style, reference alignment, director intent contract, route texture contract, title bridge contract, stock/aerial closure, director polish contract, feedback regression, default package integrity, strict portable package integrity, and Skill maturity contract in one reproducible report. Do not claim the Skill or a package is ready for another AI, editor, or client unless `final_qa_suite_report.json` is `passed` or the remaining blockers are explicitly listed as next actions.
+
+<!-- BEGIN travel-video-style-upgrade -->
+
+## Style QA Upgrade
+
+Read `references/bilibili-travel-style.md` before any long-form travel structure, title, narration, BGM, transition, or final QA work. Treat the listed creators and the local Malta film as non-copying style references: extract pacing, route rhythm, transition craft, title restraint, BGM energy, and subtitle density, but never copy their exact titles, music, narration, or footage.
+
+Resolve is the default finishing surface when DaVinci Resolve is installed and reachable. Do not stop at an FFmpeg-only assembly when the user asks for DaVinci, a finished film, or a reusable Skill. Build or revise a real Resolve project/timeline through the official API, read it back with `audit_resolve_timeline.py`, and render from Resolve unless Resolve is unavailable or the user explicitly chooses a non-Resolve route.
+
+For final delivery, block the edit if:
+
+- the opening title has duplicate/ghosted text, stacked city names, route/date labels near the hero title, project IDs, placeholder text, or subtitles sitting in the title safe zone
+- a portrait/vertical clip appears inside a 16:9 master with black side bars and no explicit designed-phone-insert exception
+- scenic openings, city hooks, or day/place transitions expose source-camera voice after the user asked for BGM-only or no voiceover
+- BGM is missing, inaudible, stylistically wrong, or lacks a manifest with local track paths and license URLs
+- day/place transitions are only hard cuts or black cards instead of route-aware bridge footage such as train, station, street, skyline, weather, food, hotel-window, or aerial inserts
+
+Use `scripts/build_bgm_bed.py` to create a continuous, traceable BGM bed from approved local music tracks. Use `scripts/make_davinci_stylefix_blueprint.py` when an existing Resolve blueprint has title clutter, portrait/pillarbox clips, source-camera voice, or missing BGM; it creates a DaVinci-first v10-style blueprint with clean opening title, video-only footage import, A3 BGM, and explicit replacement segments. It must ffprobe-scan every actual video `sourcePath` in the blueprint, write `manualQualityFix.orientationFixes`, and replace or block all raw portrait/square/unknown clips before Resolve import; never hard-code only the user-reported timestamp. Use `scripts/prepare_orientation_repair_package.py` when a previously rendered/QA-passed package becomes blocked by a newer source-orientation gate. It creates a new package directory, materializes reusable package assets, rewrites package-internal paths including copied asset-directory JSON/text files, syncs title bridge manifest segment paths from the final blueprint, generates a v14-style repaired blueprint, and writes `orientation_repair_package_report.json`; do not mutate the old package or reuse its stale final QA as current proof. Use `scripts/prepare_subtitle_overlay_asset.py` when the finished film needs visible subtitles in DaVinci: it converts dense SRT/TXT-style guidance into a transparent QuickTime alpha overlay and can add a V3 `subtitle_overlay_video` clip to the Resolve blueprint. Use `scripts/audit_visual_audio_style.py` after every final render and after user feedback timestamps to verify clean title policy, pillarbox/vertical regressions, BGM manifest, audio mode, loudness, silence ratio, and optional OCR. Use `scripts/audit_story_style_contract.py` after render verification to check the director-level contract: clean opening, visual bridge transitions, scenic ending, subtitle density/rendered subtitle mode, BGM-only readback, loudness/silence, orientation, asset evidence, and long-form pacing. Its opening-title evidence must show exactly one main title value such as `TOKYO`, not repeated/stacked text such as `TOKYO TOKYO`, conflicting `cityTitle`/`titleText` values, route/date copy, or opening subtitles.
+
+For user-reported regressions, always run `scripts/audit_feedback_regressions.py` in addition to the broader visual/audio and story audits. The feedback audit is the durable memory of what the user already rejected: duplicate/ghosted opening title text, portrait clips at named timestamps, missing or inaudible BGM, source-camera/user voice during scenic/title moments, sparse subtitles, and captions overlapping title zones.
+
+Before that final feedback audit exists, run `scripts/prepare_feedback_regression_plan.py` so the same rejected failures are already present as pre-render probes. The plan must carry opening-title, 7:04 portrait, 7:04 BGM/voice, and opening BGM/no-voiceover timestamps into `prepare_audio_scene_policy_plan.py`, `audit_feedback_regressions.py`, and `run_final_qa_suite.py`; do not rely on memory or conversation context to retype them later.
+
+Run `scripts/audit_reference_style_alignment.py` before saying the Skill can deliver in the style direction the user asked for. Passing `audit_story_style_contract.py` proves core story/editorial gates; passing reference-style alignment proves the route has enough transport, street texture, lived-in detail, landmarks, varied footage, BGM/caption support, and non-copying Malta/Bilibili reference evidence.
+
+Run `scripts/audit_director_intent_contract.py` before saying the edit has a real director intent. It must prove the opening tells the viewer what kind of journey this is, the chapters form a route arc rather than a list, shot pacing has long-form breathing room, subtitles carry route/emotion/honesty without voiceover, and the ending leaves aftertaste.
+
+Run `scripts/audit_route_texture_contract.py` before trusting that the edit feels route-aware. It must prove every planned day/place transition is backed by physical bridge footage, chapter title moments have nearby connective tissue, chapters contain transport/street/lived-in/landmark texture beyond title cards, and opening/ending sections breathe on real visual material. If it blocks, revise the timeline structure or bridge-footage roles instead of only changing titles.
+
+Run `scripts/audit_director_polish_contract.py` before claiming the Skill can produce a premium travel film rather than a technically valid assembly. It must connect the clean title/aerial evidence, font and asset ledger, BGM mood/license evidence, subtle effect plan, rendered subtitle policy, Resolve readback, and final export quality. A warning about unmaterialized stock/aerial search placeholders is allowed as a visible handoff risk, but a blocker means the package is not director-polished.
+
+Run `scripts/audit_stock_aerial_closure.py` before director-polish QA if the blueprint has `stockInsertPlan` rows. The report must prove search-only stock/aerial rows did not enter the final timeline and were either replaced by verified assets or closed by local-footage coverage evidence. If this audit blocks, materialize the required stock/aerial asset, remove stale search-only plan rows, or revise the timeline so real footage covers the need.
+
+Run `scripts/audit_title_bridge_contract.py` before trusting a clean-title claim. It must prove the opening has one city title, the actual Resolve title clips point to the generated scenic bridge videos, the title text avoids previously rejected route/date labels, title clips import video-only, and V3 subtitle overlays are suppressed during title zones. If OCR fails to recognize the expected title but this contract passes, keep the OCR miss as a warning rather than treating it as the only source of truth.
+
+Run `scripts/prepare_bgm_selection_package.py` before trusting a BGM/no-voiceover claim. It must prove that the selected BGM bed or source tracks are local, license-traceable, target-duration-covering, blueprint-referenced, and rebuildable with `build_bgm_bed.py`; if it blocks, fill exact track/license/local-path decisions before Resolve apply.
+
+Run `scripts/audit_bgm_audio_contract.py` before trusting a BGM/no-voiceover claim. It must prove the BGM bed referenced by Resolve is the same file named in the BGM manifest and asset ledger, materialized inside the current delivery package, long enough for the final render, licensed/traceable, mixed on A3, audible in the final MP4, and accompanied by zero A1 source-audio and zero A2 voiceover items. If it blocks on stale BGM paths, repair the package manifest/ledger/blueprint first, then re-run dependent audits.
+
+Run `scripts/prepare_audio_scene_policy_plan.py` before any Resolve apply when the user has complained about missing BGM, scenic voice leakage, or unwanted voiceover. It must enumerate opening/title/transition/establishing/effect/feedback windows, prove ready A3 BGM coverage, require A1/A2 mute or absence, and preserve exact user complaint times such as `reported_voice_at_7_04=7:04` as regression probes.
+
+Run `scripts/prepare_edit_rhythm_plan.py` before any Resolve apply when the user says the edit feels AI-made, badly cut, too flat, or unlike the Malta/Bilibili reference. It must enumerate primary visual shots and chapter rhythm rows, compare pacing to the reference profile, identify long raw holds and missing cutaways, and turn them into trim/split/insert decisions instead of relying only on post-render style audits.
+
+Run `scripts/prepare_rhythm_recut_blueprint.py` immediately after that plan when long-shot risks exist. The output must be a separate candidate blueprint that uses existing local footage as motivated cutaways, keeps total duration stable, and can be preflighted before any active Resolve blueprint is replaced.
+
+Run `scripts/prepare_rhythm_recut_apply_package.py` after the candidate passes review/preflight and before Resolve apply. Prefer a new package fork over in-place blueprint replacement so the source package remains valid evidence, stale final render QA is not reused, and the recut package gets its own active blueprint, preflight, dry-run, apply-contract, readback, render, and final QA chain.
+
+Run `scripts/prepare_final_delivery_report.py` after render verification, client delivery rules, BGM audio contract, story style, and strict package integrity pass. It writes `FINAL_DELIVERY_REPORT.json` and `.md` with final output path, Resolve identity, render parameters, BGM/no-voiceover evidence, and explicit non-GPS route caveat wording. Do this before `audit_longform_delivery.py` and before the final `run_final_qa_suite.py` pass.
+
+Run `scripts/audit_package_integrity.py` after the feedback/style audits and again after any blueprint/report path repair. Treat stale contact sheets, old render reports, previous-package subtitle/BGM paths, and disabled voiceover paths as package-integrity risks until the audit explains or clears them. A disabled voiceover path is not clear just because it is unused in prose; it must appear in `closedCoreCrossPackagePaths` with A1=0, A2=0, A3>0, and passing BGM/story no-voiceover evidence. Do not use a report from an older package as proof of the current Resolve render.
+
+`prepare_subtitle_overlay_asset.py` suppresses or trims subtitle overlay cues that overlap Resolve title zones by default. Do not let V3 captions appear during opening city titles, chapter title bridges, or ending title moments unless the user explicitly requests that exception with `--allow-title-zone-subtitles`. The manifest must record the title-zone subtitle policy so missing captions during title cards are understood as intentional title cleanliness, not a dropped-subtitle bug.
+
+`audit_visual_audio_style.py` must be run with a visual manifest and `--require-clean-title` for final QA. It automatically adds title/bridge timestamps from the manifest, clears stale frame folders before sampling, uses precise frame extraction, and runs OCR across enough title samples to catch hidden route/date/template text. A stale contact sheet, or one generated from old samples, is not valid delivery evidence.
+
+When the user rejects voiceover, keep narration as TXT/SRT and render scenic/title/transition sections with `bgm_only_no_camera_voice`; do not sneak in generated voiceover or source-camera talking.
+
+Do not assume DaVinci can directly import an SRT through the Python API. Local Resolve 21 smoke testing showed that a new subtitle track can be created, but `Timeline.ImportIntoTimeline(<srt>)` returned `False` and produced zero subtitle items. For visible subtitles, prefer a transparent subtitle overlay video on V3 via `prepare_subtitle_overlay_asset.py`, then read back the V3 item count after `build_resolve_timeline.py --apply`. Sidecar-only SRT is acceptable only when the user explicitly wants separate TXT/SRT handoff; otherwise it is a warning or blocker in `audit_story_style_contract.py`.
+
+<!-- END travel-video-style-upgrade -->
+
+## Definition of Done
+
+Do not call the job complete unless the package contains all required handoff pieces:
+
+- location and route status, with stale/mismatch blockers resolved or clearly marked
+- footage recognition/route MD report proving the whole folder was inspected before editing
+- full-folder recognition coverage, or an explicit blocked status; do not cut from a 12-video sample when the folder has 59 videos
+- location truth contract audit proving whether the package can only claim visual route reconstruction with caveats or can actually claim verified per-video geolocation
+- blocked-project recovery plan when recognition/location truth/forward-test blocks a matched project; it must list ordered phases, exact next commands, approval gates, and safety flags before any cutting resumes
+- external media intake packet when mounted drives contain multiple trip roots or project/media roots can be confused
+- media index readiness for the chosen project, or a safe `run_videoclaw_media_index.py --apply` report when the index had to be created from mounted media roots
+- frame index, location map, and route timeline readiness, or a safe `run_videoclaw_route_pipeline.py` report explaining which local/cloud steps remain
+- Codex visual review notes for contact sheets/sampled frames when route labels are low-confidence or automatic labels are suspicious
+- a fresh Codex-visual-confirmed route timeline when Codex visual inspection covered the whole folder and produced enough evidence to cut
+- local Ollama vision or Tesseract OCR reports only when the user explicitly authorizes those local helper routes
+- route coverage scaffold when automatic route coverage is too low
+- route review packet when route/location artifacts need human review
+- route decision sheet when route review needs chapter decisions or region mismatch approval
+- route decision application report proving whether approved route decisions can be safely copied into `route_review.json`
+- confirmed route candidate or fresh `confirmed_route_timeline.json` before final route-aware cutting
+- confirmed route candidate audit proving the candidate covers every active source video exactly once, has no duplicated/unknown/excluded refs, preserves honest region labels, and only advances with non-GPS caveats when exact per-video truth is unverified
+- voiceover script
+- TTS or recorded voiceover audio plan/file
+- when the user rejects voiceover, a text-only narration document and proof that no voiceover audio asset is imported/rendered
+- subtitle SRT draft; when the user asks for Jianying/CapCut generation, deliver SRT/TXT and do not generate local TTS
+- local delivery assets report covering title cards, optional local voiceover, and refreshed Resolve enrichment
+- BGM cue plan with licensing/source status
+- aerial/establishing-shot search plan or approved local/stock assets
+- opening city aerial/establishing clip with clean English city title typography; never expose project slugs, random IDs, or placeholder copy in the first frame
+- visual polish manifest proving opening, chapter, and ending titles use scenic route-aware video bridges rather than black slates; include a contact sheet or sampled-frame evidence for these moments
+- title typography plan proving every opening/chapter/ending title row has approved text, verified font evidence, scenic background/segment evidence, forbidden-text checks, title-zone subtitle suppression, and no stacked/ghosted text before final title claims
+- visual establishing plan proving the opening, every chapter establishing moment, and the ending have local-footage-first search hints, trip-derived famous-place/landmark hints, licensed stock/aerial fallback searches, title typography evidence, existing timeline evidence, exact decision fields, and no previous-trip defaults before aerial/landmark claims
+- effect motion plan proving opening/chapter/ending title reveals and day/place transition motions are restrained, source-evidence-backed, title-zone safe, BGM-only, decision-field ready, and free of glitch/spin/flash/template-heavy effects before director-polish claims
+- feedback regression plan proving concrete rejected draft failures such as opening title ghosting, 7:04 portrait footage, 7:04 source/user voice, and opening BGM/no-voiceover are preserved as reusable pre-render audio-policy probes, post-render feedback-audit probes, and final-QA timestamps
+- audio scene policy plan proving opening/title/transition/visual-establishing/effect/feedback windows are A3 BGM-led, have exact mute/readback decision fields, include known complaint probes such as `7:04` when applicable, and contain no A1/A2 source-camera or voiceover leakage before Resolve writes
+- edit rhythm plan proving every primary visual shot has a route/street/lived-in/landmark/scenic/title/transition/ending function, Malta/reference pacing targets, long-shot/cutaway risk rows, chapter variety rows, and trim/split/insert decision fields before any "not AI-made" style claim
+- rhythm recut candidate blueprint proving long raw holds were automatically converted into shorter main segments plus existing-footage cutaways, with unchanged total timeline duration, A3 BGM-only safety, row-level approval/readback fields, and Resolve preflight readiness before replacing the active blueprint
+- rhythm recut apply package proving an approved candidate can become a separate Resolve-ready package fork with active recut blueprint, rewritten package-local paths, no copied final-render proof, preflight evidence, dry-run/apply-contract next actions, and no source package mutation
+- final Resolve blueprint proof that the opening, chapter, and ending title moments actually reference scenic bridge video clips, not stale `title_cards` slates or long cropped place descriptions
+- scenic title bridge contact sheet proving title frames do not contain hidden global route labels, generic date labels, template lower-corner route text, stale black cards, or subtitles sitting over the title safe zone
+- machine-readable asset license ledger for BGM, aerial/stock, and fonts
+- asset sourcing packet with provider/license URLs, selection fields, approval evidence, and download/import gates
+- BGM sourcing brief proving the Skill proactively generated mood-appropriate search rows, section plans, provider/license URLs, and exact decision fields before any BGM/no-voiceover final claim
+- BGM selection package proving the selected music bed is local, license-traceable, target-duration-covering, referenced by the active Resolve blueprint, rebuildable from local source tracks, and ready for BGM/audio contract audits
+- asset decision reconciliation report after sourcing decisions are filled or confirmed still missing
+- typography plan for titles, place cards, subtitles, and map labels
+- day/chapter transition plan
+- transition bridge plan proving every day/place/chapter boundary has local bridge-footage search hints, licensed stock/aerial fallback queries, BGM-only audio policy, title-zone subtitle policy, exact decision fields, and final bridge evidence before route-texture claims
+- caption story plan proving no-voiceover delivery has dense SRT cues, per-chapter caption targets, gap limits, title-zone suppression policy, text-only narration export, and rewrite decision fields before subtitle overlay generation or maturity claims
+- natural visual transition clips between days/places, such as station, street, skyline, vehicle, signage, food, hotel window, weather, or aerial bridge footage
+- effect plan for restrained title reveals, route motion, transitions, or chapter emphasis; do not overuse effects, but a client delivery cannot be a bare concatenation
+- 20-minute long-form structure, not a 1-2 minute short-video outline
+- 4K high-frame-rate export target, normally 59.94/60fps for DJI/action/phone travel footage unless source or platform requirements justify otherwise
+- high-bitrate final output target, normally at least 60 Mbps for 4K long-form H.264/H.265 masters
+- DaVinci Resolve API timeline blueprint and a dry-run/apply command
+- Resolve source-footage clips preserve camera/source audio on A1 unless a clip is explicitly video-only
+- long-form coverage evidence showing initial selected seconds, gap-fill seconds, final covered seconds, and target seconds
+- Resolve timeline enrichment report with subtitle cues, audio plan, stock/aerial placeholders, transition markers, and chapter markers
+- subtitle delivery mode proof: native subtitle items, V3 transparent subtitle overlay readback, or an explicitly accepted sidecar-only SRT/TXT handoff
+- subtitle title-zone policy proof showing V3 subtitle overlays were suppressed or trimmed during opening, chapter title bridges, and ending title moments unless explicitly overridden
+- Resolve blueprint preflight proving source files, source ranges, track overlaps, V1 coverage, title cards, subtitles, markers, and source-audio policy are safe before `--apply`
+- generated title/place card media or a clear reason they are pending
+- Resolve apply approval contract before any actual `build_resolve_timeline.py --apply`
+- Resolve readback audit after any actual timeline write
+- delivery package audit with no blockers before final render
+- safe workflow run report showing which local steps ran, command return codes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
+- Resolve render plan with final export settings
+- queued/rendered Resolve job status only after explicit approval
+- final render delivery verification proving the output file duration, resolution, audio stream, sample frames, black-frame scan, and subtitle evidence
+- final render delivery verification proving frame rate and bitrate meet the quality target
+- long-form delivery audit proving the 20-minute film requirements are met, or explicitly listing route/location caveats that still prevent a claim of perfect per-clip geolocation
+- location truth contract audit proving full-source accounting, per-video recognition rows, frame evidence, provider provenance, confirmed-route linkage, derived-source exclusion, and whether exact per-video location claims are allowed
+- client delivery rules audit proving the opening, route, actual blueprint source orientation scan, SRT-only/no-voiceover mode, BGM, transitions, effects, titles, assets, and export quality satisfy the product bar
+- story style contract audit proving the cut does not merely pass technical checks but also has Bilibili/Malta-style travel rhythm: one non-duplicated opening title value, dense captions, BGM-led scenic sections, route-aware bridges, scenic ending, no portrait/pillarbox regressions, traceable assets, and DaVinci readback evidence
+- reference style alignment audit proving the edit has non-copying Malta/Bilibili reference evidence, route chapters, transport connective tissue, street/lived-in/landmark balance, real-footage variety, scenic title/bridge structure, and BGM/caption-led no-voiceover storytelling
+- director intent contract audit proving the cut has an explicit opening mission, route arc, chapter beat categories, long-form pacing, caption story/honesty, and ending aftertaste before any premium style claim
+- route texture contract audit proving planned day/place transitions are backed by actual bridge clips, chapter titles have nearby connective tissue, chapters contain lived-in route texture beyond title cards, and the timeline balances transport, streets, daily detail, and landmarks
+- stock/aerial closure audit proving search-only stock/aerial placeholders are either materialized as verified local assets or explicitly closed as not used in the final Resolve render and covered by real local route/title footage
+- director polish contract audit proving the aerial/establishing opening, typography/font evidence, BGM mood and license, restrained title/transition effects, dense rendered subtitles, Resolve track readback, and premium export settings form one coherent delivery chain; list any unmaterialized stock/aerial search placeholders as warnings
+- title bridge contract audit proving clean scenic title manifests, segment/overlay files, Resolve V2 title clips, opening city title policy, forbidden visible text, video-only import, and subtitle title-zone suppression are consistent
+- BGM/audio contract audit proving the actual BGM bed is current-package materialized, traceable/licensed, long enough, referenced by Resolve, present on A3, audible in the MP4, and not mixed with source-camera or voiceover audio
+- feedback regression audit for every concrete user complaint timestamp proving the same failure cannot silently recur in the next run
+- package integrity audit proving final render evidence, Resolve readback identity, core QA statuses, and cross-package/stale paths are coherent for the current package; disabled voiceover leftovers must be explicitly closed with A1/A2/A3 and BGM/story evidence; strict portable mode must not block before external handoff
+- Skill maturity contract audit proving the reusable Skill itself covers the user's repeated failures: clean title, no portrait regression in final render or actual Resolve blueprint source paths, feedback regression planning, proactive BGM sourcing and selection/build packaging, proactive audio-scene BGM/no-voiceover planning, proactive edit-rhythm/shot-purpose planning, rhythm-recut candidate blueprints and apply-package forks, dense subtitles, director intent, route texture, Bilibili/Malta style anchors, DaVinci delivery, location-truth honesty, stock/aerial closure, and portable handoff
+- trip generalization contract audit proving rescue scripts do not force stale previous-trip defaults such as TOKYO/Japan/Tokyo-to-Osaka on future projects
+- Skill forward-test contract audit after substantial Skill revisions, proving the Skill handles at least one known-good package, one matched-but-blocked separate trip, and one unknown or ambiguous mounted media root without silently cutting the wrong material
+- final QA suite report proving all final gates were run or intentionally reused: render verification, visual/audio style, BGM/audio contract, location truth contract, client rules, long-form delivery, story style, reference alignment, director intent contract, route texture contract, title bridge contract, stock/aerial closure, director polish contract, feedback regression, default package integrity, strict portable package integrity, and Skill maturity contract
+- QA checklist covering black frames, audio levels, subtitle sync, licenses, route accuracy, and export settings
+
+If any required item is missing, report the missing item and the next action instead of saying it is deliverable.
+
+## Workflow
+
+1. Inspect project state and artifacts with `check_project_state.py`.
+2. Read `references/editor-integration.md` before choosing an editing route.
+3. Read `references/delivery-workflow.md` before building a package.
+4. Read `references/davinci-resolve-api.md` before touching Resolve.
+5. Read `references/long-form-travel-style.md` before drafting structure or narration.
+5a. Read `references/bilibili-travel-style.md` before cutting style, titles, BGM, transitions, or final QA when the user asks for Bilibili/travel-vlog polish or provides a local reference film.
+6. Read `references/narration-subtitles.md` before writing narration, TTS, or subtitles.
+7. Read `references/music-stock-fonts.md` before searching for BGM, aerials, stock inserts, or fonts.
+8. Read `references/output-contracts.md` when interpreting route/location JSON artifacts.
+9. Run `discover_external_media.py` when an external drive such as `/Volumes/My Passport` is mounted and the source media root is not yet confirmed.
+10. Run `prepare_external_media_intake.py` before any long-form package build when multiple mounted trip roots or project/media mismatches exist.
+11. Run `run_videoclaw_media_index.py` when the selected project has no media index but mounted media roots are present; use `--apply` only after the dry-run shows the expected source videos.
+12. Run `run_videoclaw_route_pipeline.py` when frame/location/route artifacts are missing; add `--allow-cloud-call` only after the user approves real cloud recognition.
+13. Use Codex visual inspection on contact sheets and sampled frames to reject bad automatic labels, identify obvious route nodes, and write auditable route review notes. For same-date multi-stop travel days, write explicit per-chapter `videoNames`/`videoIds` coverage instead of relying on date-only grouping.
+14. Run `prepare_codex_visual_confirmed_route.py --project-dir <project>` without `--apply` when Codex visual inspection has covered the whole folder and the route evidence is sufficient. Then run `audit_confirmed_route_candidate.py --project-dir <project>` and use `--apply` only after the candidate audit is not blocked and the user explicitly approves writing `confirmed_route_timeline.json`; this is the preferred confirmation path for this user.
+15. Run `run_local_ollama_vision_recognition.py` or `run_local_tesseract_ocr.py` only when the user explicitly requests those local helper routes.
+16. Run `prepare_footage_recognition_report.py`; if it is blocked, fix recognition/route coverage before cutting.
+16a. Run `audit_location_truth_contract.py`; if it is `passed_with_caveats`, the edit may proceed with visual-route language, but do not claim exact per-video GPS/per-clip geolocation. If the user requires exact location truth, rerun with `--require-verified-per-clip-location` and fix blockers before cutting.
+16b. If the recognition report or location truth audit is blocked for a matched project, run `prepare_blocked_project_recovery_plan.py` immediately. Treat the blocked-project recovery plan as the handoff contract for the next AI: it must say whether to fix media/frame artifacts, choose Mimo/cloud approval or Codex visual review, resolve route review, rerun truth gates, and only then build a package.
+17. Run `build_route_coverage_scaffold.py` if automatic route coverage is too low for a 20-minute film.
+18. Run `prepare_route_review.py` if route chapters are stale, mismatched, under-covered, or marked for human review. Use `--route-source <route_coverage_scaffold.json>` when reviewing a full-media scaffold.
+19. Run `prepare_route_decision_sheet.py` so route decisions and region mismatch approval are editable and auditable.
+20. Run `apply_route_decision_sheet.py` after the decision sheet is approved; use `--apply` only after explicit approval to update `route_review.json`.
+21. Run `prepare_confirmed_route_candidate.py` after review decisions; then run `audit_confirmed_route_candidate.py` and use `--apply` only after the user approves confirmed route writes and the candidate audit is not blocked.
+22. Run the safe local workflow with `run_delivery_workflow.py` when preparing a package from scratch or refreshing all safe local artifacts.
+23. Build a delivery package with `build_delivery_package.py` when only the package skeleton is needed.
+24. Analyze the Malta reference with `analyze_reference_video.py` when calibrating long-form pacing.
+24a. Reject a stale or shallow Malta reference analysis when it lacks `pacingProfile`, `audioProfile`, at least 12 sampled frames, and a contact sheet; rerun `analyze_reference_video.py` before `audit_reference_style_alignment.py` or `audit_skill_maturity_contract.py`.
+25. Generate local delivery assets with `prepare_delivery_assets.py`; add `--generate-local-voiceover` only after explicit approval for local TTS.
+26. Use `make_city_aerial_title.py` for opening/city hooks when an approved aerial or establishing clip exists.
+27. Refresh Resolve enrichment with `enrich_resolve_blueprint.py` after title, subtitle, voiceover, BGM, stock, or transition changes.
+27a. When visual title bridges are generic, black, cluttered, or contain global route/date/template text, run `prepare_scenic_title_bridges.py --package-dir <package> --update-blueprint` before subtitle overlay generation and Resolve preflight. Inspect its contact sheet; reject if opening/chapter/ending title frames contain global route labels, subtitles over the main title, black slates, or stale `title_cards` media.
+27b. When visible final subtitles are required, run `prepare_subtitle_overlay_asset.py --package-dir <package> --update-blueprint` after dense SRT approval and title-bridge cleanup, and before Resolve blueprint preflight. Run a short `--sample-duration-seconds 5` smoke test first on new machines to verify the alpha overlay path. Keep the default title-zone subtitle suppression unless the user explicitly asks for captions over titles.
+28. Generate title/place cards with `generate_title_cards.py --update-blueprint` only when the combined asset-prep script is not appropriate; do not use black slates for the opening hook.
+29. Generate the asset ledger with `build_asset_ledger.py`.
+30. Generate the asset sourcing packet with `prepare_asset_sourcing_packet.py`.
+30a. Generate the BGM sourcing brief with `prepare_bgm_sourcing_brief.py --package-dir <package>` so missing BGM turns into a concrete Mixkit/Pixabay/paid-library search and selection packet before asset decisions.
+30aa. Generate the BGM selection package with `prepare_bgm_selection_package.py --package-dir <package>` so any selected music bed is proven local, license-traceable, target-duration-covering, blueprint-referenced, and rebuildable before audio policy or Resolve writes.
+30b. Generate the transition bridge plan with `prepare_transition_bridge_plan.py --package-dir <package>` so every day/place/chapter boundary gets a concrete local-footage-first bridge row, licensed stock/aerial fallback queries, BGM-only transition audio policy, subtitle/title-zone guidance, and exact decision fields before asset decisions or Resolve writes.
+30c. Generate the caption story plan with `prepare_caption_story_plan.py --package-dir <package>` so sparse subtitles and unwanted voiceover become a concrete dense SRT/TXT handoff plan with per-chapter targets, title-zone suppression, and no-voiceover policy before subtitle overlay generation.
+30d. Generate the title typography plan with `prepare_title_typography_plan.py --package-dir <package>` before generating, trusting, or handing off title bridge media, so opening/chapter/ending titles have exact clean text, font evidence, scenic source evidence, no stacked layers, and title-zone subtitle suppression.
+30e. Generate the visual establishing plan with `prepare_visual_establishing_plan.py --package-dir <package>` before trusting aerial, landmark, or city-establishing coverage, so opening/chapter/ending rows have local footage hints, famous-place/landmark fallback searches, title evidence, timeline evidence, and exact asset decision fields.
+30f. Generate the effect motion plan with `prepare_effect_motion_plan.py --package-dir <package>` before adding or trusting Resolve title, route, or transition effects, so motion rows are restrained, evidence-backed, title-zone safe, and not template-heavy.
+30g. Generate the feedback regression plan with `prepare_feedback_regression_plan.py --package-dir <package>` so known complaint probes such as `opening_title=0`, `reported_vertical_clip=7:04`, `reported_voice_at_7_04=7:04`, and `opening_bgm_no_voice=0` become shared timestamps for pre-render audio policy, post-render feedback audit, and final QA.
+30h. Generate the audio scene policy plan with `prepare_audio_scene_policy_plan.py --package-dir <package>` before asset decisions or Resolve writes, adding `--feedback-timestamps <label=mm:ss,...>` when the user names an extra moment, so opening/scenic/title/transition/effect windows are A3 BGM-led and cannot leak A1/A2 source or voiceover audio.
+30i. Generate the edit rhythm plan with `prepare_edit_rhythm_plan.py --package-dir <package>` before asset decisions or Resolve writes, so long raw holds, missing cutaways, weak chapter variety, and flat AI-looking pacing become exact shot-purpose and trim/split/insert decision rows.
+30j. Generate the rhythm recut candidate blueprint with `prepare_rhythm_recut_blueprint.py --package-dir <package>` after the edit rhythm plan and before asset decisions or Resolve writes, so long raw holds are split with existing-footage cutaways in a separate `rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json`. Do not replace the active blueprint unless `--update-blueprint` is explicitly approved; preflight the candidate first.
+30k. When the rhythm recut candidate is approved, fork a Resolve-ready package with `prepare_rhythm_recut_apply_package.py --source-package <package> --run-preflight --output-dir <new-package>`. The new package must make the recut blueprint active, keep the source package unmodified, avoid copying stale final-render proof, and pass blueprint preflight before `prepare_resolve_apply_contract.py`.
+31. Run `apply_asset_sourcing_decisions.py` after exact asset decisions are filled; use `--apply` only after approval evidence is complete.
+32. Run `audit_delivery_package.py` and follow P0 next actions.
+33. Run `audit_client_delivery_rules.py`; if it is blocked, fix the product/editorial issue before Resolve writes or final claims. If the blocker is a black/generic title moment, build a visual-polish package with scenic opening/chapter/ending video bridges and re-run the audit. If the blocker is `Resolve blueprint contains no raw portrait/square/unknown video clips in the 16:9 master`, run `prepare_orientation_repair_package.py --source-package <old-package> --output-dir <new-package>` or repair the stylefix/orientation pass so every actual video `sourcePath` is landscape or an explicitly designed insert, then re-run blueprint/client audits on the new package.
+34. Run `build_resolve_timeline.py --blueprint <package>/resolve_timeline_blueprint.json` for dry-run.
+35. Run `audit_resolve_blueprint.py --blueprint <package>/resolve_timeline_blueprint.json --package-dir <package>` before any Resolve write approval.
+36. Run `prepare_resolve_apply_contract.py --package-dir <package>` before requesting approval for `build_resolve_timeline.py --apply`.
+37. Use `--apply` only after the user approves the new Resolve project/timeline write contract, Resolve blueprint preflight is not blocked, and the delivery audit has no blockers.
+38. After any `--apply`, run `audit_resolve_timeline.py` and save the report.
+39. Run `prepare_resolve_render.py --package-dir <package>` to write `render_plan.json`; confirm the plan records `VideoQuality` at a high-bitrate target, normally numeric `80000` or higher for 4K long-form masters.
+40. Run `audit_delivery_package.py` again; final render is allowed only when it reports `ready_for_final_render`.
+41. Use `prepare_resolve_render.py --queue` or `--queue --start` only after the user explicitly approves final render queue/start.
+42. Run `verify_render_delivery.py --package-dir <package> --output <final.mp4>` after the render completes. Use `--expect-subtitles burned-in`, `embedded`, or `sidecar` according to the actual subtitle delivery mode. Do not claim delivery if this report is blocked.
+After `verify_render_delivery.py` passes, run `scripts/audit_visual_audio_style.py` with opening, chapter, transition, ending, and user-feedback timestamps. Include `--require-clean-title`, the visual manifest, the BGM manifest, and `--audio-mode bgm_only` whenever the user requested no voiceover or BGM-led scenic sections. If this audit is blocked, fix and re-render before running or trusting `audit_client_delivery_rules.py`.
+42a. After any user complaint about a rendered draft, run `scripts/audit_feedback_regressions.py --package-dir <package> --feedback-timestamps <label=time,...> --include-title-points`. Include exact complaint times such as `opening_title=0` or `reported_vertical_clip=7:04`. If this audit is blocked, fix the package and Skill rule/script that allowed the failure, then re-render or re-audit until it passes.
+43. Run `audit_location_truth_contract.py --package-dir <package>` before long-form/client final claims. Treat `passed_with_caveats` as acceptable only when the final language is honest about visual/non-GPS route reconstruction; run `--require-verified-per-clip-location` when exact per-video geolocation is required.
+43a. Run `audit_longform_delivery.py --package-dir <package>` after final render verification and location-truth QA pass. Use `--require-verified-per-clip-location` only when the user requires GPS-grade/per-clip location truth; otherwise keep route uncertainty as an explicit caveat.
+44. Extract a final render contact sheet around the opening, every chapter title/transition, several mid-film subtitles, and the ending. Reject the render if these frames show black slates, generic country titles where city titles are expected, internal labels, hand/phone-obstructed title backgrounds, unreadable text, missing BGM evidence, or incoherent portrait/rotated footage.
+45. Run `audit_client_delivery_rules.py` again after final render verification and before saying a client can receive it.
+45a. Run `audit_bgm_audio_contract.py --package-dir <package> --audio-mode bgm_only` after visual/audio QA and before story QA. If it blocks on stale BGM manifest output, stale asset-ledger localPath, missing A3 cue, audible silence, or leaked A1/A2 audio, repair the package and re-run this contract before continuing.
+45b. Run `audit_story_style_contract.py --package-dir <package> --audio-mode bgm_only` after client-rule QA. Add `--require-rendered-subtitles` when subtitles must be visible in the MP4, not merely delivered as SRT/TXT. Treat `passed_with_warnings` as not perfect; fix or explain the warning before saying the Skill can deliver unattended.
+45c. Run `audit_reference_style_alignment.py --package-dir <package>` after the story contract audit when the user asks for Bilibili/Malta/creator-reference quality. If the score is below the configured threshold, revise the route structure, bridge footage, lived-in details, subtitle density, BGM support, or title/ending polish before claiming the Skill is mature.
+45cc. Run `audit_director_intent_contract.py --package-dir <package>` after reference-style QA. If it blocks, revise the opening mission, chapter arc, shot pacing, caption story, BGM/no-voiceover support, or ending before saying the edit has a real director intent.
+45d. Run `audit_route_texture_contract.py --package-dir <package>` after director-intent QA. If it blocks, add or relabel real bridge footage around day/place boundaries, strengthen chapter texture with transport/street/food/hotel/weather/detail clips, and re-run before title/package-integrity handoff.
+45e. Run `audit_title_bridge_contract.py --package-dir <package>` after route-texture QA and before package integrity. If it blocks, regenerate scenic title bridges or repair Resolve blueprint title clips before trusting contact sheets or OCR.
+45f. Run `audit_stock_aerial_closure.py --package-dir <package>` after title and route-texture audits. Add `--update-blueprint` when the final blueprint should record that search-only stock/aerial placeholders were closed. If it blocks, materialize/verify required stock assets or remove/close stale placeholders with evidence before director-polish QA.
+45g. Run `audit_director_polish_contract.py --package-dir <package>` after stock/aerial closure and title/BGM/route/style audits. If it blocks, fix the missing director-polish evidence before handoff.
+45h. Run `audit_package_integrity.py --package-dir <package>` after all final QA reports are regenerated. Run `audit_package_integrity.py --package-dir <package> --strict-portable` before any external handoff. If strict mode blocks, copy/materialize sidecar assets into the package or update stale blueprint/report paths, then re-run the affected audits.
+45i. Run `audit_skill_maturity_contract.py --package-dir <package>` after package-integrity QA to prove the Skill's reusable safeguards cover the original complaint set. If it blocks, fix the Skill rule/script/report that let the gap through; for orientation failures, prefer actual blueprint source-path repairs over relying only on final-render sampled frames.
+45ia. Run `audit_trip_generalization_contract.py --skill-dir <skill-dir>` after substantial script changes, especially when a script began as a Tokyo/Osaka/Japan repair. If it blocks, remove hard-coded trip defaults or add explicit/derived title, country, route, Resolve-name, and BGM-mood parameters before forward-testing.
+45ib. Run `audit_skill_forward_test_contract.py` after substantial Skill changes when cross-trip evidence exists. Use the latest external media intake packet, the known-good package, a separate blocked project/location-truth report, and that blocked project's recovery plan; if it blocks, fix the Skill so it does not overfit one successful trip or leave blocked projects without a next route. Save the report under the Skill upgrade QA folder and summarize it in the regression report before handing the Skill to another AI.
+45j. Run `run_final_qa_suite.py --package-dir <package> --feedback-timestamps <label=time,...>` after the final individual audits, or when handing work to another AI/editor. Include exact user complaint timestamps such as `opening_title=0,reported_vertical_clip=7:04`. Treat the suite as the final "nothing got forgotten" gate.
+45. When the user rejects voiceover or criticizes draft quality, run `prepare_quality_recut.py --source-package <package>` before the next Resolve write. The recut must remove voiceover audio, export narration as TXT/SRT, increase caption density, keep BGM audible, insert opening/ending city aerials, and target 59.94/60fps.
+46. Use web search only for current licensed music, stock footage, aerial footage, fonts, or tool documentation; record source URLs and license notes.
+47. Use Computer Use only when a GUI editor has no reliable API/import-file path or a Resolve modal blocks the scripting API.
+
+## Editor Preference
+
+Prefer direct, file/API-based workflows:
+
+1. FFmpeg or platform media tools for deterministic preview/final assembly.
+2. DaVinci Resolve Python/Lua API when Resolve is installed and available. This is the preferred route for 20-minute final assembly.
+3. FCPXML/EDL/XML import for Final Cut Pro, DaVinci Resolve, or Premiere.
+4. Computer Use for CapCut/Jianying/GUI-only flows only after explaining why direct control is unavailable.
+
+## Safety
+
+- Original footage folders are read-only.
+- Cloud vision, TTS, BGM download, stock download, and external asset use require explicit user approval.
+- Local Ollama vision may run on extracted local frames, but it is not GPS truth; keep low-confidence results auditable and human-reviewed.
+- Local OCR may support route review, but OCR-only place hints must stay low/medium confidence unless corroborated by visual/cloud evidence.
+- Never use unlicensed music, fonts, stock footage, or aerial footage in a final delivery.
+- Do not fabricate that a Tokyo aerial, BGM track, font, or license has been downloaded. Search, cite, and record it.
+- Never put project slugs, random IDs, placeholder Chinese, or internal workflow labels on the opening frame.
+- Never claim a customer-ready cut when the opening, chapter cards, or ending are black slates instead of approved aerial/establishing/scenic hooks with clean city/place title typography.
+- Never claim a customer-ready cut when any actual Resolve blueprint video `sourcePath` ffprobe-scans as portrait, square, unknown, or unprobeable unless that exact clip is explicitly declared as a designed phone/split-screen/PiP insert with crop/matte/blur/reframe treatment and the client delivery audit passes.
+- Never claim GPS-grade, exact, or verified per-video location truth from visual frame review alone; use `audit_location_truth_contract.py` to decide the allowed claim level.
+- Never overwrite `confirmed_route_timeline.json` from a blocked/pending route review. Use `prepare_confirmed_route_candidate.py` or `prepare_codex_visual_confirmed_route.py` first, run `audit_confirmed_route_candidate.py`, and require explicit `--apply` approval.
+- Never queue or start a Resolve render while `delivery_audit.json` has blockers, asset rows are unverified, or `resolve_audit.json` is missing.
+- Keep raw route and recognition artifacts auditable.
