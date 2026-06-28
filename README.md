@@ -1,8 +1,8 @@
-# Travel Video Studio Skill for Codex
+# Travel Video Studio Skill
 
 Turn unordered travel footage into a route-aware long-form edit package for DaVinci Resolve.
 
-This is a Codex skill for the messy real-world case: a drive full of phone, DJI, action-cam, and camera videos with no GPS metadata, inconsistent folders, mixed portrait/landscape clips, unclear route order, missing BGM, and a user who wants a polished travel film instead of a raw montage.
+This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-style workflows, and any local coding agent that can read a `SKILL.md` skill folder. It handles the messy real-world case: a drive full of phone, DJI, action-cam, and camera videos with no GPS metadata, inconsistent folders, mixed portrait/landscape clips, unclear route order, missing BGM, and a user who wants a polished travel film instead of a raw montage.
 
 ## What It Does
 
@@ -34,7 +34,7 @@ The point is not to preserve one finished film. The point is to make the first s
 
 ## Requirements
 
-- Codex Desktop or Codex CLI with skills enabled.
+- Codex Desktop/CLI, Claude Code, Hermes, OpenClaw, or another agent that can read a local Agent Skill folder.
 - macOS recommended for DaVinci Resolve integration.
 - Python 3.10 or newer.
 - `ffmpeg` and `ffprobe` on PATH.
@@ -44,13 +44,29 @@ The point is not to preserve one finished film. The point is to make the first s
 
 ## Install
 
+Use the cross-agent installer from a source checkout:
+
+```bash
+python3 scripts/install_for_agent.py --agent codex
+python3 scripts/install_for_agent.py --agent claude-code
+python3 scripts/install_for_agent.py --agent hermes
+python3 scripts/install_for_agent.py --agent openclaw
+python3 scripts/install_for_agent.py --agent lobster
+```
+
+Install into every known user-level target:
+
+```bash
+python3 scripts/install_for_agent.py --agent all
+```
+
 Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.0/travel-video-studio-skill-v0.1.0.tar.gz
-tar -xzf /tmp/travel-video-studio-skill.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.3.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.3/travel-video-studio-skill-v0.1.3.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.3.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -68,6 +84,8 @@ git clone https://github.com/junwen853/travel-video-studio-skill.git "$CODEX_HOM
 ```
 
 Restart Codex or open a new Codex thread if the skill list does not refresh immediately.
+
+For non-Codex runtimes, install the same folder into the runtime's local skill directory. Default targets are documented in `references/agent-runtime-compatibility.md`.
 
 ## Quick Start
 

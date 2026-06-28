@@ -1,14 +1,49 @@
 # Install Travel Video Studio Skill
 
-This is a Codex skill. Install it into your Codex skills directory, then start a new Codex thread or restart Codex if the skill list does not refresh.
+This is a portable Agent Skill. Install it into Codex, Claude Code, Hermes, OpenClaw, or another local agent's skill directory, then start a new thread/session if the skill list does not refresh.
+
+## Install With The Cross-Agent Installer
+
+From this repository:
+
+```bash
+python3 scripts/install_for_agent.py --agent codex
+python3 scripts/install_for_agent.py --agent claude-code
+python3 scripts/install_for_agent.py --agent hermes
+python3 scripts/install_for_agent.py --agent openclaw
+python3 scripts/install_for_agent.py --agent lobster
+```
+
+Install into every known user-level target:
+
+```bash
+python3 scripts/install_for_agent.py --agent all
+```
+
+Install into a project-local Claude Code target:
+
+```bash
+python3 scripts/install_for_agent.py \
+  --agent claude-code \
+  --scope project \
+  --project-dir /path/to/project
+```
+
+Use a custom target if your runtime stores skills somewhere else:
+
+```bash
+python3 scripts/install_for_agent.py \
+  --agent claude-code \
+  --target /custom/skills/travel-video-studio
+```
 
 ## Install From Release
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.0.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.0/travel-video-studio-skill-v0.1.0.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.0.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.3.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.3/travel-video-studio-skill-v0.1.3.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.3.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 ## Install From Source

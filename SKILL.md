@@ -1,6 +1,6 @@
 ---
 name: travel-video-studio
-description: Complete travel video production workflow for Codex plugins. Use when Codex must turn unordered travel footage into a deliverable edit package with full-folder location recognition, route reconstruction, recognition/route MD reports, SRT captions, BGM cues, licensed aerial/stock footage search, typography, day-to-day transitions, and FFmpeg/FCPXML/DaVinci/Premiere/Final Cut handoff without relying on Computer Use unless no direct path exists.
+description: Complete travel video production workflow for Codex and Agent Skills-compatible coding agents. Use when an agent must turn unordered travel footage into a deliverable edit package with full-folder location recognition, route reconstruction, recognition/route MD reports, SRT captions, BGM cues, licensed aerial/stock footage search, typography, day-to-day transitions, and FFmpeg/FCPXML/DaVinci/Premiere/Final Cut handoff without relying on Computer Use unless no direct path exists.
 ---
 
 # Travel Video Studio
@@ -14,6 +14,8 @@ Use this skill as a delivery workflow, not just a planning checklist. The defaul
 ```
 
 Default to Codex visual inspection plus DaVinci Resolve API editing. Do not pull, install, or depend on local Ollama/7B vision models unless the user explicitly asks for that route. For this user's current workflow, Codex should inspect contact sheets/sampled frames itself, write auditable review notes, and then build or revise the DaVinci timeline directly through the Resolve API.
+
+This folder also works as a portable Agent Skill for Claude Code, Hermes, OpenClaw, Lobster/OpenClaw workspace, or another local coding agent that can read a `SKILL.md` folder. For non-Codex runtimes, resolve `<skill-dir>` to the installed folder, keep the same approval gates, run bundled scripts directly, and read `references/agent-runtime-compatibility.md` before changing install or runtime behavior. Do not fork the core travel-video workflow per runtime.
 
 Treat every live edit as Skill regression testing. The primary goal is to improve this reusable Skill so future unordered travel-footage folders can be delivered with less user correction; the current film is only the test case. When a draft exposes a failure such as bad titles, missing BGM, sparse subtitles, portrait regressions, weak transitions, route uncertainty, Resolve/API gaps, stale QA evidence, or style mismatch, fix the current package only after generalizing the lesson into at least one durable Skill asset: a `SKILL.md` rule, script behavior, audit check, Definition-of-Done item, or reusable reference. Do not call a turn complete when it only patches one output and leaves the Skill unable to prevent or detect the same failure next time.
 

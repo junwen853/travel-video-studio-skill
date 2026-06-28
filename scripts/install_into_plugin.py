@@ -40,6 +40,9 @@ def install(staging: Path, target: Path) -> list[str]:
         for src in sorted(src_root.rglob("*")):
             if not src.is_file():
                 continue
+            rel = src.relative_to(staging)
+            if "__pycache__" in rel.parts or src.suffix in {".pyc", ".pyo"}:
+                continue
             dst = target / src.relative_to(staging)
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
