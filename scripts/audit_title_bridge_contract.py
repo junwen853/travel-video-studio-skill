@@ -160,6 +160,15 @@ def clean_opening_title(title: str) -> bool:
     return not any(token in upper for token in OPENING_ROUTE_SEPARATORS)
 
 
+def clean_opening_subtitle(subtitle: str) -> bool:
+    subtitle = subtitle.strip().upper()
+    if not subtitle:
+        return True
+    if len(subtitle) > 34:
+        return False
+    return not any(token in subtitle for token in OPENING_ROUTE_SEPARATORS)
+
+
 def timeline_title_clips(blueprint: dict[str, Any]) -> list[dict[str, Any]]:
     clips = blueprint.get("clips") if isinstance(blueprint.get("clips"), list) else []
     out: list[dict[str, Any]] = []
@@ -362,18 +371,20 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
 
     opening_title_values = text_values(opening_segments[0]) if opening_segments else []
     opening_title = str(opening_segments[0].get("title") or "") if opening_segments else ""
+    opening_subtitle = str(opening_segments[0].get("subtitle") or "") if opening_segments else ""
     add(
         "Opening has exactly one clean city title segment",
         len(opening_segments) == 1
         and bool(expected)
         and opening_title.strip().upper() == expected.upper()
         and clean_opening_title(opening_title)
-        and str(opening_segments[0].get("subtitle") or "").strip() == ""
+        and clean_opening_subtitle(opening_subtitle)
         and str(opening_segments[0].get("eyebrow") or "").strip() == "",
         {
             "expected": expected,
             "openingSegmentCount": len(opening_segments),
             "openingTitle": opening_title,
+            "openingSubtitle": opening_subtitle,
             "openingValues": opening_title_values,
         },
     )

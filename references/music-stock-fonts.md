@@ -156,9 +156,10 @@ Before generating or trusting title bridge media, run:
 
 ```bash
 python3 <skill-dir>/scripts/prepare_title_typography_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/audit_cover_title_contract.py --package-dir <package>
 ```
 
-This plan must prove the opening has one clean hero title, no secondary city/date/route label behind it, no subtitle overlay in the title zone, verified render-only system font or licensed font evidence, and scenic/video background evidence. It also lists every chapter and ending title row with approved text, background, segment, overlay, safe-zone, forbidden-text, and no-stacked-text decision fields. If it reports `needs_title_typography_decisions`, regenerate scenic title bridges or repair the font/title manifest before final render.
+This plan must prove the opening has one clean hero title, no secondary city/date/route label behind it, no rendered subtitle overlay in the title zone, verified render-only system font or licensed font evidence, and scenic/video background evidence. The cover title contract must additionally prove the reference-style formula: high-recognition scenic background, oversized destination title, short designed English/place subtitle, clean 16:9 frame, and no route/date/project clutter. If either report blocks, regenerate scenic title bridges or repair the font/title manifest before final render.
 
 ## Visual Packaging
 

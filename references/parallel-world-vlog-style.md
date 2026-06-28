@@ -67,6 +67,8 @@ The reference covers and hero title cards use a simple but high-impact formula:
 
 Reject covers that use black slates, low-recognition closeups, small timid text, stacked city names, long sentences, AI-looking gradient backgrounds, or title text that fights the subject.
 
+Before final-quality claims, run `audit_cover_title_contract.py --package-dir <package>` so this cover/hero formula is checked against actual title media and manifest evidence.
+
 ## Chapter Rhythm
 
 Each chapter should alternate visual functions instead of staying in one mode.
@@ -160,7 +162,7 @@ Good ending candidates:
 
 Before saying a package has learned this reference style, verify:
 
-- The cover/hero title uses a high-recognition establishing background, oversized destination title, secondary English/place line, and no cluttered internal labels.
+- The cover/hero title uses a high-recognition establishing background, oversized destination title, secondary English/place line, and no cluttered internal labels, proven by `cover_title_contract_audit.json`.
 - The reference batch profile exists when multiple local references were supplied, with aggregate pacing/audio/sample-frame targets and a non-copying usage contract.
 - The opening has human/context plus real establishing footage within the first minute.
 - The opening story plan proves the first 3 minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff.

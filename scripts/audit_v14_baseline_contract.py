@@ -14,6 +14,7 @@ SKILL_PATTERNS = {
     "davinci_default": "DaVinci Resolve API editing",
     "regression_testing": "Treat every live edit as Skill regression testing",
     "clean_title": "duplicate/ghosted text",
+    "cover_title_contract": "audit_cover_title_contract.py",
     "feedback_plan": "prepare_feedback_regression_plan.py",
     "bgm_only": "bgm_only_no_camera_voice",
     "caption_overlay": "prepare_subtitle_overlay_asset.py",
@@ -49,6 +50,7 @@ REQUIRED_SCRIPTS = [
     "build_resolve_timeline.py",
     "audit_resolve_timeline.py",
     "prepare_scenic_title_bridges.py",
+    "audit_cover_title_contract.py",
     "prepare_feedback_regression_plan.py",
     "audit_feedback_regressions.py",
     "prepare_bgm_sourcing_brief.py",
@@ -161,6 +163,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     resolve_audit = load_json(package_dir / "resolve_audit.json") or {}
     client = load_json(package_dir / "client_delivery_rules_audit.json") or {}
     title = load_json(package_dir / "title_bridge_contract_audit.json") or {}
+    cover_title = load_json(package_dir / "cover_title_contract_audit.json") or {}
     title_plan = load_json(package_dir / "title_typography_plan" / "title_typography_plan.json") or {}
     feedback_plan = load_json(package_dir / "feedback_regression_plan" / "feedback_regression_plan.json") or {}
     feedback = load_json(package_dir / "feedback_regression_audit" / "feedback_regression_audit.json") or {}
@@ -249,6 +252,24 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "titlePlanSummary": title_summary,
             "titleClipCount": title.get("titleClipCount"),
             "segmentCount": title.get("segmentCount"),
+        },
+    )
+    cover_title_summary = get_summary(cover_title)
+    add_check(
+        checks,
+        "Cover hero title matches the Parallel World-style formula without route/date clutter",
+        cover_title.get("status") == "passed"
+        and bool(str(cover_title_summary.get("mainTitle") or "").strip())
+        and 1 <= int(cover_title_summary.get("mainTitleUnitCount") or 0) <= 8
+        and cover_title_summary.get("secondaryTitlePresent") is True
+        and cover_title_summary.get("backgroundVideoReady") is True
+        and cover_title_summary.get("backgroundRecognitionHint") is True
+        and cover_title_summary.get("clean16x9Deliverable") is True
+        and int(cover_title_summary.get("forbiddenHitCount") or 0) == 0
+        and not cover_title.get("blockers"),
+        {
+            "coverTitleStatus": cover_title.get("status"),
+            "coverTitleSummary": cover_title_summary,
         },
     )
 
@@ -777,6 +798,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and passed_status(route_texture)
         and director_intent.get("status") in {"passed", "passed_with_warnings"}
         and passed_status(director_polish)
+        and cover_title.get("status") == "passed"
         and reference_batch.get("status") in {"ready_with_reference_batch_profile", "ready_with_single_reference_profile"}
         and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
         and chapter_arc.get("status") == "ready_with_chapter_arc_plan"
@@ -805,6 +827,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "directorIntentStatus": director_intent.get("status"),
             "directorIntentSummary": director_summary,
             "directorPolishStatus": director_polish.get("status"),
+            "coverTitleStatus": cover_title.get("status"),
+            "coverTitleSummary": cover_title_summary,
             "referenceBatchStatus": reference_batch.get("status"),
             "referenceBatchSummary": reference_batch_summary,
             "footageSelectStatus": footage_select.get("status"),

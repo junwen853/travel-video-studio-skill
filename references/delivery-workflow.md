@@ -31,6 +31,7 @@ Expected files:
 - `subtitles.srt`: initial subtitle timing draft
 - `subtitles_v4_dense.srt`: required for quality recuts that need richer full-film text captions
 - `delivery_assets_report.json` / `.md`: local title/place card generation, optional local voiceover status, and Resolve enrichment refresh report
+- `cover_title_contract_audit.json` / `.md`: cover/hero title gate proving high-recognition scenic background, oversized destination title, short designed English/place subtitle, clean 16:9 frame, and no route/date/project clutter
 - `edit_decision_plan.md`: chapter/clip/transition plan
 - `resolve_timeline_enrichment.json`: subtitle cues, voiceover/BGM mix plan, stock/aerial placeholders, transition cues, and Resolve timeline markers
 - `resolve_timeline_blueprint.json`: input for DaVinci Resolve API timeline creation
@@ -115,6 +116,7 @@ The package is not final until:
 - subtitles exist and have a sync plan
 - quality recuts have dense full-film captions, not only opening subtitles
 - local delivery assets report exists; title/place cards are generated or explicitly deferred, and local TTS is either generated with approval or still recorded as pending
+- cover title contract audit passes before final-quality claims, proving the hero title follows the reference cover formula and avoids ghosted route/date/project labels
 - BGM has source and license status
 - BGM phrase blueprint report exists before rhythm recut or Resolve apply, proving selected music became opening/body/transition/ending phrase rows, clip annotations, and per-transition cue metadata without mutating the active blueprint by default
 - aerial/stock inserts have source and license status

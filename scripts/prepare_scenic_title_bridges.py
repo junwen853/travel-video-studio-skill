@@ -245,17 +245,29 @@ def add_readability_gradient(image: Image.Image, mode: str) -> None:
     image.alpha_composite(overlay)
 
 
-def draw_opening(draw: ImageDraw.ImageDraw, width: int, height: int, title: str, font_path: str | None) -> None:
-    title_font = load_font(font_path, max(140, width // 11))
+def draw_opening(draw: ImageDraw.ImageDraw, width: int, height: int, title: str, subtitle: str, font_path: str | None) -> None:
+    title_font = load_font(font_path, max(180, width // 8))
     draw_text_with_shadow(
         draw,
-        (width / 2, height * 0.47),
+        (width / 2, height * 0.46),
         title,
         title_font,
-        (250, 247, 238, 242),
+        (255, 210, 26, 246),
         anchor="mm",
         shadow_alpha=110,
     )
+    if subtitle:
+        subtitle_font = load_font("/System/Library/Fonts/Avenir Next Condensed.ttc", max(44, width // 76))
+        spaced = " ".join(subtitle.upper()) if len(subtitle) <= 18 and " " not in subtitle else subtitle.upper()
+        draw_text_with_shadow(
+            draw,
+            (width / 2, height * 0.62),
+            spaced,
+            subtitle_font,
+            (255, 218, 58, 230),
+            anchor="mm",
+            shadow_alpha=100,
+        )
 
 
 def draw_chapter(
@@ -296,9 +308,9 @@ def make_overlay(
     add_readability_gradient(image, mode)
     draw = ImageDraw.Draw(image)
     if mode == "opening":
-        draw_opening(draw, width, height, title, font_path)
+        draw_opening(draw, width, height, title, subtitle, font_path)
     elif mode == "ending":
-        draw_opening(draw, width, height, title, font_path)
+        draw_opening(draw, width, height, title, "", font_path)
         if subtitle:
             subtitle_font = load_font("/System/Library/Fonts/Avenir Next Condensed.ttc", max(34, width // 96))
             draw_text_with_shadow(draw, (width / 2, height * 0.60), subtitle.upper(), subtitle_font, (238, 230, 206, 220), anchor="mm")
@@ -424,7 +436,8 @@ def main() -> int:
     parser.add_argument("--preset", default="slow")
     parser.add_argument("--font")
     parser.add_argument("--opening-title", default="")
-    parser.add_argument("--allow-opening-subtitle", action="store_true")
+    parser.add_argument("--allow-opening-subtitle", action="store_true", default=True)
+    parser.add_argument("--no-opening-subtitle", dest="allow_opening_subtitle", action="store_false")
     parser.add_argument("--max-title-chars", type=int, default=28)
     parser.add_argument("--max-subtitle-chars", type=int, default=34)
     parser.add_argument("--forbidden-text", default="TOKYO / OSAKA,JAPAN 2025,OSAKA - TOKYO - OSAKA,OSAKA -> TOKYO -> OSAKA")
@@ -518,6 +531,17 @@ def main() -> int:
                 "ffmpegReturnCode": return_code,
                 "ffmpegLog": log,
                 "forbiddenVisibleText": [item.strip() for item in args.forbidden_text.split(",") if item.strip()],
+                "coverHeroTitleStyle": {
+                    "enabled": mode == "opening",
+                    "backgroundRecognition": "high_recognition_establishing_or_route_scene_required",
+                    "mainTitleScale": "oversized_destination_title",
+                    "mainTitleColor": "high_contrast_yellow",
+                    "secondaryTitlePresent": bool(subtitle) if mode == "opening" else None,
+                    "secondaryTitleRole": "small_english_or_place_line" if mode == "opening" else None,
+                    "clean16x9Deliverable": True,
+                    "forbidsRouteDateProjectSlug": True,
+                    "forbidsRenderedSubtitleOverlay": True,
+                },
             }
         )
 
@@ -556,7 +580,8 @@ def main() -> int:
         "createdAt": datetime.now().isoformat(timespec="seconds"),
         "status": "blocked" if failures else "passed",
         "version": "clean_scenic_title_bridges",
-        "openingTitlePolicy": "single clean city title only; no duplicate title, route/date label, subtitle overlay, or secondary city behind the hero title",
+        "openingTitlePolicy": "single oversized destination title plus optional short designed English/place subtitle only; no duplicate title, route/date label, rendered subtitle overlay, project slug, or secondary city behind the hero title",
+        "coverHeroTitlePolicy": "Parallel World style: high-recognition aerial/skyline/coast/landmark/route background, oversized yellow/orange/white destination title, small English/place subtitle, clean 16:9 frame, no screenshot chrome or route/date clutter",
         "cityTitle": args.opening_title or None,
         "expectedOpeningTitle": args.opening_title or None,
         "packageDir": str(package_dir),

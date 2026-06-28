@@ -736,6 +736,25 @@ def summarize_title_typography_plan(plan: dict[str, Any] | None) -> dict[str, An
     }
 
 
+def summarize_cover_title_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "mainTitle": summary.get("mainTitle"),
+        "mainTitleUnitCount": summary.get("mainTitleUnitCount"),
+        "secondaryTitle": summary.get("secondaryTitle"),
+        "secondaryTitlePresent": summary.get("secondaryTitlePresent"),
+        "backgroundVideoReady": summary.get("backgroundVideoReady"),
+        "backgroundRecognitionHint": summary.get("backgroundRecognitionHint"),
+        "clean16x9Deliverable": summary.get("clean16x9Deliverable"),
+        "forbiddenHitCount": summary.get("forbiddenHitCount"),
+        "blockers": report.get("blockers") or [],
+    }
+
+
 def summarize_route_decision_application(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -1004,6 +1023,21 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Opening/chapter/ending rows: {title.get('openingRowCount')} / {title.get('chapterRowCount')} / {title.get('endingRowCount')}",
                 f"- Font verified: `{title.get('fontVerified')}`",
                 f"- Title-zone mode: `{title.get('titleZoneMode')}`",
+            ]
+        )
+    if report.get("coverTitleSummary"):
+        cover = report["coverTitleSummary"]
+        lines.extend(
+            [
+                "",
+                "## Cover Title Contract",
+                f"- Exists: `{cover.get('exists')}`",
+                f"- Status: `{cover.get('status')}`",
+                f"- Main title: `{cover.get('mainTitle')}`",
+                f"- Secondary title: `{cover.get('secondaryTitle')}`",
+                f"- Background video/recognition: `{cover.get('backgroundVideoReady')}` / `{cover.get('backgroundRecognitionHint')}`",
+                f"- Clean 16:9: `{cover.get('clean16x9Deliverable')}`",
+                f"- Forbidden hits: {cover.get('forbiddenHitCount')}",
             ]
         )
     if report.get("visualEstablishingSummary"):
@@ -1438,6 +1472,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     title_typography_cmd = ["python3", str(SCRIPTS_DIR / "prepare_title_typography_plan.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_title_typography_plan", title_typography_cmd))
 
+    cover_title_cmd = ["python3", str(SCRIPTS_DIR / "audit_cover_title_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_cover_title_contract", cover_title_cmd, ok_codes={0, 2}))
+
     visual_establishing_cmd = ["python3", str(SCRIPTS_DIR / "prepare_visual_establishing_plan.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_visual_establishing_plan", visual_establishing_cmd))
 
@@ -1562,6 +1599,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_bridge_summary = None
     caption_story_summary = None
     title_typography_summary = None
+    cover_title_summary = None
     visual_establishing_summary = None
     effect_motion_summary = None
     effect_motion_blueprint_summary = None
@@ -1639,6 +1677,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             caption_story_summary = summarize_caption_story_plan(payload)
         if step["id"] == "prepare_title_typography_plan":
             title_typography_summary = summarize_title_typography_plan(payload)
+        if step["id"] == "audit_cover_title_contract":
+            cover_title_summary = summarize_cover_title_contract(payload)
+            if cover_title_summary and cover_title_summary.get("status") == "blocked":
+                blockers.extend(f"Cover title blocker: {item}" for item in cover_title_summary.get("blockers") or [])
         if step["id"] == "prepare_visual_establishing_plan":
             visual_establishing_summary = summarize_visual_establishing_plan(payload)
         if step["id"] == "prepare_effect_motion_plan":
@@ -1742,6 +1784,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "title_typography_plan" / "title_typography_plan.json").exists():
         title_typography_summary = summarize_title_typography_plan(
             load_json(package_dir / "title_typography_plan" / "title_typography_plan.json")
+        )
+    if package_dir and (package_dir / "cover_title_contract_audit.json").exists():
+        cover_title_summary = summarize_cover_title_contract(
+            load_json(package_dir / "cover_title_contract_audit.json")
         )
     if package_dir and (package_dir / "visual_establishing_plan" / "visual_establishing_plan.json").exists():
         visual_establishing_summary = summarize_visual_establishing_plan(
@@ -1870,6 +1916,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionBridgeSummary": transition_bridge_summary,
         "captionStorySummary": caption_story_summary,
         "titleTypographySummary": title_typography_summary,
+        "coverTitleSummary": cover_title_summary,
         "visualEstablishingSummary": visual_establishing_summary,
         "effectMotionSummary": effect_motion_summary,
         "effectMotionBlueprintSummary": effect_motion_blueprint_summary,

@@ -54,7 +54,7 @@ POST_AUDIT_BY_AREA = {
     ),
     "lived_in_texture": ("creator_cut_plan/creator_cut_plan.json", "route_texture_contract_audit.json"),
     "shot_pacing": ("rhythm_recut_blueprint/rhythm_recut_blueprint_report.json", "edit_rhythm_plan/edit_rhythm_plan.json"),
-    "opening_title": ("opening_story_plan/opening_story_plan.json", "title_bridge_contract_audit.json"),
+    "opening_title": ("opening_story_plan/opening_story_plan.json", "cover_title_contract_audit.json", "title_bridge_contract_audit.json"),
     "audio_caption_story": ("bgm_audio_contract_audit.json", "audience_caption_contract_audit.json", "story_style_contract_audit.json"),
     "ending_aftertaste": ("director_intent_contract_audit.json", "visual_establishing_plan/visual_establishing_plan.json"),
     "qa_chain": ("final_qa_suite_report.json", "director_polish_contract_audit.json", "package_integrity_audit.json"),

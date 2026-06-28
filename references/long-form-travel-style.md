@@ -108,6 +108,7 @@ python3 <skill-dir>/scripts/prepare_bgm_phrase_blueprint.py --package-dir <packa
 python3 <skill-dir>/scripts/prepare_rhythm_recut_blueprint.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_transition_polish_blueprint.py --package-dir <package>
 python3 <skill-dir>/scripts/audit_transition_quality_contract.py --package-dir <package>
+python3 <skill-dir>/scripts/audit_cover_title_contract.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_reference_style_repair_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/audit_reference_repair_closure.py --package-dir <package>
 ```
@@ -176,6 +177,7 @@ The package is not long-form ready unless it has:
 - `rhythm_recut_blueprint/rhythm_recut_blueprint_report.json` proves long-shot recuts started from the BGM phrase candidate and preserved transition/effect/BGM phrase metadata
 - `transition_polish_blueprint/transition_polish_blueprint_report.json` proves final transitions have BGM-hit timing, title/subtitle avoidance, motion-evidence checks, and restrained keyframes before Resolve apply
 - `transition_quality_contract_audit.json` proves the transition-polish candidate covers every visual boundary with BGM-hit/title-safe/BGM-only evidence and no repeated/template effects
+- `cover_title_contract_audit.json` proves the cover/hero title follows the high-recognition background, oversized destination title, short English/place subtitle, clean 16:9 formula
 - `reference_style_repair_plan/reference_style_repair_plan.json` proves blocked reference/director/QA style gaps become executable repair rows before another Resolve write
 - `reference_repair_closure_audit.json` proves P0 style repair rows have required artifacts plus post-repair evidence before another Resolve or final-quality claim
 - chapter time allocations

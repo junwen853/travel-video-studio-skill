@@ -158,6 +158,15 @@ def clean_opening_title(title: str) -> bool:
     return bool(title) and not any(token in title for token in OPENING_FORBIDDEN_SEPARATORS)
 
 
+def clean_opening_subtitle(subtitle: str) -> bool:
+    subtitle = subtitle.strip().upper()
+    if not subtitle:
+        return True
+    if len(subtitle) > 34:
+        return False
+    return not any(token in subtitle for token in OPENING_FORBIDDEN_SEPARATORS)
+
+
 def forbidden_hits(values: list[str], forbidden: list[str]) -> list[str]:
     joined = "\n".join(values).upper()
     return sorted({term for term in forbidden if term and str(term).upper() in joined})
@@ -266,7 +275,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "segmentIsVideo": path_is_video(segment_path),
             "sourceIsVideo": path_is_video(background_source),
             "cleanTitlePass": clean_opening_title(title) if mode == "opening" else bool(title.strip()),
-            "subtitlePolicyPass": not (mode == "opening" and subtitle.strip()),
+            "subtitlePolicyPass": clean_opening_subtitle(subtitle) if mode == "opening" else True,
             "forbiddenTextPass": not hits,
             "safeZone": {
                 "mainTitle": "center hero-safe for opening; lower-left cinematic safe band for chapter/ending",
@@ -333,8 +342,8 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "stackSubtitleOverlayCount": stack.get("subtitleOverlayCount"),
         },
         "policy": {
-            "openingTitlePolicy": "single clean city/place title only; no secondary city, route/date label, subtitle, or stacked/ghosted text behind the hero title",
-            "thumbnailCoverPolicy": "use one high-recognition aerial/skyline/coast/landmark/route background, oversized 1-5 word Chinese destination title, smaller English/place subtitle, yellow/orange/white high-contrast typography, and no internal labels or route/date clutter",
+            "openingTitlePolicy": "single clean city/place title plus optional short designed English/place subtitle only; no secondary city, route/date label, rendered subtitle overlay, or stacked/ghosted text behind the hero title",
+            "thumbnailCoverPolicy": "use one high-recognition aerial/skyline/coast/landmark/route background, oversized 1-5 word Chinese destination title, smaller English/place subtitle, yellow/orange/white high-contrast typography, and no internal labels, screenshot chrome, or route/date clutter",
             "chapterTitlePolicy": "short readable place/day label on scenic video; route arrows allowed only for a movement chapter, never for the opening hero title",
             "endingTitlePolicy": "short closing place/region title with aftertaste; no project slug or internal route label",
             "fontPolicy": "use verified system-font-render-only or licensed font evidence; do not redistribute commercial font files",

@@ -68,6 +68,7 @@ REQUIRED_SCRIPTS = {
         "audit_title_bridge_contract.py",
         "audit_bgm_audio_contract.py",
         "audit_story_style_contract.py",
+        "audit_cover_title_contract.py",
         "audit_reference_style_alignment.py",
         "audit_director_intent_contract.py",
         "audit_route_texture_contract.py",
@@ -97,6 +98,7 @@ REQUIRED_SKILL_PATTERNS = {
     "caption_story_plan_rule": "prepare_caption_story_plan.py",
     "audience_caption_contract_rule": "audience-facing travel-film text",
     "title_typography_plan_rule": "prepare_title_typography_plan.py",
+    "cover_title_contract_rule": "audit_cover_title_contract.py",
     "visual_establishing_plan_rule": "prepare_visual_establishing_plan.py",
     "effect_motion_plan_rule": "prepare_effect_motion_plan.py",
     "effect_motion_blueprint_rule": "prepare_effect_motion_blueprint.py",
@@ -175,6 +177,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "full_review_method": "full-film timeline strips every 10 seconds",
     "batch_reference_profile": "reference batch profile",
     "cover_title_formula": "Cover And Hero Title Style",
+    "cover_title_contract": "cover title contract",
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
     "raw_footage_selection": "footage select plan",
     "opening_story_plan": "opening_story_plan/opening_story_plan.json",
@@ -857,6 +860,54 @@ def title_typography_plan_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("hasOpeningTitlePolicy") is True
         and evidence.get("hasPassRubric") is True
         and evidence.get("hasRejectRubric") is True
+    )
+
+
+def cover_title_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "cover_title_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "visualManifestExists": inputs.get("visualManifestExists"),
+        "mainTitle": summary.get("mainTitle"),
+        "mainTitleUnitCount": summary.get("mainTitleUnitCount"),
+        "secondaryTitle": summary.get("secondaryTitle"),
+        "secondaryTitlePresent": summary.get("secondaryTitlePresent"),
+        "backgroundVideoReady": summary.get("backgroundVideoReady"),
+        "backgroundRecognitionHint": summary.get("backgroundRecognitionHint"),
+        "clean16x9Deliverable": summary.get("clean16x9Deliverable"),
+        "forbiddenHitCount": summary.get("forbiddenHitCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "warningCount": len(data.get("warnings") or []),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+    }
+
+
+def cover_title_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("visualManifestExists") is True
+        and bool(str(evidence.get("mainTitle") or "").strip())
+        and 1 <= int(evidence.get("mainTitleUnitCount") or 0) <= 8
+        and evidence.get("secondaryTitlePresent") is True
+        and evidence.get("backgroundVideoReady") is True
+        and evidence.get("backgroundRecognitionHint") is True
+        and evidence.get("clean16x9Deliverable") is True
+        and int(evidence.get("forbiddenHitCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
     )
 
 
@@ -3599,6 +3650,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Title typography plan proactively turns ghosted/stacked-title feedback into exact title rows",
         title_typography_plan_ready(title_plan_evidence),
         title_plan_evidence,
+    )
+    cover_title_evidence = cover_title_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Cover title contract enforces Parallel World-style hero title without route/date clutter",
+        cover_title_contract_ready(cover_title_evidence),
+        cover_title_evidence,
     )
     visual_plan_evidence = visual_establishing_plan_evidence(package_dir)
     add_check(
