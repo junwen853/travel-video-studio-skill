@@ -78,6 +78,14 @@ python3 <skill-dir>/scripts/prepare_opening_story_plan.py --package-dir <package
 
 This plan should exist before title, BGM/audio, visual establishing, rhythm, or creator-cut planning. It verifies that the first three minutes have a viewer promise, destination proof, one clean hero title, practical arrival, lived-in texture, and first chapter handoff. Missing opening beats are structure blockers, not minor polish notes.
 
+Generate `chapter_arc_plan/chapter_arc_plan.json` with:
+
+```bash
+python3 <skill-dir>/scripts/prepare_chapter_arc_plan.py --package-dir <package>
+```
+
+This plan should exist before edit rhythm, creator cut, transition execution, captions, BGM decisions, or Resolve trust. It converts each chapter into context, movement, lived-in texture, destination payoff, and aftertaste/handoff rows. Missing chapter beats must map to owner scripts before an effect or stock insert is allowed to compensate.
+
 Generate `edit_rhythm_plan/edit_rhythm_plan.json` with:
 
 ```bash
@@ -149,6 +157,7 @@ The package is not long-form ready unless it has:
 - `footage_select_plan/footage_select_plan.json` proves source media was scored and selected before first assembly
 - `reference/reference_batch_profile.json` exists when multiple reference videos are supplied, and exposes aggregate pacing/audio/sample-frame targets
 - `opening_story_plan/opening_story_plan.json` proves the first three minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff
+- `chapter_arc_plan/chapter_arc_plan.json` proves each chapter has context/movement/texture/payoff/aftertaste rows, or assigned owner-script repairs for missing beats
 - `transition_execution_plan/transition_execution_plan.json` proves adjacent-pair transitions have Resolve-ready recipes and no bridge-missing row is hidden behind an effect
 - `reference_style_repair_plan/reference_style_repair_plan.json` proves blocked reference/director/QA style gaps become executable repair rows before another Resolve write
 - chapter time allocations

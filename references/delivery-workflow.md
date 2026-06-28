@@ -24,6 +24,7 @@ Expected files:
 - source project `route_review/<timestamp>/confirmed_route_candidate.md`: approval-gated candidate or repair plan before confirmed-route writes
 - source or package `footage_select_plan/footage_select_plan.json` / `.md`: raw-footage scoring and highlight-selection plan used before first assembly
 - `opening_story_plan/opening_story_plan.json` / `.md`: first-three-minute viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff plan
+- `chapter_arc_plan/chapter_arc_plan.json` / `.md`: per-chapter context, movement, lived-in texture, payoff, and aftertaste/handoff planning with owner-script repair rows
 - `long_form_structure.md`: 20-minute chapter and pacing structure
 - `voiceover_script.txt`: approved or draft narration
 - `narration_text_only_v4.txt`: required when the user rejects rendered voiceover audio
@@ -93,6 +94,7 @@ The package is not final until:
 - footage select plan exists before first assembly, proves active source videos were tiered, and blocks derived/portrait/weak footage from leading the cut
 - reference batch profile exists before rhythm/style claims when multiple reference videos were supplied
 - opening story plan exists after first package build and proves all six first-three-minute beats before title, BGM, rhythm, creator-cut, director-intent, or Resolve apply claims
+- chapter arc plan exists after opening-story planning and before rhythm/creator-cut/Resolve trust, proving each chapter has beat decisions or assigned repair owners
 - cloud/API stages have either completed or the user accepted dry-run limitations
 - voiceover audio exists or the chosen TTS command is tested
 - if the user says not to use voiceover, voiceover audio is removed from the timeline and the narration is exported as TXT only

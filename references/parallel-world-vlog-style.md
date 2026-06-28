@@ -81,6 +81,8 @@ When building an edit rhythm plan, require every primary clip to carry one of th
 
 When person/context footage runs for more than a short beat, intercut B-roll or visual evidence. Long talking segments should be supported by the place, food, object, road, map, sign, or activity being discussed.
 
+Before rhythm or Resolve trust, generate `chapter_arc_plan/chapter_arc_plan.json` with `prepare_chapter_arc_plan.py`. Use `references/chapter-arc-engine.md` so every chapter has explicit context, movement, texture, payoff, and aftertaste/handoff rows, with owner scripts for any missing beat.
+
 ## Transition And Bridge Rules
 
 The reference style rarely depends on flashy transitions. It uses physical route evidence and motivated visual association.
@@ -162,6 +164,7 @@ Before saying a package has learned this reference style, verify:
 - The opening has human/context plus real establishing footage within the first minute.
 - The opening story plan proves the first 3 minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff.
 - The chapter plan includes person/context, movement, texture, payoff, and aftertaste roles.
+- The chapter arc plan exists at `chapter_arc_plan/chapter_arc_plan.json` and missing beats are assigned to owner scripts before effects are chosen.
 - Every day/place boundary has physical bridge footage or an explicit local-footage search row.
 - The edit rhythm plan targets about 3-second median rhythm with some longer breathing shots, not a flat sequence of long raw clips.
 - The footage select plan proves the source pool was scored before first assembly, with hero/main/texture candidates and repair/reject rows.

@@ -47,6 +47,7 @@ REQUIRED_SCRIPTS = {
         "prepare_audio_scene_policy_plan.py",
         "prepare_footage_select_plan.py",
         "prepare_opening_story_plan.py",
+        "prepare_chapter_arc_plan.py",
         "prepare_edit_rhythm_plan.py",
         "prepare_creator_cut_plan.py",
         "prepare_transition_grammar_plan.py",
@@ -91,6 +92,8 @@ REQUIRED_SKILL_PATTERNS = {
     "footage_select_plan_rule": "prepare_footage_select_plan.py",
     "opening_story_plan_rule": "prepare_opening_story_plan.py",
     "opening_story_engine_rule": "opening-story-engine.md",
+    "chapter_arc_plan_rule": "prepare_chapter_arc_plan.py",
+    "chapter_arc_engine_rule": "chapter-arc-engine.md",
     "edit_rhythm_plan_rule": "prepare_edit_rhythm_plan.py",
     "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
@@ -124,6 +127,7 @@ REQUIRED_STYLE_PATTERNS = {
     "reference_batch_profile": "reference-batch-profile-engine.md",
     "footage_select_engine": "footage-select-engine.md",
     "creator_cut_engine": "creator-cut-engine.md",
+    "chapter_arc_engine": "chapter-arc-engine.md",
     "transition_grammar_engine": "transition-grammar-engine.md",
     "transition_execution_engine": "transition-execution-engine.md",
     "reference_style_repair_engine": "reference-style-repair-engine.md",
@@ -142,6 +146,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
     "raw_footage_selection": "footage select plan",
     "opening_story_plan": "opening_story_plan/opening_story_plan.json",
+    "chapter_arc_plan": "chapter_arc_plan/chapter_arc_plan.json",
     "opening_route_promise": "viewer promise, destination proof",
     "transition_execution_plan": "transition execution plan",
     "reference_style_repair_plan": "reference style repair plan",
@@ -1323,6 +1328,111 @@ def opening_story_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def chapter_arc_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "chapter_arc_plan" / "chapter_arc_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("chapterRows") if isinstance(data.get("chapterRows"), list) else []
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    decision_fields = {
+        "approvedChapterArc",
+        "selectedContextClip",
+        "selectedMovementClip",
+        "selectedTextureClip",
+        "selectedPayoffClip",
+        "selectedAftertasteClip",
+        "captionArcEvidence",
+        "bgmArcEvidence",
+        "transitionHandoffEvidence",
+        "resolveBlueprintEvidence",
+        "readbackEvidence",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    required_beats = {"context", "movement", "texture", "payoff", "aftertaste"}
+    rows_with_decision_fields = 0
+    rows_with_required_beat_map = 0
+    missing_beat_count = 0
+    missing_beats_with_owner = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+        detected = row.get("detectedBeats") if isinstance(row.get("detectedBeats"), dict) else {}
+        if required_beats.issubset(set(detected)):
+            rows_with_required_beat_map += 1
+        missing = [str(item) for item in row.get("missingBeatIds") or []]
+        owners = row.get("ownerScriptsForMissingBeats") if isinstance(row.get("ownerScriptsForMissingBeats"), list) else []
+        owner_ids = {str(owner.get("beatId") or "") for owner in owners if isinstance(owner, dict)}
+        missing_beat_count += len(missing)
+        missing_beats_with_owner += sum(1 for beat_id in missing if beat_id in owner_ids)
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "blueprintVideoClipCount": summary.get("blueprintVideoClipCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "chaptersWithContextBeat": summary.get("chaptersWithContextBeat"),
+        "chaptersWithMovementBeat": summary.get("chaptersWithMovementBeat"),
+        "chaptersWithTextureBeat": summary.get("chaptersWithTextureBeat"),
+        "chaptersWithPayoffBeat": summary.get("chaptersWithPayoffBeat"),
+        "chaptersWithAftertasteBeat": summary.get("chaptersWithAftertasteBeat"),
+        "chaptersMissingRequiredBeatCount": summary.get("chaptersMissingRequiredBeatCount"),
+        "p0RepairRowCount": summary.get("p0RepairRowCount"),
+        "rowCount": len(rows),
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithRequiredBeatMap": rows_with_required_beat_map,
+        "missingBeatCountByRow": missing_beat_count,
+        "missingBeatsWithOwner": missing_beats_with_owner,
+        "chapterArcRequiredBeforeRhythmOrResolveTrust": policy.get("chapterArcRequiredBeforeRhythmOrResolveTrust"),
+        "contextMovementTexturePayoffAftertasteGrammar": policy.get("contextMovementTexturePayoffAftertasteGrammar"),
+        "physicalBridgeBeforeTransitionEffect": policy.get("physicalBridgeBeforeTransitionEffect"),
+        "audienceFacingCaptionArcOnly": policy.get("audienceFacingCaptionArcOnly"),
+        "bgmOnlyNoCameraVoiceDefault": policy.get("bgmOnlyNoCameraVoiceDefault"),
+        "referenceAnchoredButNonCopying": policy.get("referenceAnchoredButNonCopying"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def chapter_arc_plan_ready(evidence: dict[str, Any]) -> bool:
+    chapter_count = int(evidence.get("chapterRowCount") or 0)
+    missing_count = int(evidence.get("missingBeatCountByRow") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_chapter_arc_plan"
+        and chapter_count >= 1
+        and int(evidence.get("rowCount") or 0) == chapter_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == chapter_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == chapter_count
+        and int(evidence.get("rowsWithRequiredBeatMap") or 0) == chapter_count
+        and int(evidence.get("missingBeatsWithOwner") or 0) == missing_count
+        and int(evidence.get("blueprintVideoClipCount") or 0) >= 1
+        and evidence.get("chapterArcRequiredBeforeRhythmOrResolveTrust") is True
+        and evidence.get("contextMovementTexturePayoffAftertasteGrammar") is True
+        and evidence.get("physicalBridgeBeforeTransitionEffect") is True
+        and evidence.get("audienceFacingCaptionArcOnly") is True
+        and evidence.get("bgmOnlyNoCameraVoiceDefault") is True
+        and evidence.get("referenceAnchoredButNonCopying") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def edit_rhythm_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json"
     data = load_json(path) or {}
@@ -2338,6 +2448,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Opening story plan proves the first three minutes have viewer promise, destination proof, clean title, route arrival, lived-in texture, and handoff",
         opening_story_plan_ready(opening_story_evidence),
         opening_story_evidence,
+    )
+    chapter_arc_evidence = chapter_arc_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Chapter arc plan forces each chapter through context, movement, texture, payoff, and aftertaste before rhythm or Resolve trust",
+        chapter_arc_plan_ready(chapter_arc_evidence),
+        chapter_arc_evidence,
     )
     rhythm_plan_evidence = edit_rhythm_plan_evidence(package_dir)
     add_check(

@@ -207,6 +207,26 @@ def summarize_opening_story_plan(plan: dict[str, Any] | None) -> dict[str, Any] 
     }
 
 
+def summarize_chapter_arc_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "blueprintVideoClipCount": summary.get("blueprintVideoClipCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "chaptersWithContextBeat": summary.get("chaptersWithContextBeat"),
+        "chaptersWithMovementBeat": summary.get("chaptersWithMovementBeat"),
+        "chaptersWithTextureBeat": summary.get("chaptersWithTextureBeat"),
+        "chaptersWithPayoffBeat": summary.get("chaptersWithPayoffBeat"),
+        "chaptersWithAftertasteBeat": summary.get("chaptersWithAftertasteBeat"),
+        "chaptersMissingRequiredBeatCount": summary.get("chaptersMissingRequiredBeatCount"),
+        "p0RepairRowCount": summary.get("p0RepairRowCount"),
+    }
+
+
 def summarize_bgm_selection_package(package: dict[str, Any] | None) -> dict[str, Any] | None:
     if not package:
         return None
@@ -1056,6 +1076,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     opening_story_cmd = ["python3", str(SCRIPTS_DIR / "prepare_opening_story_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_opening_story_plan", opening_story_cmd, ok_codes={0, 2}))
 
+    chapter_arc_cmd = ["python3", str(SCRIPTS_DIR / "prepare_chapter_arc_plan.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("prepare_chapter_arc_plan", chapter_arc_cmd, ok_codes={0, 2}))
+
     assets_cmd = ["python3", str(SCRIPTS_DIR / "prepare_delivery_assets.py"), "--package-dir", str(package_dir)]
     if args.generate_local_voiceover:
         assets_cmd.append("--generate-local-voiceover")
@@ -1177,6 +1200,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     route_decision_application_summary = None
     footage_select_summary = None
     opening_story_summary = None
+    chapter_arc_summary = None
     asset_decision_summary = None
     bgm_sourcing_summary = None
     bgm_selection_summary = None
@@ -1237,6 +1261,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             footage_select_summary = summarize_footage_select_plan(payload)
         if step["id"] == "prepare_opening_story_plan":
             opening_story_summary = summarize_opening_story_plan(payload)
+        if step["id"] == "prepare_chapter_arc_plan":
+            chapter_arc_summary = summarize_chapter_arc_plan(payload)
         if step["id"] == "asset_decision_reconciliation":
             asset_decision_summary = summarize_asset_reconciliation(payload)
         if step["id"] == "prepare_bgm_sourcing_brief":
@@ -1304,6 +1330,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "opening_story_plan" / "opening_story_plan.json").exists():
         opening_story_summary = summarize_opening_story_plan(
             load_json(package_dir / "opening_story_plan" / "opening_story_plan.json")
+        )
+    if package_dir and (package_dir / "chapter_arc_plan" / "chapter_arc_plan.json").exists():
+        chapter_arc_summary = summarize_chapter_arc_plan(
+            load_json(package_dir / "chapter_arc_plan" / "chapter_arc_plan.json")
         )
     if package_dir and (package_dir / "bgm_sourcing" / "bgm_sourcing_brief.json").exists():
         bgm_sourcing_summary = summarize_bgm_sourcing(load_json(package_dir / "bgm_sourcing" / "bgm_sourcing_brief.json"))
@@ -1407,6 +1437,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "routeDecisionApplicationSummary": route_decision_application_summary,
         "footageSelectSummary": footage_select_summary,
         "openingStorySummary": opening_story_summary,
+        "chapterArcSummary": chapter_arc_summary,
         "assetDecisionSummary": asset_decision_summary,
         "bgmSourcingSummary": bgm_sourcing_summary,
         "bgmSelectionSummary": bgm_selection_summary,
@@ -1446,6 +1477,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review bgm_selection_package.json before Resolve apply so the selected BGM bed is local, license-traceable, target-duration-covering, and referenced by the active blueprint.",
             "Review footage_select_plan.json before trusting first assembly; repair/reject rows should not lead the cut.",
             "Review opening_story_plan.json before title, BGM, rhythm, or Resolve apply so the first three minutes have viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff.",
+            "Review chapter_arc_plan.json before rhythm/creator-cut/Resolve apply so every chapter has context, movement, lived-in texture, payoff, and aftertaste decisions.",
             "Fill transition_bridge_plan.json local bridge or stock/aerial fallback decisions before final claims.",
             "Review caption_story_plan/text_only_narration_export.txt and dense SRT before subtitle overlay generation.",
             "Review title_typography_plan.json before generating or trusting title bridge media.",

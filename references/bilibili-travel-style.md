@@ -89,10 +89,11 @@ Before trusting a Resolve blueprint as "not AI-made", run:
 
 ```bash
 python3 <skill-dir>/scripts/prepare_opening_story_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/prepare_chapter_arc_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_edit_rhythm_plan.py --package-dir <package>
 ```
 
-Use the opening plan to repair missing first-three-minute story beats first. Then use the rhythm plan to assign every primary visual shot a function and to surface long raw holds that need trim/split/cutaway work. The Malta reference pacing profile is a target for varied rhythm, not a requirement to copy the reference shot-for-shot.
+Use the opening plan to repair missing first-three-minute story beats first. Read `references/chapter-arc-engine.md` and use the chapter arc plan to force every chapter into context, movement, lived-in texture, payoff, and aftertaste/handoff decisions. Then use the rhythm plan to assign every primary visual shot a function and to surface long raw holds that need trim/split/cutaway work. The Malta reference pacing profile is a target for varied rhythm, not a requirement to copy the reference shot-for-shot.
 
 When that plan reports long raw holds, immediately generate the non-destructive rhythm recut candidate:
 

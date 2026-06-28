@@ -23,6 +23,7 @@ SKILL_PATTERNS = {
     "reference_batch_profile": "prepare_reference_batch_profile.py",
     "footage_select": "prepare_footage_select_plan.py",
     "opening_story": "prepare_opening_story_plan.py",
+    "chapter_arc": "prepare_chapter_arc_plan.py",
     "creator_cut": "prepare_creator_cut_plan.py",
     "transition_grammar": "prepare_transition_grammar_plan.py",
     "transition_execution": "prepare_transition_execution_plan.py",
@@ -53,6 +54,7 @@ REQUIRED_SCRIPTS = [
     "prepare_reference_batch_profile.py",
     "prepare_footage_select_plan.py",
     "prepare_opening_story_plan.py",
+    "prepare_chapter_arc_plan.py",
     "prepare_edit_rhythm_plan.py",
     "prepare_creator_cut_plan.py",
     "prepare_transition_grammar_plan.py",
@@ -153,6 +155,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     opening_story = load_json(package_dir / "opening_story_plan" / "opening_story_plan.json") or {}
+    chapter_arc = load_json(package_dir / "chapter_arc_plan" / "chapter_arc_plan.json") or {}
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
     creator_cut = load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json") or {}
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
@@ -236,6 +239,22 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "openingStoryStatus": opening_story.get("status"),
             "openingStorySummary": opening_summary,
+        },
+    )
+
+    chapter_arc_summary = get_summary(chapter_arc)
+    chapter_count = int(chapter_arc_summary.get("chapterRowCount") or 0)
+    add_check(
+        checks,
+        "Every route chapter has V14-level arc planning or assigned repair owners before polish",
+        chapter_arc.get("status") == "ready_with_chapter_arc_plan"
+        and chapter_count >= 1
+        and int(chapter_arc_summary.get("rowsWithDecisionFields") or 0) == chapter_count
+        and int(chapter_arc_summary.get("chaptersMissingRequiredBeatCount") or 0) == int(chapter_arc_summary.get("p0RepairRowCount") or 0)
+        and int(chapter_arc_summary.get("blueprintVideoClipCount") or 0) >= 1,
+        {
+            "chapterArcStatus": chapter_arc.get("status"),
+            "chapterArcSummary": chapter_arc_summary,
         },
     )
 
@@ -361,6 +380,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
 
     rhythm_summary = get_summary(rhythm)
     footage_select_summary = get_summary(footage_select)
+    chapter_arc_summary = get_summary(chapter_arc)
     creator_cut_summary = get_summary(creator_cut)
     transition_grammar_summary = get_summary(transition_grammar)
     transition_execution_summary = get_summary(transition_execution)
@@ -377,6 +397,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and passed_status(director_polish)
         and reference_batch.get("status") in {"ready_with_reference_batch_profile", "ready_with_single_reference_profile"}
         and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
+        and chapter_arc.get("status") == "ready_with_chapter_arc_plan"
         and rhythm.get("status") == "ready_with_edit_rhythm_plan"
         and creator_cut.get("status") == "ready_with_creator_cut_plan"
         and transition_grammar.get("status") == "ready_with_transition_grammar_plan"
@@ -396,6 +417,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "referenceBatchSummary": reference_batch_summary,
             "footageSelectStatus": footage_select.get("status"),
             "footageSelectSummary": footage_select_summary,
+            "chapterArcStatus": chapter_arc.get("status"),
+            "chapterArcSummary": chapter_arc_summary,
             "editRhythmStatus": rhythm.get("status"),
             "editRhythmSummary": rhythm_summary,
             "creatorCutStatus": creator_cut.get("status"),
