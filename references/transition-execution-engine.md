@@ -22,12 +22,16 @@ python3 <skill-dir>/scripts/prepare_transition_execution_plan.py --package-dir <
 python3 <skill-dir>/scripts/prepare_transition_motif_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_bridge_sequence_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_bridge_sequence_blueprint.py --package-dir <package>
+python3 <skill-dir>/scripts/prepare_transition_execution_blueprint.py --package-dir <package>
 ```
 
 The script writes:
 
 - `transition_execution_plan/transition_execution_plan.json`
 - `transition_execution_plan/transition_execution_plan.md`
+- `transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json`
+- `transition_execution_blueprint/transition_execution_blueprint_report.json`
+- `transition_execution_blueprint/transition_execution_blueprint_report.md`
 - `transition_motif_plan/transition_motif_plan.json`
 - `transition_motif_plan/transition_motif_plan.md`
 - `bridge_sequence_plan/bridge_sequence_plan.json`
@@ -83,6 +87,7 @@ Before Resolve apply:
 - title-boundary rows suppress or trim subtitles in the title zone
 - scenic/title/transition rows stay BGM-only
 - approved recipes are copied into the Resolve blueprint or apply contract only after title, BGM, and bridge safety pass
+- the transition execution blueprint proves approved recipes appear as candidate `transitions[]`, clip in/out metadata, and timeline markers before Resolve apply
 - the transition motif plan proves the whole chain is not just repeated dissolves, random motion effects, or effects hiding weak route jumps
 - the bridge sequence plan proves important route/title/timeline-gap transitions become 2-5 shot bridge beats instead of one effect hiding a missing travel bridge
 - the bridge sequence blueprint report proves those beats have been materialized into a non-destructive candidate blueprint before Resolve apply

@@ -27,6 +27,7 @@ SKILL_PATTERNS = {
     "creator_cut": "prepare_creator_cut_plan.py",
     "transition_grammar": "prepare_transition_grammar_plan.py",
     "transition_execution": "prepare_transition_execution_plan.py",
+    "transition_execution_blueprint": "prepare_transition_execution_blueprint.py",
     "transition_motif": "prepare_transition_motif_plan.py",
     "bridge_sequence": "prepare_bridge_sequence_plan.py",
     "bridge_sequence_blueprint": "prepare_bridge_sequence_blueprint.py",
@@ -62,6 +63,7 @@ REQUIRED_SCRIPTS = [
     "prepare_creator_cut_plan.py",
     "prepare_transition_grammar_plan.py",
     "prepare_transition_execution_plan.py",
+    "prepare_transition_execution_blueprint.py",
     "prepare_transition_motif_plan.py",
     "prepare_bridge_sequence_plan.py",
     "prepare_bridge_sequence_blueprint.py",
@@ -166,6 +168,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     creator_cut = load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json") or {}
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
     transition_execution = load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json") or {}
+    transition_execution_blueprint = load_json(package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json") or {}
     transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
     bridge_sequence_blueprint = load_json(package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json") or {}
@@ -457,6 +460,46 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     creator_cut_summary = get_summary(creator_cut)
     transition_grammar_summary = get_summary(transition_grammar)
     transition_execution_summary = get_summary(transition_execution)
+    transition_execution_blueprint_summary = get_summary(transition_execution_blueprint)
+    transition_execution_blueprint_rows = int(transition_execution_blueprint_summary.get("executionRowCount") or 0)
+    transition_execution_blueprint_outputs = transition_execution_blueprint.get("outputs") if isinstance(transition_execution_blueprint.get("outputs"), dict) else {}
+    transition_candidate_path = Path(str(transition_execution_blueprint_outputs.get("candidateBlueprint") or package_dir / "transition_execution_blueprint" / "resolve_timeline_blueprint_transition_execution.json"))
+    transition_candidate = load_json(transition_candidate_path) or {}
+    transition_candidates = transition_candidate.get("transitions") if isinstance(transition_candidate.get("transitions"), list) else []
+    transition_markers = [
+        marker for marker in transition_candidate.get("timelineMarkers", [])
+        if isinstance(marker, dict) and marker.get("role") == "transition_execution_candidate_marker"
+    ] if isinstance(transition_candidate.get("timelineMarkers"), list) else []
+    annotated_out = sum(len(clip.get("transitionExecutionOut") or []) for clip in transition_candidate.get("clips", []) if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionOut"), list))
+    annotated_in = sum(len(clip.get("transitionExecutionIn") or []) for clip in transition_candidate.get("clips", []) if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionIn"), list))
+    add_check(
+        checks,
+        "Transition execution blueprint materializes adjacent-pair recipes into candidate transition metadata",
+        transition_execution_blueprint.get("status") == "ready_with_transition_execution_blueprint"
+        and transition_execution_blueprint_rows >= 3
+        and int(transition_execution_blueprint_summary.get("materializedTransitionCount") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("candidateTransitionCount") or 0) == len(transition_candidates)
+        and int(transition_execution_blueprint_summary.get("candidateTransitionCount") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithDecisionFields") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("blockedRowCount") or 0) == 0
+        and int(transition_execution_blueprint_summary.get("rowsMissingClipMatch") or 0) == 0
+        and int(transition_execution_blueprint_summary.get("motionEffectRowsWithEvidence") or 0) == int(transition_execution_blueprint_summary.get("motionEffectRowCount") or 0)
+        and int(transition_execution_blueprint_summary.get("bridgeSatisfiedRowCount") or 0) == int(transition_execution_blueprint_summary.get("bridgeRequiredRowCount") or 0)
+        and transition_candidate_path.exists()
+        and isinstance(transition_candidate.get("transitionExecutionBlueprintPlan"), dict)
+        and len(transition_markers) == transition_execution_blueprint_rows
+        and annotated_out >= transition_execution_blueprint_rows
+        and annotated_in >= transition_execution_blueprint_rows,
+        {
+            "transitionExecutionBlueprintStatus": transition_execution_blueprint.get("status"),
+            "transitionExecutionBlueprintSummary": transition_execution_blueprint_summary,
+            "candidateBlueprint": str(transition_candidate_path),
+            "candidateTransitionCount": len(transition_candidates),
+            "markerCount": len(transition_markers),
+            "annotatedOutClipCount": annotated_out,
+            "annotatedInClipCount": annotated_in,
+        },
+    )
     reference_repair_summary = get_summary(reference_repair)
     reference_batch_summary = get_summary(reference_batch)
     route_summary = get_summary(route_texture)
@@ -475,6 +518,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and creator_cut.get("status") == "ready_with_creator_cut_plan"
         and transition_grammar.get("status") == "ready_with_transition_grammar_plan"
         and transition_execution.get("status") == "ready_with_transition_execution_plan"
+        and transition_execution_blueprint.get("status") == "ready_with_transition_execution_blueprint"
         and transition_motif.get("status") == "ready_with_transition_motif_plan"
         and bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
         and bridge_sequence_blueprint.get("status") == "ready_with_bridge_sequence_blueprint"
@@ -503,6 +547,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionGrammarSummary": transition_grammar_summary,
             "transitionExecutionStatus": transition_execution.get("status"),
             "transitionExecutionSummary": transition_execution_summary,
+            "transitionExecutionBlueprintStatus": transition_execution_blueprint.get("status"),
+            "transitionExecutionBlueprintSummary": transition_execution_blueprint_summary,
             "transitionMotifStatus": transition_motif.get("status"),
             "transitionMotifSummary": transition_motif_summary,
             "bridgeSequenceStatus": bridge_sequence.get("status"),

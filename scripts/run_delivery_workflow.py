@@ -420,6 +420,31 @@ def summarize_transition_execution_plan(plan: dict[str, Any] | None) -> dict[str
     }
 
 
+def summarize_transition_execution_blueprint(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    outputs = report.get("outputs") if isinstance(report.get("outputs"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "baseBlueprintKind": inputs.get("baseBlueprintKind"),
+        "executionRowCount": summary.get("executionRowCount"),
+        "materializedTransitionCount": summary.get("materializedTransitionCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "rowsMissingClipMatch": summary.get("rowsMissingClipMatch"),
+        "motionEffectRowCount": summary.get("motionEffectRowCount"),
+        "motionEffectRowsWithEvidence": summary.get("motionEffectRowsWithEvidence"),
+        "bridgeRequiredRowCount": summary.get("bridgeRequiredRowCount"),
+        "bridgeSatisfiedRowCount": summary.get("bridgeSatisfiedRowCount"),
+        "candidateTransitionCount": summary.get("candidateTransitionCount"),
+        "candidateBlueprint": outputs.get("candidateBlueprint"),
+        "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
+    }
+
+
 def summarize_transition_motif_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -981,6 +1006,21 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Forbidden recipe hits: {execution.get('forbiddenRecipeHitCount')}",
             ]
         )
+    if report.get("transitionExecutionBlueprintSummary"):
+        execution_blueprint = report["transitionExecutionBlueprintSummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Execution Blueprint",
+                f"- Exists: `{execution_blueprint.get('exists')}`",
+                f"- Status: `{execution_blueprint.get('status')}`",
+                f"- Base blueprint: `{execution_blueprint.get('baseBlueprintKind')}`",
+                f"- Execution rows: {execution_blueprint.get('executionRowCount')}",
+                f"- Candidate transitions: {execution_blueprint.get('candidateTransitionCount')}",
+                f"- Blocked rows: {execution_blueprint.get('blockedRowCount')}",
+                f"- Missing clip matches: {execution_blueprint.get('rowsMissingClipMatch')}",
+            ]
+        )
     if report.get("referenceStyleRepairSummary"):
         repair = report["referenceStyleRepairSummary"]
         lines.extend(
@@ -1206,6 +1246,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     bridge_sequence_blueprint_cmd = ["python3", str(SCRIPTS_DIR / "prepare_bridge_sequence_blueprint.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_bridge_sequence_blueprint", bridge_sequence_blueprint_cmd, ok_codes={0, 2}))
 
+    transition_execution_blueprint_cmd = ["python3", str(SCRIPTS_DIR / "prepare_transition_execution_blueprint.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("prepare_transition_execution_blueprint", transition_execution_blueprint_cmd, ok_codes={0, 2}))
+
     rhythm_recut_cmd = ["python3", str(SCRIPTS_DIR / "prepare_rhythm_recut_blueprint.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_rhythm_recut_blueprint", rhythm_recut_cmd))
 
@@ -1288,6 +1331,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     creator_cut_summary = None
     transition_grammar_summary = None
     transition_execution_summary = None
+    transition_execution_blueprint_summary = None
     transition_motif_summary = None
     bridge_sequence_summary = None
     bridge_sequence_blueprint_summary = None
@@ -1368,6 +1412,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             transition_grammar_summary = summarize_transition_grammar_plan(payload)
         if step["id"] == "prepare_transition_execution_plan":
             transition_execution_summary = summarize_transition_execution_plan(payload)
+        if step["id"] == "prepare_transition_execution_blueprint":
+            transition_execution_blueprint_summary = summarize_transition_execution_blueprint(payload)
         if step["id"] == "prepare_transition_motif_plan":
             transition_motif_summary = summarize_transition_motif_plan(payload)
         if step["id"] == "prepare_bridge_sequence_plan":
@@ -1470,6 +1516,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_execution_summary = summarize_transition_execution_plan(
             load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json")
         )
+    if package_dir and (package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json").exists():
+        transition_execution_blueprint_summary = summarize_transition_execution_blueprint(
+            load_json(package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json")
+        )
     if package_dir and (package_dir / "transition_motif_plan" / "transition_motif_plan.json").exists():
         transition_motif_summary = summarize_transition_motif_plan(
             load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json")
@@ -1546,6 +1596,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "creatorCutSummary": creator_cut_summary,
         "transitionGrammarSummary": transition_grammar_summary,
         "transitionExecutionSummary": transition_execution_summary,
+        "transitionExecutionBlueprintSummary": transition_execution_blueprint_summary,
         "transitionMotifSummary": transition_motif_summary,
         "bridgeSequenceSummary": bridge_sequence_summary,
         "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,
@@ -1585,6 +1636,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review edit_rhythm_plan.json before Resolve apply so long raw clips, missing cutaways, and weak chapter variety are fixed before the edit feels AI-assembled.",
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",
             "Review transition_grammar_plan.json and transition_execution_plan.json before Resolve apply so every adjacent pair has an approved, source-backed execution recipe.",
+            "Preflight transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json before approving transition effects for Resolve.",
             "Review transition_motif_plan.json before Resolve apply so the film does not rely on repeated dissolves, random motion, or effects hiding weak route jumps.",
             "Review bridge_sequence_plan.json before rhythm recut or Resolve apply so important route/title/timeline-gap transitions become 2-5 shot bridge sequences instead of single effects.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",

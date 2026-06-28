@@ -35,6 +35,8 @@ Expected files:
 - `resolve_timeline_enrichment.json`: subtitle cues, voiceover/BGM mix plan, stock/aerial placeholders, transition cues, and Resolve timeline markers
 - `resolve_timeline_blueprint.json`: input for DaVinci Resolve API timeline creation
 - `transition_execution_plan/transition_execution_plan.json` / `.md`: Resolve-ready transition recipes for adjacent-pair cuts, dissolves, whip/rotation/speed ramps, bridge inserts, BGM cues, and readback evidence
+- `transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json`: non-destructive Resolve candidate containing transition execution metadata, markers, and clip in/out transition annotations
+- `transition_execution_blueprint/transition_execution_blueprint_report.json` / `.md`: transition materialization summary, safety flags, and approval/follow-up instructions
 - `transition_motif_plan/transition_motif_plan.json` / `.md`: film-level transition motif audit for repeated dissolves, random motion effects, BGM phrase cues, title-zone safety, and owner-script repairs
 - `bridge_sequence_plan/bridge_sequence_plan.json` / `.md`: 2-5 shot route/title bridge sequence plan for important transitions that cannot be solved by a single effect
 - `bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json`: non-destructive Resolve candidate containing video-only materialized bridge sequence inserts
@@ -115,6 +117,7 @@ The package is not final until:
 - Resolve timeline blueprint dry-run passes
 - Resolve timeline blueprint records whether footage selection sorted first-assembly chapter media by tier/score
 - transition execution plan exists before Resolve apply when transition grammar exists; bridge-missing rows must remain blocked until real bridge footage is inserted
+- transition execution blueprint report exists before Resolve apply, proving approved transition recipes became candidate `transitions[]`, clip in/out metadata, and timeline markers without mutating the active blueprint by default
 - transition motif plan exists after transition execution and before Resolve apply, proving repeated/template transitions, missing BGM cues, title-zone risk, and unmotivated motion effects are repaired or explicitly assigned
 - bridge sequence plan exists after transition motif and before rhythm recut/Resolve apply, proving important route/title/timeline-gap transitions have 2-5 shot bridge beats or owner-script repairs
 - bridge sequence blueprint report exists before Resolve apply when local bridge candidates are available, proving those beats became video-only candidate clips without mutating the active blueprint by default

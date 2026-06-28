@@ -39,6 +39,7 @@ Run this after:
 
 - `prepare_transition_grammar_plan.py`
 - `prepare_transition_execution_plan.py`
+- `prepare_transition_execution_blueprint.py` when Resolve candidate materialization is expected
 
 It also reads these artifacts when present:
 
@@ -56,6 +57,7 @@ The motif plan creates repair rows instead of hiding weak transitions:
 - missing BGM phrase cue -> `prepare_bgm_selection_package.py`
 - repeated transition style run -> `prepare_transition_grammar_plan.py`
 - unsafe execution recipe -> `prepare_transition_execution_plan.py`
+- execution recipe planned but not visible in a candidate blueprint -> `prepare_transition_execution_blueprint.py`
 - bridge sequence planned but not placed -> `prepare_bridge_sequence_blueprint.py`
 
 P0 rows must be resolved before final render or V14 baseline claims. P1 rows require review; repeated style is acceptable only when it is justified by real same-scene continuity.
@@ -68,6 +70,7 @@ Pass:
 - every transition row has a motif, decision fields, BGM phrase cue, and title-zone policy when relevant
 - motion motifs cite route/bridge/two-sided motion evidence
 - bridge or motion failures create owner-script repair rows
+- transition execution blueprint exists when recipes need Resolve candidate evidence
 - repeated style runs are detected and either repaired or explicitly justified
 - important route/title/timeline-gap transitions are handed to `bridge_sequence_plan` so a single effect does not replace real connective footage
 - local bridge beats are handed to `bridge_sequence_blueprint` so the motif decision becomes a preflightable timeline candidate

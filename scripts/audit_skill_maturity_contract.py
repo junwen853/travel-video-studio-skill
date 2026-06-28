@@ -52,6 +52,7 @@ REQUIRED_SCRIPTS = {
         "prepare_creator_cut_plan.py",
         "prepare_transition_grammar_plan.py",
         "prepare_transition_execution_plan.py",
+        "prepare_transition_execution_blueprint.py",
         "prepare_transition_motif_plan.py",
         "prepare_bridge_sequence_plan.py",
         "prepare_bridge_sequence_blueprint.py",
@@ -101,6 +102,7 @@ REQUIRED_SKILL_PATTERNS = {
     "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
     "transition_execution_plan_rule": "prepare_transition_execution_plan.py",
+    "transition_execution_blueprint_rule": "prepare_transition_execution_blueprint.py",
     "transition_motif_plan_rule": "prepare_transition_motif_plan.py",
     "bridge_sequence_plan_rule": "prepare_bridge_sequence_plan.py",
     "bridge_sequence_blueprint_rule": "prepare_bridge_sequence_blueprint.py",
@@ -123,6 +125,7 @@ REQUIRED_SKILL_PATTERNS = {
     "creator_cut_engine_rule": "creator-cut-engine.md",
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
     "transition_execution_engine_rule": "transition-execution-engine.md",
+    "transition_execution_blueprint_engine_rule": "transition-execution-blueprint-engine.md",
     "transition_motif_engine_rule": "transition-motif-engine.md",
     "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
@@ -139,6 +142,7 @@ REQUIRED_STYLE_PATTERNS = {
     "chapter_arc_engine": "chapter-arc-engine.md",
     "transition_grammar_engine": "transition-grammar-engine.md",
     "transition_execution_engine": "transition-execution-engine.md",
+    "transition_execution_blueprint_engine": "transition-execution-blueprint-engine.md",
     "transition_motif_engine": "transition-motif-engine.md",
     "bridge_sequence_engine": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
@@ -161,6 +165,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "chapter_arc_plan": "chapter_arc_plan/chapter_arc_plan.json",
     "opening_route_promise": "viewer promise, destination proof",
     "transition_execution_plan": "transition execution plan",
+    "transition_execution_blueprint": "transition execution blueprint",
     "transition_motif_plan": "transition motif plan",
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
@@ -1988,6 +1993,142 @@ def transition_execution_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    outputs = data.get("outputs") if isinstance(data.get("outputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    rows = data.get("materializedRows") if isinstance(data.get("materializedRows"), list) else []
+    candidate_path = Path(str(outputs.get("candidateBlueprint") or package_dir / "transition_execution_blueprint" / "resolve_timeline_blueprint_transition_execution.json"))
+    candidate = load_json(candidate_path) or {}
+    transitions = candidate.get("transitions") if isinstance(candidate.get("transitions"), list) else []
+    clips = candidate.get("clips") if isinstance(candidate.get("clips"), list) else []
+    markers = [
+        marker for marker in candidate.get("timelineMarkers", [])
+        if isinstance(marker, dict) and marker.get("role") == "transition_execution_candidate_marker"
+    ] if isinstance(candidate.get("timelineMarkers"), list) else []
+    decision_fields = {
+        "approveCandidateBlueprint",
+        "approvedTransitionRows",
+        "resolveImplementation",
+        "preflightEvidence",
+        "timelineReadbackEvidence",
+        "frameSampleEvidence",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    rows_with_decision_fields = 0
+    rows_materialized = 0
+    rows_with_clip_match = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if row.get("status") == "materialized":
+            rows_materialized += 1
+        if row.get("fromClipMatched") is True and row.get("toClipMatched") is True:
+            rows_with_clip_match += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+    transition_rows_with_decisions = 0
+    transition_rows_without_forbidden = 0
+    transition_rows_bridge_safe = 0
+    transition_rows_motion_safe = 0
+    for transition in transitions:
+        if not isinstance(transition, dict):
+            continue
+        decision = transition.get("decision") if isinstance(transition.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            transition_rows_with_decisions += 1
+        if not transition.get("forbiddenRecipeHits"):
+            transition_rows_without_forbidden += 1
+        if not transition.get("requiresBridgeInsert") or transition.get("bridgeSequenceSatisfied") is True:
+            transition_rows_bridge_safe += 1
+        if not transition.get("motionStyle") or transition.get("motionHasEvidence") is True:
+            transition_rows_motion_safe += 1
+    annotated_out = sum(len(clip.get("transitionExecutionOut") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionOut"), list))
+    annotated_in = sum(len(clip.get("transitionExecutionIn") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionIn"), list))
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "candidateBlueprint": str(candidate_path),
+        "candidateBlueprintExists": candidate_path.exists(),
+        "candidateHasTransitionExecutionPlan": isinstance(candidate.get("transitionExecutionBlueprintPlan"), dict),
+        "executionRowCount": summary.get("executionRowCount"),
+        "materializedTransitionCount": summary.get("materializedTransitionCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "rowsMissingClipMatch": summary.get("rowsMissingClipMatch"),
+        "motionEffectRowCount": summary.get("motionEffectRowCount"),
+        "motionEffectRowsWithEvidence": summary.get("motionEffectRowsWithEvidence"),
+        "bridgeRequiredRowCount": summary.get("bridgeRequiredRowCount"),
+        "bridgeSatisfiedRowCount": summary.get("bridgeSatisfiedRowCount"),
+        "candidateTransitionCount": summary.get("candidateTransitionCount"),
+        "rowCount": len(rows),
+        "rowsMaterializedByRow": rows_materialized,
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithClipMatchByRow": rows_with_clip_match,
+        "candidateTransitions": len(transitions),
+        "candidateMarkers": len(markers),
+        "annotatedOutClipCount": annotated_out,
+        "annotatedInClipCount": annotated_in,
+        "transitionRowsWithDecisionFields": transition_rows_with_decisions,
+        "transitionRowsWithoutForbiddenHits": transition_rows_without_forbidden,
+        "transitionRowsBridgeSafe": transition_rows_bridge_safe,
+        "transitionRowsMotionSafe": transition_rows_motion_safe,
+        "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "mutatesActiveBlueprintByDefault": safety.get("mutatesActiveBlueprintByDefault"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def transition_execution_blueprint_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("executionRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_transition_execution_blueprint"
+        and evidence.get("candidateBlueprintExists")
+        and evidence.get("candidateHasTransitionExecutionPlan")
+        and row_count >= 3
+        and int(evidence.get("materializedTransitionCount") or 0) == row_count
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("rowsMaterializedByRow") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithClipMatchByRow") or 0) == row_count
+        and int(evidence.get("candidateTransitionCount") or 0) == row_count
+        and int(evidence.get("candidateTransitions") or 0) == row_count
+        and int(evidence.get("candidateMarkers") or 0) == row_count
+        and int(evidence.get("blockedRowCount") or 0) == 0
+        and int(evidence.get("rowsMissingClipMatch") or 0) == 0
+        and int(evidence.get("motionEffectRowsWithEvidence") or 0) == int(evidence.get("motionEffectRowCount") or 0)
+        and int(evidence.get("bridgeSatisfiedRowCount") or 0) == int(evidence.get("bridgeRequiredRowCount") or 0)
+        and int(evidence.get("annotatedOutClipCount") or 0) >= row_count
+        and int(evidence.get("annotatedInClipCount") or 0) >= row_count
+        and int(evidence.get("transitionRowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("transitionRowsWithoutForbiddenHits") or 0) == row_count
+        and int(evidence.get("transitionRowsBridgeSafe") or 0) == row_count
+        and int(evidence.get("transitionRowsMotionSafe") or 0) == row_count
+        and evidence.get("activeBlueprintUpdated") is False
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("mutatesActiveBlueprintByDefault") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def transition_motif_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_motif_plan" / "transition_motif_plan.json"
     data = load_json(path) or {}
@@ -2889,6 +3030,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition execution plan turns adjacent-pair transition choices into Resolve-ready recipes with bridge, BGM, subtitle, and readback fields",
         transition_execution_plan_ready(transition_execution_evidence),
         transition_execution_evidence,
+    )
+    transition_execution_blueprint = transition_execution_blueprint_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition execution blueprint materializes adjacent-pair recipes into a non-destructive Resolve candidate",
+        transition_execution_blueprint_ready(transition_execution_blueprint),
+        transition_execution_blueprint,
     )
     transition_motif_evidence = transition_motif_plan_evidence(package_dir)
     add_check(
