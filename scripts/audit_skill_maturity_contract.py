@@ -38,6 +38,7 @@ REQUIRED_SCRIPTS = {
         "prepare_bgm_sourcing_brief.py",
         "prepare_bgm_selection_package.py",
         "prepare_bgm_phrase_blueprint.py",
+        "prepare_transition_polish_blueprint.py",
         "prepare_transition_bridge_plan.py",
         "prepare_caption_story_plan.py",
         "audit_audience_caption_contract.py",
@@ -88,6 +89,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bgm_sourcing_brief_rule": "prepare_bgm_sourcing_brief.py",
     "bgm_selection_package_rule": "prepare_bgm_selection_package.py",
     "bgm_phrase_blueprint_rule": "prepare_bgm_phrase_blueprint.py",
+    "transition_polish_blueprint_rule": "prepare_transition_polish_blueprint.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
     "caption_story_plan_rule": "prepare_caption_story_plan.py",
     "audience_caption_contract_rule": "audience-facing travel-film text",
@@ -134,6 +136,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
+    "transition_polish_blueprint_engine_rule": "transition-polish-blueprint-engine.md",
     "effect_motion_blueprint_engine_rule": "effect-motion-blueprint-engine.md",
     "reference_style_repair_engine_rule": "reference-style-repair-engine.md",
 }
@@ -153,6 +156,7 @@ REQUIRED_STYLE_PATTERNS = {
     "bridge_sequence_engine": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
+    "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
     "effect_motion_blueprint_engine": "effect-motion-blueprint-engine.md",
     "reference_style_repair_engine": "reference-style-repair-engine.md",
     "opening_story_engine": "opening-story-engine.md",
@@ -175,6 +179,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_execution_plan": "transition execution plan",
     "transition_execution_blueprint": "transition execution blueprint",
     "bgm_phrase_blueprint": "BGM phrase blueprint",
+    "transition_polish_blueprint": "transition polish blueprint",
     "transition_motif_plan": "transition motif plan",
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
@@ -3061,6 +3066,152 @@ def rhythm_recut_blueprint_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_polish_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    outputs = data.get("outputs") if isinstance(data.get("outputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    rows = data.get("polishRows") if isinstance(data.get("polishRows"), list) else []
+    candidate = Path(str(outputs.get("candidateBlueprint") or ""))
+    candidate_data = load_json(candidate) or {}
+    candidate_plan = candidate_data.get("transitionPolishBlueprintPlan") if isinstance(candidate_data.get("transitionPolishBlueprintPlan"), dict) else {}
+    transitions = candidate_data.get("transitions") if isinstance(candidate_data.get("transitions"), list) else []
+    candidates = candidate_data.get("transitionPolishCandidates") if isinstance(candidate_data.get("transitionPolishCandidates"), list) else []
+    clips = candidate_data.get("clips") if isinstance(candidate_data.get("clips"), list) else []
+    markers = [
+        marker for marker in candidate_data.get("timelineMarkers", [])
+        if isinstance(marker, dict) and marker.get("role") == "transition_polish_candidate_marker"
+    ] if isinstance(candidate_data.get("timelineMarkers"), list) else []
+    clip_annotations = sum(
+        len(clip.get("transitionPolishOut") or []) + len(clip.get("transitionPolishIn") or [])
+        for clip in clips
+        if isinstance(clip, dict)
+    )
+    transition_annotations = sum(1 for transition in transitions if isinstance(transition, dict) and isinstance(transition.get("transitionPolishCandidate"), dict))
+    decision_fields = {
+        "approveCandidateBlueprint",
+        "approvedPolishRows",
+        "resolveImplementation",
+        "preflightEvidence",
+        "timelineReadbackEvidence",
+        "frameSampleEvidence",
+        "approvedBy",
+        "approvedAt",
+    }
+    rows_with_decisions = 0
+    rows_with_bgm = 0
+    rows_with_hit = 0
+    rows_title_safe = 0
+    rows_blocked = 0
+    rows_forbidden = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        bgm = row.get("bgmSync") if isinstance(row.get("bgmSync"), dict) else {}
+        title = row.get("titleSubtitleAvoidance") if isinstance(row.get("titleSubtitleAvoidance"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decisions += 1
+        if bgm.get("phraseIndex") is not None or bgm.get("section"):
+            rows_with_bgm += 1
+        if bgm.get("hitSeconds") is not None:
+            rows_with_hit += 1
+        if title.get("avoidTitleOverlayCollision") is True and float(title.get("suppressSubtitleSecondsBefore") or 0) > 0:
+            rows_title_safe += 1
+        if row.get("status") != "materialized":
+            rows_blocked += 1
+        rows_forbidden += len(row.get("forbiddenPolishHits") or [])
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "baseBlueprintKind": inputs.get("baseBlueprintKind"),
+        "candidateBlueprint": str(candidate) if outputs.get("candidateBlueprint") else None,
+        "candidateBlueprintExists": candidate.exists() if outputs.get("candidateBlueprint") else False,
+        "candidateHasTransitionPolishPlan": isinstance(candidate_data.get("transitionPolishBlueprintPlan"), dict),
+        "candidateSourceBlueprintKind": candidate_plan.get("baseBlueprintKind"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "polishedTransitionCount": summary.get("polishedTransitionCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "rowsWithBgmPhraseCue": summary.get("rowsWithBgmPhraseCue"),
+        "rowsWithBgmHit": summary.get("rowsWithBgmHit"),
+        "rowsWithTitleSubtitleAvoidance": summary.get("rowsWithTitleSubtitleAvoidance"),
+        "motionPolishRowCount": summary.get("motionPolishRowCount"),
+        "motionPolishRowsWithEvidence": summary.get("motionPolishRowsWithEvidence"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "clipAnnotationCount": summary.get("clipAnnotationCount"),
+        "markerCount": summary.get("markerCount"),
+        "candidateBgmPhraseCount": summary.get("candidateBgmPhraseCount"),
+        "rowCount": len(rows),
+        "candidateTransitionPolishCount": len(candidates),
+        "transitionAnnotations": transition_annotations,
+        "candidateClipAnnotationCount": clip_annotations,
+        "candidateMarkerCount": len(markers),
+        "rowsWithDecisionFieldsByRow": rows_with_decisions,
+        "rowsWithBgmByRow": rows_with_bgm,
+        "rowsWithHitByRow": rows_with_hit,
+        "rowsTitleSafeByRow": rows_title_safe,
+        "blockedRowsByRow": rows_blocked,
+        "forbiddenHitCountByRow": rows_forbidden,
+        "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "mutatesActiveBlueprintByDefault": safety.get("mutatesActiveBlueprintByDefault"),
+        "requiresResolvePreflightBeforeApply": safety.get("requiresResolvePreflightBeforeApply"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def transition_polish_blueprint_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("transitionRowCount") or 0)
+    motion_rows = int(evidence.get("motionPolishRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_transition_polish_blueprint"
+        and evidence.get("baseBlueprintKind") in {"rhythm_recut_candidate", "bgm_phrase_candidate"}
+        and evidence.get("candidateBlueprintExists") is True
+        and evidence.get("candidateHasTransitionPolishPlan") is True
+        and evidence.get("candidateSourceBlueprintKind") == evidence.get("baseBlueprintKind")
+        and row_count >= 1
+        and int(evidence.get("polishedTransitionCount") or 0) == row_count
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("candidateTransitionPolishCount") or 0) == row_count
+        and int(evidence.get("transitionAnnotations") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithBgmPhraseCue") or 0) == row_count
+        and int(evidence.get("rowsWithBgmByRow") or 0) == row_count
+        and int(evidence.get("rowsWithBgmHit") or 0) == row_count
+        and int(evidence.get("rowsWithHitByRow") or 0) == row_count
+        and int(evidence.get("rowsWithTitleSubtitleAvoidance") or 0) == row_count
+        and int(evidence.get("rowsTitleSafeByRow") or 0) == row_count
+        and int(evidence.get("blockedRowCount") or 0) == 0
+        and int(evidence.get("blockedRowsByRow") or 0) == 0
+        and int(evidence.get("forbiddenHitCountByRow") or 0) == 0
+        and int(evidence.get("motionPolishRowsWithEvidence") or 0) == motion_rows
+        and int(evidence.get("clipAnnotationCount") or 0) >= row_count
+        and int(evidence.get("candidateClipAnnotationCount") or 0) >= row_count
+        and int(evidence.get("markerCount") or 0) == row_count
+        and int(evidence.get("candidateMarkerCount") or 0) == row_count
+        and int(evidence.get("candidateBgmPhraseCount") or 0) >= 4
+        and evidence.get("activeBlueprintUpdated") is False
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("mutatesActiveBlueprintByDefault") is False
+        and evidence.get("requiresResolvePreflightBeforeApply") is True
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def rhythm_recut_apply_package_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json"
     if not path.exists():
@@ -3422,6 +3573,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Rhythm recut blueprint converts flat-pacing diagnosis into a safe candidate Resolve blueprint",
         rhythm_recut_blueprint_ready(rhythm_recut_evidence),
         rhythm_recut_evidence,
+    )
+    transition_polish_evidence = transition_polish_blueprint_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition polish blueprint turns final transitions into BGM-hit, title-safe, motion-proven Resolve metadata",
+        transition_polish_blueprint_ready(transition_polish_evidence),
+        transition_polish_evidence,
     )
     rhythm_recut_apply_evidence = rhythm_recut_apply_package_evidence(package_dir)
     add_check(

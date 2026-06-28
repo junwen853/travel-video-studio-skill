@@ -130,7 +130,7 @@ Use the plan to be stricter than a normal assembly:
 
 The reference feeling comes from selective shot choice plus route evidence. Effects are secondary.
 
-After creator cut selection, run `prepare_transition_grammar_plan.py` so each adjacent pair has a specific cut/dissolve/match/whip/rotation/speed-ramp/bridge-insert decision. Then run `prepare_transition_execution_plan.py`, `prepare_transition_motif_plan.py`, `prepare_bridge_sequence_plan.py`, `prepare_bridge_sequence_blueprint.py`, `prepare_transition_execution_blueprint.py`, and `prepare_bgm_phrase_blueprint.py` so the whole transition chain becomes Resolve-ready recipes, candidate transition metadata, materialized bridge sequences, and selected-music phrase cues instead of repeated dissolves, random motion, effects hiding weak route jumps, or one-effect city/day jumps. This is the guard against vague "add some transition" editing.
+After creator cut selection, run `prepare_transition_grammar_plan.py` so each adjacent pair has a specific cut/dissolve/match/whip/rotation/speed-ramp/bridge-insert decision. Then run `prepare_transition_execution_plan.py`, `prepare_transition_motif_plan.py`, `prepare_bridge_sequence_plan.py`, `prepare_bridge_sequence_blueprint.py`, `prepare_transition_execution_blueprint.py`, `prepare_bgm_phrase_blueprint.py`, and after rhythm recut `prepare_transition_polish_blueprint.py` so the whole transition chain becomes Resolve-ready recipes, candidate transition metadata, materialized bridge sequences, selected-music phrase cues, and final BGM-hit/title-safe/motion-proven transition polish blueprint metadata instead of repeated dissolves, random motion, effects hiding weak route jumps, or one-effect city/day jumps. This is the guard against vague "add some transition" editing.
 
 After reference-style, director-intent, director-polish, or final QA checks run, use `prepare_reference_style_repair_plan.py` so every blocked check becomes a repair row with an owner script, required artifact, acceptance evidence, and post-repair audit. Do not allow "closer to the reference" to remain an unassigned note.
 
@@ -175,6 +175,7 @@ Before saying a package has learned this reference style, verify:
 - The transition execution blueprint report proves those recipes are present as candidate transitions, clip in/out metadata, and timeline markers before Resolve apply.
 - The transition motif plan proves repeated/template transition chains, missing BGM phrase cues, title-zone risk, and unmotivated motion effects are repaired or assigned.
 - The BGM phrase blueprint report proves selected music has opening/body/transition/ending rows, clip annotations, and per-transition phrase cues before rhythm recut or Resolve apply.
+- The transition polish blueprint report proves final transitions have BGM-hit timing, title/subtitle avoidance, motion-proof, and restrained keyframes before Resolve apply.
 - The bridge sequence plan proves important route/title/timeline-gap transitions have 2-5 shot bridge beats or owner-script repairs.
 - The bridge sequence blueprint report proves local bridge beats are present as video-only candidate clips before Resolve apply.
 - The reference style repair plan converts blocked reference/director/QA checks into P0/P1 repair rows before the next Resolve write.

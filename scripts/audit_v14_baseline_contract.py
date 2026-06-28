@@ -34,6 +34,7 @@ SKILL_PATTERNS = {
     "bridge_sequence": "prepare_bridge_sequence_plan.py",
     "bridge_sequence_blueprint": "prepare_bridge_sequence_blueprint.py",
     "rhythm_recut_blueprint": "prepare_rhythm_recut_blueprint.py",
+    "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "route_texture": "audit_route_texture_contract.py",
     "final_qa": "run_final_qa_suite.py",
@@ -73,6 +74,7 @@ REQUIRED_SCRIPTS = [
     "prepare_bridge_sequence_plan.py",
     "prepare_bridge_sequence_blueprint.py",
     "prepare_rhythm_recut_blueprint.py",
+    "prepare_transition_polish_blueprint.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_style_alignment.py",
     "audit_route_texture_contract.py",
@@ -181,6 +183,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
     bridge_sequence_blueprint = load_json(package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json") or {}
     rhythm_recut_blueprint = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
+    transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
     route_texture = load_json(package_dir / "route_texture_contract_audit.json") or {}
@@ -636,6 +639,62 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionCueCount": rhythm_recut_transition_cues,
         },
     )
+    transition_polish_summary = get_summary(transition_polish_blueprint)
+    transition_polish_outputs = transition_polish_blueprint.get("outputs") if isinstance(transition_polish_blueprint.get("outputs"), dict) else {}
+    transition_polish_inputs = transition_polish_blueprint.get("inputs") if isinstance(transition_polish_blueprint.get("inputs"), dict) else {}
+    transition_polish_candidate_path = Path(str(transition_polish_outputs.get("candidateBlueprint") or package_dir / "transition_polish_blueprint" / "resolve_timeline_blueprint_transition_polish.json"))
+    transition_polish_candidate = load_json(transition_polish_candidate_path) or {}
+    transition_polish_plan = transition_polish_candidate.get("transitionPolishBlueprintPlan") if isinstance(transition_polish_candidate.get("transitionPolishBlueprintPlan"), dict) else {}
+    transition_polish_rows = transition_polish_blueprint.get("polishRows") if isinstance(transition_polish_blueprint.get("polishRows"), list) else []
+    transition_polish_candidates = transition_polish_candidate.get("transitionPolishCandidates") if isinstance(transition_polish_candidate.get("transitionPolishCandidates"), list) else []
+    transition_polish_transitions = transition_polish_candidate.get("transitions") if isinstance(transition_polish_candidate.get("transitions"), list) else []
+    transition_polish_markers = [
+        marker for marker in transition_polish_candidate.get("timelineMarkers", [])
+        if isinstance(marker, dict) and marker.get("role") == "transition_polish_candidate_marker"
+    ] if isinstance(transition_polish_candidate.get("timelineMarkers"), list) else []
+    transition_polish_clip_annotations = sum(
+        len(clip.get("transitionPolishOut") or []) + len(clip.get("transitionPolishIn") or [])
+        for clip in transition_polish_candidate.get("clips", [])
+        if isinstance(clip, dict)
+    )
+    transition_polish_transition_annotations = sum(
+        1 for transition in transition_polish_transitions
+        if isinstance(transition, dict) and isinstance(transition.get("transitionPolishCandidate"), dict)
+    )
+    add_check(
+        checks,
+        "Transition polish blueprint gives final transitions BGM-hit timing, title safety, and motion-proof keyframes",
+        transition_polish_blueprint.get("status") == "ready_with_transition_polish_blueprint"
+        and transition_polish_candidate_path.exists()
+        and transition_polish_inputs.get("baseBlueprintKind") in {"rhythm_recut_candidate", "bgm_phrase_candidate"}
+        and transition_polish_plan.get("baseBlueprintKind") == transition_polish_inputs.get("baseBlueprintKind")
+        and isinstance(transition_polish_candidate.get("transitionPolishBlueprintPlan"), dict)
+        and int(transition_polish_summary.get("transitionRowCount") or 0) >= 1
+        and int(transition_polish_summary.get("polishedTransitionCount") or 0) == int(transition_polish_summary.get("transitionRowCount") or 0)
+        and len(transition_polish_rows) == int(transition_polish_summary.get("transitionRowCount") or 0)
+        and len(transition_polish_candidates) == int(transition_polish_summary.get("transitionRowCount") or 0)
+        and transition_polish_transition_annotations == int(transition_polish_summary.get("transitionRowCount") or 0)
+        and int(transition_polish_summary.get("rowsWithDecisionFields") or 0) == int(transition_polish_summary.get("transitionRowCount") or 0)
+        and int(transition_polish_summary.get("rowsWithBgmPhraseCue") or 0) == int(transition_polish_summary.get("transitionRowCount") or 0)
+        and int(transition_polish_summary.get("rowsWithBgmHit") or 0) == int(transition_polish_summary.get("transitionRowCount") or 0)
+        and int(transition_polish_summary.get("rowsWithTitleSubtitleAvoidance") or 0) == int(transition_polish_summary.get("transitionRowCount") or 0)
+        and int(transition_polish_summary.get("motionPolishRowsWithEvidence") or 0) == int(transition_polish_summary.get("motionPolishRowCount") or 0)
+        and int(transition_polish_summary.get("blockedRowCount") or 0) == 0
+        and transition_polish_clip_annotations >= int(transition_polish_summary.get("transitionRowCount") or 0)
+        and len(transition_polish_markers) == int(transition_polish_summary.get("transitionRowCount") or 0)
+        and int(transition_polish_summary.get("candidateBgmPhraseCount") or 0) >= 4,
+        {
+            "transitionPolishStatus": transition_polish_blueprint.get("status"),
+            "transitionPolishSummary": transition_polish_summary,
+            "candidateBlueprint": str(transition_polish_candidate_path),
+            "baseBlueprintKind": transition_polish_inputs.get("baseBlueprintKind"),
+            "candidateSourceBlueprintKind": transition_polish_plan.get("baseBlueprintKind"),
+            "candidatePolishCount": len(transition_polish_candidates),
+            "transitionAnnotationCount": transition_polish_transition_annotations,
+            "clipAnnotationCount": transition_polish_clip_annotations,
+            "markerCount": len(transition_polish_markers),
+        },
+    )
     reference_repair_summary = get_summary(reference_repair)
     reference_batch_summary = get_summary(reference_batch)
     route_summary = get_summary(route_texture)
@@ -661,6 +720,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and effect_motion_blueprint.get("status") == "ready_with_effect_motion_blueprint"
         and bgm_phrase_blueprint.get("status") == "ready_with_bgm_phrase_blueprint"
         and rhythm_recut_blueprint.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}
+        and transition_polish_blueprint.get("status") == "ready_with_transition_polish_blueprint"
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
         and int(route_summary.get("matchedTransitions") or 0) >= 1
@@ -700,6 +760,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "bgmPhraseBlueprintSummary": bgm_phrase_blueprint_summary,
             "rhythmRecutBlueprintStatus": rhythm_recut_blueprint.get("status"),
             "rhythmRecutBlueprintSummary": rhythm_recut_blueprint_summary,
+            "transitionPolishBlueprintStatus": transition_polish_blueprint.get("status"),
+            "transitionPolishBlueprintSummary": transition_polish_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
         },

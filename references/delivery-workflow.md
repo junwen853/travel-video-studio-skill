@@ -41,6 +41,8 @@ Expected files:
 - `bridge_sequence_plan/bridge_sequence_plan.json` / `.md`: 2-5 shot route/title bridge sequence plan for important transitions that cannot be solved by a single effect
 - `bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json`: non-destructive Resolve candidate containing video-only materialized bridge sequence inserts
 - `bridge_sequence_blueprint/bridge_sequence_blueprint_report.json` / `.md`: bridge sequence materialization summary, safety flags, and approval/follow-up instructions
+- `transition_polish_blueprint/resolve_timeline_blueprint_transition_polish.json`: non-destructive Resolve candidate containing final BGM-hit, title-safe, motion-proven transition polish metadata
+- `transition_polish_blueprint/transition_polish_blueprint_report.json` / `.md`: final transition polish summary, safety flags, and approval/follow-up instructions
 - `reference_style_repair_plan/reference_style_repair_plan.json` / `.md`: exact repair rows for blocked reference-style, director-intent, director-polish, or final-QA gaps
 - `resolve_blueprint_preflight.json` / `.md`: no-write Resolve blueprint safety audit covering source files, source ranges, track overlaps, V1 gaps, title cards, subtitles, markers, and source audio
 - `resolve_apply_contract.json` / `.md`: approval contract before any actual DaVinci timeline write
@@ -127,6 +129,7 @@ The package is not final until:
 - bridge sequence plan exists after transition motif and before rhythm recut/Resolve apply, proving important route/title/timeline-gap transitions have 2-5 shot bridge beats or owner-script repairs
 - bridge sequence blueprint report exists before Resolve apply when local bridge candidates are available, proving those beats became video-only candidate clips without mutating the active blueprint by default
 - rhythm recut blueprint report exists before Resolve apply when long-shot risks exist, proving the recut started from the BGM phrase candidate and preserved transition/effect/BGM phrase metadata
+- transition polish blueprint report exists before Resolve apply, proving final transitions carry BGM-hit timing, title/subtitle avoidance, motion-evidence checks, and restrained keyframes after rhythm recut
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
 - Resolve blueprint preflight is present and not blocked before any `--apply`
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves

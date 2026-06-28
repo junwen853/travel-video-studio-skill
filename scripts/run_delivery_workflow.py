@@ -584,6 +584,33 @@ def summarize_rhythm_recut_blueprint(plan: dict[str, Any] | None) -> dict[str, A
     }
 
 
+def summarize_transition_polish_blueprint(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    outputs = report.get("outputs") if isinstance(report.get("outputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "baseBlueprintKind": inputs.get("baseBlueprintKind"),
+        "candidateBlueprint": outputs.get("candidateBlueprint"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "polishedTransitionCount": summary.get("polishedTransitionCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "rowsWithBgmPhraseCue": summary.get("rowsWithBgmPhraseCue"),
+        "rowsWithBgmHit": summary.get("rowsWithBgmHit"),
+        "rowsWithTitleSubtitleAvoidance": summary.get("rowsWithTitleSubtitleAvoidance"),
+        "motionPolishRowCount": summary.get("motionPolishRowCount"),
+        "motionPolishRowsWithEvidence": summary.get("motionPolishRowsWithEvidence"),
+        "downgradedMotionRowCount": summary.get("downgradedMotionRowCount"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "clipAnnotationCount": summary.get("clipAnnotationCount"),
+        "markerCount": summary.get("markerCount"),
+        "candidateBgmPhraseCount": summary.get("candidateBgmPhraseCount"),
+    }
+
+
 def summarize_reference_style_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -1125,6 +1152,24 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- BGM phrase rows/clip annotations/transition cues: {recut.get('bgmPhraseCandidateCount')} / {recut.get('bgmPhraseClipAnnotationCount')} / {recut.get('bgmPhraseTransitionCueCount')}",
             ]
         )
+    if report.get("transitionPolishBlueprintSummary"):
+        polish = report["transitionPolishBlueprintSummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Polish Blueprint",
+                f"- Exists: `{polish.get('exists')}`",
+                f"- Status: `{polish.get('status')}`",
+                f"- Base blueprint: `{polish.get('baseBlueprintKind')}`",
+                f"- Transition rows: {polish.get('transitionRowCount')}",
+                f"- Polished transitions: {polish.get('polishedTransitionCount')}",
+                f"- BGM phrase/hit rows: {polish.get('rowsWithBgmPhraseCue')} / {polish.get('rowsWithBgmHit')}",
+                f"- Title-safe rows: {polish.get('rowsWithTitleSubtitleAvoidance')}",
+                f"- Motion rows/evidence: {polish.get('motionPolishRowCount')} / {polish.get('motionPolishRowsWithEvidence')}",
+                f"- Downgraded unsupported motion rows: {polish.get('downgradedMotionRowCount')}",
+                f"- Blocked rows: {polish.get('blockedRowCount')}",
+            ]
+        )
     if report.get("referenceStyleRepairSummary"):
         repair = report["referenceStyleRepairSummary"]
         lines.extend(
@@ -1362,6 +1407,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     rhythm_recut_cmd = ["python3", str(SCRIPTS_DIR / "prepare_rhythm_recut_blueprint.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_rhythm_recut_blueprint", rhythm_recut_cmd))
 
+    transition_polish_cmd = ["python3", str(SCRIPTS_DIR / "prepare_transition_polish_blueprint.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("prepare_transition_polish_blueprint", transition_polish_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -1448,6 +1496,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     bridge_sequence_summary = None
     bridge_sequence_blueprint_summary = None
     rhythm_recut_summary = None
+    transition_polish_summary = None
     reference_style_repair_summary = None
     rhythm_recut_apply_summary = None
     resolve_apply_contract_summary = None
@@ -1538,6 +1587,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             bridge_sequence_blueprint_summary = summarize_bridge_sequence_blueprint(payload)
         if step["id"] == "prepare_rhythm_recut_blueprint":
             rhythm_recut_summary = summarize_rhythm_recut_blueprint(payload)
+        if step["id"] == "prepare_transition_polish_blueprint":
+            transition_polish_summary = summarize_transition_polish_blueprint(payload)
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "prepare_rhythm_recut_apply_package":
@@ -1660,6 +1711,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         rhythm_recut_summary = summarize_rhythm_recut_blueprint(
             load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json")
         )
+    if package_dir and (package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json").exists():
+        transition_polish_summary = summarize_transition_polish_blueprint(
+            load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -1727,6 +1782,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "bridgeSequenceSummary": bridge_sequence_summary,
         "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,
         "rhythmRecutBlueprintSummary": rhythm_recut_summary,
+        "transitionPolishBlueprintSummary": transition_polish_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "resolveApplyContractSummary": resolve_apply_contract_summary,
