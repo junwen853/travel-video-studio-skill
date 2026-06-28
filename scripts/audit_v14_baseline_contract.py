@@ -20,6 +20,7 @@ SKILL_PATTERNS = {
     "orientation_repair": "prepare_orientation_repair_package.py",
     "visual_establishing": "prepare_visual_establishing_plan.py",
     "bilibili_malta": "bilibili-travel-style.md",
+    "footage_select": "prepare_footage_select_plan.py",
     "creator_cut": "prepare_creator_cut_plan.py",
     "transition_grammar": "prepare_transition_grammar_plan.py",
     "route_texture": "audit_route_texture_contract.py",
@@ -45,6 +46,7 @@ REQUIRED_SCRIPTS = [
     "prepare_visual_establishing_plan.py",
     "prepare_transition_bridge_plan.py",
     "prepare_effect_motion_plan.py",
+    "prepare_footage_select_plan.py",
     "prepare_edit_rhythm_plan.py",
     "prepare_creator_cut_plan.py",
     "prepare_transition_grammar_plan.py",
@@ -140,6 +142,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     visual_establishing = load_json(package_dir / "visual_establishing_plan" / "visual_establishing_plan.json") or {}
     transition = load_json(package_dir / "transition_bridge_plan" / "transition_bridge_plan.json") or {}
     effect = load_json(package_dir / "effect_motion_plan" / "effect_motion_plan.json") or {}
+    footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
     creator_cut = load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json") or {}
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
@@ -325,17 +328,19 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     )
 
     rhythm_summary = get_summary(rhythm)
+    footage_select_summary = get_summary(footage_select)
     creator_cut_summary = get_summary(creator_cut)
     transition_grammar_summary = get_summary(transition_grammar)
     route_summary = get_summary(route_texture)
     director_summary = get_summary(director_intent)
     add_check(
         checks,
-        "Bilibili/Malta style, creator cut, route texture, rhythm, and director polish gates pass",
+        "Bilibili/Malta style, raw footage selection, creator cut, route texture, rhythm, and director polish gates pass",
         passed_status(reference)
         and passed_status(route_texture)
         and director_intent.get("status") in {"passed", "passed_with_warnings"}
         and passed_status(director_polish)
+        and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
         and rhythm.get("status") == "ready_with_edit_rhythm_plan"
         and creator_cut.get("status") == "ready_with_creator_cut_plan"
         and transition_grammar.get("status") == "ready_with_transition_grammar_plan"
@@ -348,6 +353,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "directorIntentStatus": director_intent.get("status"),
             "directorIntentSummary": director_summary,
             "directorPolishStatus": director_polish.get("status"),
+            "footageSelectStatus": footage_select.get("status"),
+            "footageSelectSummary": footage_select_summary,
             "editRhythmStatus": rhythm.get("status"),
             "editRhythmSummary": rhythm_summary,
             "creatorCutStatus": creator_cut.get("status"),

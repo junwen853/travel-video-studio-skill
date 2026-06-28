@@ -69,6 +69,14 @@ A route-aware travel edit should alternate between:
 
 The edit should not jump directly from landmark to landmark for 20 minutes. It needs connective tissue.
 
+Before building the first package from a large unordered folder, run the raw-footage selection pass:
+
+```bash
+python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <project>
+```
+
+Read `references/footage-select-engine.md` before this step. The plan should identify hero, main story, texture bridge, utility, repair, and reject rows across the whole source pool. `build_delivery_package.py` uses this plan when present, so first assembly starts from the best local footage instead of filename order.
+
 Before trusting a Resolve blueprint as "not AI-made", run:
 
 ```bash
@@ -80,12 +88,13 @@ Use the plan to assign every primary visual shot a function and to surface long 
 When that plan reports long raw holds, immediately generate the non-destructive rhythm recut candidate:
 
 ```bash
+python3 <skill-dir>/scripts/prepare_footage_select_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_creator_cut_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_transition_grammar_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_rhythm_recut_blueprint.py --package-dir <package>
 ```
 
-Read `references/creator-cut-engine.md` and `references/transition-grammar-engine.md` before this step. The creator cut plan must run before the recut candidate. It should be stricter than the normal rhythm plan: demote weak clips, identify hero/main/texture/utility/reject tiers, and allow whip-pan or rotation match cuts only when real movement/route evidence supports them. The transition grammar plan then decides exact adjacent-pair transitions. The recut candidate should break long holds with existing local-footage cutaways, keep total duration stable, preserve BGM-only audio policy, and be preflighted with `audit_resolve_blueprint.py --blueprint <package>/rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json --package-dir <package>` before it replaces the active blueprint.
+Read `references/footage-select-engine.md`, `references/creator-cut-engine.md`, and `references/transition-grammar-engine.md` before this step. The package-level footage select fallback proves the selected timeline came from triaged source material. The creator cut plan must run before the recut candidate. It should be stricter than the normal rhythm plan: demote weak clips, identify hero/main/texture/utility/reject tiers, and allow whip-pan or rotation match cuts only when real movement/route evidence supports them. The transition grammar plan then decides exact adjacent-pair transitions. The recut candidate should break long holds with existing local-footage cutaways, keep total duration stable, preserve BGM-only audio policy, and be preflighted with `audit_resolve_blueprint.py --blueprint <package>/rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json --package-dir <package>` before it replaces the active blueprint.
 
 After candidate review, prefer a new package fork instead of in-place replacement:
 

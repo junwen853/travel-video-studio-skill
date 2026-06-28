@@ -4,7 +4,15 @@ Use this reference when the user wants the edit to get closer to the four `ÂèΩÂè
 
 ## Purpose
 
-The Skill already knows how to build a route-aware package. The Creator Cut Engine adds the missing editorial judgment layer: choose fewer and better shots, assign every kept shot a function, and make transitions feel like a traveled route instead of a raw clip stack.
+The Skill already knows how to build a route-aware package. The Creator Cut Engine adds the timeline-level editorial judgment layer: choose fewer and better selected shots, assign every kept shot a function, and make transitions feel like a traveled route instead of a raw clip stack.
+
+Run the raw-footage selection layer first when a project source folder is available:
+
+```bash
+python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <project>
+```
+
+The creator cut should refine the selected timeline, not compensate for a missing source-pool triage pass.
 
 ## Shot Tiers
 

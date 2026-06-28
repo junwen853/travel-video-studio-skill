@@ -60,6 +60,14 @@ Use repeated long-form patterns:
 
 Do not use short-video pacing as the default. Avoid constant speed ramps, over-dense captions, generic beat cuts, and endless beauty shots with no route function. Let selected clips breathe when they show walking, ordering food, entering stations, checking maps, changing weather, or people reacting.
 
+Before first assembly from unordered source media, generate `footage_select_plan/footage_select_plan.json` with:
+
+```bash
+python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <project>
+```
+
+This plan should exist before `build_delivery_package.py` when the user expects a strong first draft from a large folder. It scores every active source video, promotes hero/main/texture bridge candidates, rejects prior exports, flags portrait/square/unknown clips for repair, and exposes missing chapter movement/detail/payoff coverage. The first assembly should use this plan to sort local footage before stock, effects, or rhythm recut are considered.
+
 Generate `edit_rhythm_plan/edit_rhythm_plan.json` with:
 
 ```bash
@@ -126,6 +134,7 @@ The package is not long-form ready unless it has:
 - an explicit rejection of 1-2 minute short-video pacing
 - coverage ratio in `resolve_timeline_blueprint.json` is high enough to support the target duration
 - `resolve_timeline_blueprint.json.longFormCoverage` explains initial selected footage, opening/transition/ending fill, final covered seconds, and target seconds
+- `footage_select_plan/footage_select_plan.json` proves source media was scored and selected before first assembly
 - chapter time allocations
 - transition plan between chapters/days
 - feedback regression plan preserving known rejected timestamps before final render QA

@@ -92,9 +92,18 @@ Effects should clarify, not decorate.
 
 ## Creator Cut Selection
 
+Before the first package build, create a raw footage selection pool with:
+
+```bash
+python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <project>
+```
+
+Use `references/footage-select-engine.md` for the acceptance bar. The plan must score the whole source pool, identify hero/main/texture bridge candidates, reject prior exports, and flag portrait/square/unknown clips for repair. This is what prevents a large folder from becoming a filename-order montage.
+
 Before any rhythm recut or Resolve write, create `creator_cut_plan/creator_cut_plan.json` with:
 
 ```bash
+python3 <skill-dir>/scripts/prepare_footage_select_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_creator_cut_plan.py --package-dir <package>
 ```
 
@@ -142,6 +151,7 @@ Before saying a package has learned this reference style, verify:
 - The chapter plan includes person/context, movement, texture, payoff, and aftertaste roles.
 - Every day/place boundary has physical bridge footage or an explicit local-footage search row.
 - The edit rhythm plan targets about 3-second median rhythm with some longer breathing shots, not a flat sequence of long raw clips.
+- The footage select plan proves the source pool was scored before first assembly, with hero/main/texture candidates and repair/reject rows.
 - The creator cut plan rejects/demotes weak clips, assigns every kept clip a creator function, and allows whip/rotation transitions only when motion evidence supports them.
 - The transition grammar plan gives every adjacent pair a recommended transition and fallback, and marks missing bridge footage as `insert_bridge_first`.
 - Effect motion rows prefer fade/dissolve/match-cut/subtle motion and reject template-heavy effects.

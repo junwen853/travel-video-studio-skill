@@ -9,6 +9,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Scans local or external-drive footage without modifying source media.
 - Extracts and reviews representative frames so Codex can identify likely filming locations from visual evidence.
 - Reconstructs a trip route from unordered clips, folder names, dates, OCR/signage evidence, and optional cloud or local recognition passes.
+- Scores and tiers raw footage before first assembly, so large folders are cut from hero/main/texture bridge candidates instead of filename order.
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
 - Plans BGM, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, and visual bridge material.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
@@ -64,9 +65,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.5.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.5/travel-video-studio-skill-v0.1.5.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.5.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.6.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.6/travel-video-studio-skill-v0.1.6.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.6.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:

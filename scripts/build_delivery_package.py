@@ -110,6 +110,103 @@ def apply_source_exclusions(project_dir: Path, media_index: dict[str, Any] | Non
     return filtered, excluded
 
 
+def load_footage_select_plan(project_dir: Path) -> dict[str, Any]:
+    path = project_dir / "footage_select_plan" / "footage_select_plan.json"
+    if not path.exists():
+        return {}
+    data = load_json(path)
+    return data if isinstance(data, dict) else {}
+
+
+def footage_selection_lookup(plan: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rows = plan.get("selectionRows") if isinstance(plan.get("selectionRows"), list) else []
+    lookup: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        for key in ("sourcePath", "sourceName", "fileId"):
+            value = str(row.get(key) or "")
+            if value:
+                lookup[value] = row
+    return lookup
+
+
+def selection_row_for_media(media: dict[str, Any], lookup: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    path = str(media.get("path") or "")
+    name = str(media.get("name") or (Path(path).name if path else ""))
+    file_id = str(media.get("fileId") or "")
+    return lookup.get(path) or lookup.get(name) or lookup.get(file_id) or {}
+
+
+def apply_footage_selection_to_chapters(chapters: list[dict[str, Any]], plan: dict[str, Any]) -> dict[str, Any]:
+    if not plan:
+        return {"status": "not_available", "usedForSorting": False}
+    lookup = footage_selection_lookup(plan)
+    tier_rank = {
+        "hero_candidate": 0,
+        "main_story_candidate": 1,
+        "texture_bridge_candidate": 2,
+        "utility_context": 3,
+        "repair_before_use": 4,
+        "reject_or_review": 5,
+        "reject_excluded": 6,
+    }
+    sorted_chapters = 0
+    dropped_from_first_choice = 0
+    candidate_count = 0
+    for chapter in chapters:
+        media_rows = [row for row in chapter.get("media", []) if isinstance(row, dict)]
+        if not media_rows:
+            continue
+        annotated = [(media, selection_row_for_media(media, lookup)) for media in media_rows]
+        preferred = [
+            media
+            for media, select in annotated
+            if str(select.get("selectionTier") or "") not in {"reject_excluded", "reject_or_review", "repair_before_use"}
+        ]
+        if preferred:
+            dropped_from_first_choice += len(media_rows) - len(preferred)
+            media_rows = preferred
+        def key(media: dict[str, Any]) -> tuple[int, int, str]:
+            select = selection_row_for_media(media, lookup)
+            tier = str(select.get("selectionTier") or "utility_context")
+            score = int(select.get("selectionScore") or 0)
+            name = str(media.get("name") or media.get("path") or "")
+            return (tier_rank.get(tier, 9), -score, name)
+        media_rows = sorted(media_rows, key=key)
+        candidate_count += sum(
+            1
+            for media in media_rows
+            if selection_row_for_media(media, lookup).get("selectionTier")
+            in {"hero_candidate", "main_story_candidate", "texture_bridge_candidate"}
+        )
+        chapter["media"] = media_rows
+        chapter["footageSelection"] = {
+            "usedForSorting": True,
+            "sourceRows": len(annotated),
+            "firstChoiceRows": len(media_rows),
+            "droppedFromFirstChoice": len(annotated) - len(media_rows),
+            "topSelectionRows": [
+                {
+                    "sourceName": selection_row_for_media(media, lookup).get("sourceName") or media.get("name"),
+                    "selectionTier": selection_row_for_media(media, lookup).get("selectionTier"),
+                    "selectionScore": selection_row_for_media(media, lookup).get("selectionScore"),
+                }
+                for media in media_rows[:5]
+            ],
+        }
+        sorted_chapters += 1
+    return {
+        "status": "used_for_first_assembly_sort",
+        "usedForSorting": bool(sorted_chapters),
+        "planStatus": plan.get("status"),
+        "sortedChapterCount": sorted_chapters,
+        "candidateRowsUsed": candidate_count,
+        "droppedFromFirstChoice": dropped_from_first_choice,
+        "summary": plan.get("summary") if isinstance(plan.get("summary"), dict) else {},
+    }
+
+
 def route_chapters(route: dict[str, Any] | None, media_index: dict[str, Any] | None) -> list[dict[str, Any]]:
     id_to_media = {f.get("fileId"): f for f in media_files(media_index)}
     path_to_media = {f.get("path"): f for f in media_files(media_index)}
@@ -821,6 +918,8 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
     route_source, route, warnings = choose_route(paths)
     chapters = route_chapters(route, media_index if isinstance(media_index, dict) else None)
     enrich_chapter_media(chapters, media_index if isinstance(media_index, dict) else None)
+    footage_select_plan = load_footage_select_plan(project_dir)
+    footage_selection_summary = apply_footage_selection_to_chapters(chapters, footage_select_plan)
     target_seconds = args.target_duration_minutes * 60.0
     sections = allocate_chapter_durations(chapters, target_seconds)
 
@@ -841,6 +940,13 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
         args.fps,
         target_seconds,
     )
+    resolve_blueprint["footageSelection"] = {
+        "status": footage_selection_summary.get("status"),
+        "usedForSorting": footage_selection_summary.get("usedForSorting"),
+        "planStatus": footage_selection_summary.get("planStatus"),
+        "candidateRowsUsed": footage_selection_summary.get("candidateRowsUsed"),
+        "droppedFromFirstChoice": footage_selection_summary.get("droppedFromFirstChoice"),
+    }
     status = "draft"
     if warnings or any(ch["needsHumanReview"] for ch in chapters):
         status = "blocked" if args.strict else "draft"
@@ -866,6 +972,7 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
             "excludedVideoCount": len(excluded_media),
             "excludedVideos": [{"fileId": item.get("fileId"), "name": item.get("name"), "path": item.get("path")} for item in excluded_media],
         },
+        "footageSelection": footage_selection_summary,
         "target": {
             "durationMinutes": args.target_duration_minutes,
             "format": "long-form travel film, scalable to 20-40 minutes",
@@ -909,6 +1016,7 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
             "asset_search_plan.md",
             "asset_ledger/asset_license_ledger.json",
             "asset_sourcing/asset_sourcing_packet.json",
+            "footage_select_plan/footage_select_plan.json",
             "bgm_cues.md",
             "edit_decision_plan.md",
             "resolve_timeline_enrichment.json",
@@ -929,6 +1037,12 @@ def build_package(args: argparse.Namespace) -> dict[str, Any]:
         write_text(output_dir / "davinci_build_notes.md", davinci_notes())
         write_text(output_dir / "qa_checklist.md", qa_checklist())
         write_text(output_dir / "delivery_plan.json", json.dumps(delivery, ensure_ascii=False, indent=2) + "\n")
+        if footage_select_plan:
+            footage_dir = output_dir / "footage_select_plan"
+            write_text(footage_dir / "footage_select_plan.json", json.dumps(footage_select_plan, ensure_ascii=False, indent=2) + "\n")
+            source_md = project_dir / "footage_select_plan" / "footage_select_plan.md"
+            if source_md.exists():
+                write_text(footage_dir / "footage_select_plan.md", source_md.read_text(encoding="utf-8"))
         enrichment = build_enrichment(delivery, resolve_blueprint, output_dir)
         resolve_blueprint = apply_enrichment_to_blueprint(resolve_blueprint, enrichment)
         write_text(output_dir / "resolve_timeline_enrichment.json", json.dumps(enrichment, ensure_ascii=False, indent=2) + "\n")

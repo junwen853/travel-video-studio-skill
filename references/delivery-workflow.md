@@ -22,6 +22,7 @@ Expected files:
 - source project `route_review/<timestamp>/route_decision_sheet.json` / `.md`: editable approval sheet for route decisions and project/media region mismatch
 - source project `route_review/<timestamp>/route_decision_application.json` / `.md`: dry-run or approved application of route decisions back into `route_review.json`
 - source project `route_review/<timestamp>/confirmed_route_candidate.md`: approval-gated candidate or repair plan before confirmed-route writes
+- source or package `footage_select_plan/footage_select_plan.json` / `.md`: raw-footage scoring and highlight-selection plan used before first assembly
 - `long_form_structure.md`: 20-minute chapter and pacing structure
 - `voiceover_script.txt`: approved or draft narration
 - `narration_text_only_v4.txt`: required when the user rejects rendered voiceover audio
@@ -85,6 +86,7 @@ The package is not final until:
 - route decision sheet is reviewed and its decisions are copied into `route_review.json` before candidate generation
 - route decision application report proves the decision sheet is either blocked, ready to apply, or applied
 - confirmed-route candidate is apply-ready before overwriting `confirmed_route_timeline.json`
+- footage select plan exists before first assembly, proves active source videos were tiered, and blocks derived/portrait/weak footage from leading the cut
 - cloud/API stages have either completed or the user accepted dry-run limitations
 - voiceover audio exists or the chosen TTS command is tested
 - if the user says not to use voiceover, voiceover audio is removed from the timeline and the narration is exported as TXT only
@@ -99,6 +101,7 @@ The package is not final until:
 - DaVinci Resolve API has been checked
 - Resolve timeline enrichment exists and records subtitle cues, audio plan, stock/aerial placeholders, transitions, and markers
 - Resolve timeline blueprint dry-run passes
+- Resolve timeline blueprint records whether footage selection sorted first-assembly chapter media by tier/score
 - Resolve blueprint preflight is present and not blocked before any `--apply`
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves
 - title/place cards have been generated or explicitly deferred

@@ -44,6 +44,7 @@ REQUIRED_SCRIPTS = {
         "prepare_effect_motion_plan.py",
         "prepare_feedback_regression_plan.py",
         "prepare_audio_scene_policy_plan.py",
+        "prepare_footage_select_plan.py",
         "prepare_edit_rhythm_plan.py",
         "prepare_creator_cut_plan.py",
         "prepare_transition_grammar_plan.py",
@@ -83,6 +84,7 @@ REQUIRED_SKILL_PATTERNS = {
     "effect_motion_plan_rule": "prepare_effect_motion_plan.py",
     "feedback_regression_plan_rule": "prepare_feedback_regression_plan.py",
     "audio_scene_policy_plan_rule": "prepare_audio_scene_policy_plan.py",
+    "footage_select_plan_rule": "prepare_footage_select_plan.py",
     "edit_rhythm_plan_rule": "prepare_edit_rhythm_plan.py",
     "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
@@ -99,6 +101,7 @@ REQUIRED_SKILL_PATTERNS = {
     "v14_baseline_rule": "audit_v14_baseline_contract.py",
     "parallel_world_reference_rule": "parallel-world-vlog-style.md",
     "parallel_world_cover_rule": "high-recognition aerial/skyline/coast/landmark/route background",
+    "footage_select_engine_rule": "footage-select-engine.md",
     "creator_cut_engine_rule": "creator-cut-engine.md",
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
 }
@@ -107,6 +110,7 @@ REQUIRED_STYLE_PATTERNS = {
     "ysjf_anchor": "space.bilibili.com/946974",
     "parallel_world_anchor": "space.bilibili.com/405004967",
     "parallel_world_profile": "parallel-world-vlog-style.md",
+    "footage_select_engine": "footage-select-engine.md",
     "creator_cut_engine": "creator-cut-engine.md",
     "transition_grammar_engine": "transition-grammar-engine.md",
     "full_timeline_review": "full-film timeline strips",
@@ -120,6 +124,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "full_review_method": "full-film timeline strips every 10 seconds",
     "cover_title_formula": "Cover And Hero Title Style",
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
+    "raw_footage_selection": "footage select plan",
     "opening_route_promise": "viewer promise, destination proof",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
@@ -957,6 +962,151 @@ def audio_scene_policy_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def footage_select_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "footage_select_plan" / "footage_select_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("selectionRows") if isinstance(data.get("selectionRows"), list) else []
+    chapters = data.get("chapterRows") if isinstance(data.get("chapterRows"), list) else []
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    decision_fields = {
+        "approvedUse",
+        "approvedTier",
+        "targetDurationSeconds",
+        "trimStartSeconds",
+        "trimEndSeconds",
+        "chapterPlacement",
+        "useAsOpeningOrEnding",
+        "useAsBridgeBeforeAfter",
+        "orientationRepairRequired",
+        "captionFunction",
+        "bgmMoodCue",
+        "resolveImplementation",
+        "readbackEvidence",
+        "approvedBy",
+        "approvedAt",
+    }
+    rows_with_decision_fields = 0
+    rows_with_score = 0
+    rows_with_use = 0
+    tier_counts: dict[str, int] = {}
+    function_counts: dict[str, int] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        tier = str(row.get("selectionTier") or "")
+        tier_counts[tier] = tier_counts.get(tier, 0) + 1
+        function = str(row.get("creatorFunction") or "")
+        function_counts[function] = function_counts.get(function, 0) + 1
+        if isinstance(row.get("selectionScore"), int):
+            rows_with_score += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+        recommended = row.get("recommendedUse") if isinstance(row.get("recommendedUse"), dict) else {}
+        if recommended.get("use") and recommended.get("targetDurationRangeSeconds"):
+            rows_with_use += 1
+    chapter_decision_fields = {
+        "approvedChapterPool",
+        "heroRows",
+        "mainRows",
+        "bridgeRows",
+        "rejectRows",
+        "repairRows",
+        "resolveImplementation",
+        "readbackEvidence",
+        "approvedBy",
+        "approvedAt",
+    }
+    chapters_with_decision_fields = 0
+    chapters_with_pool = 0
+    for chapter in chapters:
+        if not isinstance(chapter, dict):
+            continue
+        decision = chapter.get("decision") if isinstance(chapter.get("decision"), dict) else {}
+        if chapter_decision_fields.issubset(set(decision)):
+            chapters_with_decision_fields += 1
+        if int(chapter.get("sourceVideoCount") or 0) >= 1:
+            chapters_with_pool += 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "inputSource": summary.get("inputSource"),
+        "sourceVideoCount": summary.get("sourceVideoCount"),
+        "candidateVideoCount": summary.get("candidateVideoCount"),
+        "heroCandidateCount": summary.get("heroCandidateCount"),
+        "mainStoryCandidateCount": summary.get("mainStoryCandidateCount"),
+        "textureBridgeCandidateCount": summary.get("textureBridgeCandidateCount"),
+        "utilityContextCount": summary.get("utilityContextCount"),
+        "repairOrRejectCount": summary.get("repairOrRejectCount"),
+        "orientationRepairCandidateCount": summary.get("orientationRepairCandidateCount"),
+        "derivedOrExcludedRejectCount": summary.get("derivedOrExcludedRejectCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "chaptersNeedingCoverage": summary.get("chaptersNeedingCoverage"),
+        "tierCounts": summary.get("tierCounts") or tier_counts,
+        "functionCounts": summary.get("functionCounts") or function_counts,
+        "rowCount": len(rows),
+        "chapterRows": len(chapters),
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithScore": rows_with_score,
+        "rowsWithRecommendedUse": rows_with_use,
+        "chaptersWithDecisionFields": chapters_with_decision_fields,
+        "chaptersWithPool": chapters_with_pool,
+        "rawFootageSelectionBeforeAssembly": policy.get("rawFootageSelectionBeforeAssembly"),
+        "selectiveShotChoiceRequired": policy.get("selectiveShotChoiceRequired"),
+        "derivedExportsRejected": policy.get("derivedExportsRejected"),
+        "orientationRepairBeforeUse": policy.get("orientationRepairBeforeUse"),
+        "localFootageFirstForBridges": policy.get("localFootageFirstForBridges"),
+        "chapterVarietyRequiredBeforeEffects": policy.get("chapterVarietyRequiredBeforeEffects"),
+        "doesNotModifySourceFootage": policy.get("doesNotModifySourceFootage"),
+        "downloadsExternalAssets": policy.get("downloadsExternalAssets"),
+        "writesResolve": policy.get("writesResolve"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def footage_select_plan_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("sourceVideoCount") or 0)
+    chapter_count = int(evidence.get("chapterRowCount") or 0)
+    tier_counts = evidence.get("tierCounts") if isinstance(evidence.get("tierCounts"), dict) else {}
+    function_counts = evidence.get("functionCounts") if isinstance(evidence.get("functionCounts"), dict) else {}
+    tier_category_count = len([name for name, count in tier_counts.items() if int(count or 0) > 0])
+    function_category_count = len([name for name, count in function_counts.items() if int(count or 0) > 0])
+    return (
+        evidence.get("exists")
+        and evidence.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
+        and row_count >= 10
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithScore") or 0) == row_count
+        and int(evidence.get("rowsWithRecommendedUse") or 0) == row_count
+        and int(evidence.get("candidateVideoCount") or 0) >= 3
+        and int(evidence.get("textureBridgeCandidateCount") or 0) >= 1
+        and chapter_count >= 1
+        and int(evidence.get("chapterRows") or 0) == chapter_count
+        and int(evidence.get("chaptersWithDecisionFields") or 0) == chapter_count
+        and int(evidence.get("chaptersWithPool") or 0) == chapter_count
+        and tier_category_count >= 3
+        and function_category_count >= 3
+        and evidence.get("rawFootageSelectionBeforeAssembly") is True
+        and evidence.get("selectiveShotChoiceRequired") is True
+        and evidence.get("derivedExportsRejected") is True
+        and evidence.get("orientationRepairBeforeUse") is True
+        and evidence.get("localFootageFirstForBridges") is True
+        and evidence.get("chapterVarietyRequiredBeforeEffects") is True
+        and evidence.get("doesNotModifySourceFootage") is True
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("writesResolve") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def edit_rhythm_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json"
     data = load_json(path) or {}
@@ -1706,6 +1856,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Audio scene policy plan proactively turns scenic/title voice-leak and missing-BGM feedback into A3 BGM-only rows",
         audio_scene_policy_plan_ready(audio_policy_evidence),
         audio_policy_evidence,
+    )
+    footage_select_evidence = footage_select_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Footage select plan turns the raw source pool into hero, main, texture, repair, and reject decisions before first assembly",
+        footage_select_plan_ready(footage_select_evidence),
+        footage_select_evidence,
     )
     rhythm_plan_evidence = edit_rhythm_plan_evidence(package_dir)
     add_check(
