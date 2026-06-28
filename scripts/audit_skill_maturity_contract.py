@@ -52,6 +52,7 @@ REQUIRED_SCRIPTS = {
         "prepare_creator_cut_plan.py",
         "prepare_transition_grammar_plan.py",
         "prepare_transition_execution_plan.py",
+        "prepare_transition_motif_plan.py",
         "prepare_reference_style_repair_plan.py",
         "prepare_rhythm_recut_blueprint.py",
         "prepare_rhythm_recut_apply_package.py",
@@ -98,6 +99,7 @@ REQUIRED_SKILL_PATTERNS = {
     "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
     "transition_execution_plan_rule": "prepare_transition_execution_plan.py",
+    "transition_motif_plan_rule": "prepare_transition_motif_plan.py",
     "reference_style_repair_plan_rule": "prepare_reference_style_repair_plan.py",
     "rhythm_recut_blueprint_rule": "prepare_rhythm_recut_blueprint.py",
     "rhythm_recut_apply_package_rule": "prepare_rhythm_recut_apply_package.py",
@@ -117,6 +119,7 @@ REQUIRED_SKILL_PATTERNS = {
     "creator_cut_engine_rule": "creator-cut-engine.md",
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
     "transition_execution_engine_rule": "transition-execution-engine.md",
+    "transition_motif_engine_rule": "transition-motif-engine.md",
     "reference_style_repair_engine_rule": "reference-style-repair-engine.md",
 }
 
@@ -130,6 +133,7 @@ REQUIRED_STYLE_PATTERNS = {
     "chapter_arc_engine": "chapter-arc-engine.md",
     "transition_grammar_engine": "transition-grammar-engine.md",
     "transition_execution_engine": "transition-execution-engine.md",
+    "transition_motif_engine": "transition-motif-engine.md",
     "reference_style_repair_engine": "reference-style-repair-engine.md",
     "opening_story_engine": "opening-story-engine.md",
     "full_timeline_review": "full-film timeline strips",
@@ -149,6 +153,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "chapter_arc_plan": "chapter_arc_plan/chapter_arc_plan.json",
     "opening_route_promise": "viewer promise, destination proof",
     "transition_execution_plan": "transition execution plan",
+    "transition_motif_plan": "transition motif plan",
     "reference_style_repair_plan": "reference style repair plan",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
@@ -1973,6 +1978,140 @@ def transition_execution_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_motif_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_motif_plan" / "transition_motif_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("motifRows") if isinstance(data.get("motifRows"), list) else []
+    repairs = data.get("repairRows") if isinstance(data.get("repairRows"), list) else []
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    decision_fields = {
+        "approvedMotif",
+        "approvedResolveExecutionRow",
+        "selectedBridgeOrMatchEvidence",
+        "bgmPhraseCue",
+        "captionTitleZoneEvidence",
+        "styleVariationDecision",
+        "appliedInResolve",
+        "timelineReadbackEvidence",
+        "frameSampleEvidence",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    repair_decision_fields = {
+        "acceptedRepair",
+        "repairAppliedAt",
+        "postRepairArtifact",
+        "postRepairAudit",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    rows_with_decision_fields = 0
+    rows_with_motif = 0
+    rows_with_bgm = 0
+    title_rows_safe = 0
+    repair_rows_with_owner = 0
+    repair_rows_with_decisions = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if row.get("motif"):
+            rows_with_motif += 1
+        if row.get("bgmPhraseCue"):
+            rows_with_bgm += 1
+        if row.get("boundaryCategory") != "title_boundary" or "title" in str(row.get("titleZonePolicy") or ""):
+            title_rows_safe += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+    for row in repairs:
+        if not isinstance(row, dict):
+            continue
+        if row.get("ownerScript") and row.get("requiredArtifact") and row.get("acceptanceEvidence"):
+            repair_rows_with_owner += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if repair_decision_fields.issubset(set(decision)):
+            repair_rows_with_decisions += 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "rowsReadyWithMotif": summary.get("rowsReadyWithMotif"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "rowsWithBgmPhraseCue": summary.get("rowsWithBgmPhraseCue"),
+        "titleBoundaryRowsSafe": summary.get("titleBoundaryRowsSafe"),
+        "rowsWithBridgeEvidence": summary.get("rowsWithBridgeEvidence"),
+        "repeatedStyleRunMax": summary.get("repeatedStyleRunMax"),
+        "repeatedStyleRunCount": summary.get("repeatedStyleRunCount"),
+        "dominantMotif": summary.get("dominantMotif"),
+        "dominantMotifShare": summary.get("dominantMotifShare"),
+        "blockedMotifRowCount": summary.get("blockedMotifRowCount"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "rowCount": len(rows),
+        "repairRows": len(repairs),
+        "rowsWithMotifByRow": rows_with_motif,
+        "rowsWithBgmByRow": rows_with_bgm,
+        "titleRowsSafeByRow": title_rows_safe,
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "repairRowsWithOwner": repair_rows_with_owner,
+        "repairRowsWithDecisionFields": repair_rows_with_decisions,
+        "filmLevelTransitionMotifsRequired": policy.get("filmLevelTransitionMotifsRequired"),
+        "avoidSingleStyleDefaultChain": policy.get("avoidSingleStyleDefaultChain"),
+        "physicalBridgeBeforeMotionEffect": policy.get("physicalBridgeBeforeMotionEffect"),
+        "motionMotifsNeedEvidence": policy.get("motionMotifsNeedEvidence"),
+        "bgmPhraseCueRequired": policy.get("bgmPhraseCueRequired"),
+        "titleZoneSafetyRequired": policy.get("titleZoneSafetyRequired"),
+        "templateTransitionsRejected": policy.get("templateTransitionsRejected"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def transition_motif_plan_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("transitionRowCount") or 0)
+    repair_count = int(evidence.get("repairRowCount") or 0)
+    required_repair_rows = int(evidence.get("blockedMotifRowCount") or 0) + int(evidence.get("repeatedStyleRunCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_transition_motif_plan"
+        and row_count >= 3
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithMotifByRow") or 0) == row_count
+        and int(evidence.get("rowsWithBgmPhraseCue") or 0) == row_count
+        and int(evidence.get("rowsWithBgmByRow") or 0) == row_count
+        and int(evidence.get("titleBoundaryRowsSafe") or 0) == row_count
+        and int(evidence.get("titleRowsSafeByRow") or 0) == row_count
+        and repair_count >= required_repair_rows
+        and int(evidence.get("repairRows") or 0) == repair_count
+        and int(evidence.get("repairRowsWithOwner") or 0) == repair_count
+        and int(evidence.get("repairRowsWithDecisionFields") or 0) == repair_count
+        and evidence.get("filmLevelTransitionMotifsRequired") is True
+        and evidence.get("avoidSingleStyleDefaultChain") is True
+        and evidence.get("physicalBridgeBeforeMotionEffect") is True
+        and evidence.get("motionMotifsNeedEvidence") is True
+        and evidence.get("bgmPhraseCueRequired") is True
+        and evidence.get("titleZoneSafetyRequired") is True
+        and evidence.get("templateTransitionsRejected") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
 def reference_style_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json"
     data = load_json(path) or {}
@@ -2483,6 +2622,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition execution plan turns adjacent-pair transition choices into Resolve-ready recipes with bridge, BGM, subtitle, and readback fields",
         transition_execution_plan_ready(transition_execution_evidence),
         transition_execution_evidence,
+    )
+    transition_motif_evidence = transition_motif_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition motif plan prevents repeated dissolve chains, random motion effects, and effects hiding weak route jumps",
+        transition_motif_plan_ready(transition_motif_evidence),
+        transition_motif_evidence,
     )
     reference_repair_evidence = reference_style_repair_plan_evidence(package_dir)
     add_check(

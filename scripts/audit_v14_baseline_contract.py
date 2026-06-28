@@ -27,6 +27,7 @@ SKILL_PATTERNS = {
     "creator_cut": "prepare_creator_cut_plan.py",
     "transition_grammar": "prepare_transition_grammar_plan.py",
     "transition_execution": "prepare_transition_execution_plan.py",
+    "transition_motif": "prepare_transition_motif_plan.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "route_texture": "audit_route_texture_contract.py",
     "final_qa": "run_final_qa_suite.py",
@@ -59,6 +60,7 @@ REQUIRED_SCRIPTS = [
     "prepare_creator_cut_plan.py",
     "prepare_transition_grammar_plan.py",
     "prepare_transition_execution_plan.py",
+    "prepare_transition_motif_plan.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_style_alignment.py",
     "audit_route_texture_contract.py",
@@ -160,6 +162,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     creator_cut = load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json") or {}
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
     transition_execution = load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json") or {}
+    transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
     route_texture = load_json(package_dir / "route_texture_contract_audit.json") or {}
@@ -378,6 +381,23 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         },
     )
 
+    transition_motif_summary = get_summary(transition_motif)
+    transition_motif_rows = int(transition_motif_summary.get("transitionRowCount") or 0)
+    add_check(
+        checks,
+        "Transition motif plan prevents repeated/template transition chains before Resolve apply",
+        transition_motif.get("status") == "ready_with_transition_motif_plan"
+        and transition_motif_rows >= 3
+        and int(transition_motif_summary.get("rowsWithDecisionFields") or 0) == transition_motif_rows
+        and int(transition_motif_summary.get("rowsWithBgmPhraseCue") or 0) == transition_motif_rows
+        and int(transition_motif_summary.get("titleBoundaryRowsSafe") or 0) == transition_motif_rows
+        and int(transition_motif_summary.get("repairRowCount") or 0) >= int(transition_motif_summary.get("blockedMotifRowCount") or 0),
+        {
+            "transitionMotifStatus": transition_motif.get("status"),
+            "transitionMotifSummary": transition_motif_summary,
+        },
+    )
+
     rhythm_summary = get_summary(rhythm)
     footage_select_summary = get_summary(footage_select)
     chapter_arc_summary = get_summary(chapter_arc)
@@ -402,6 +422,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and creator_cut.get("status") == "ready_with_creator_cut_plan"
         and transition_grammar.get("status") == "ready_with_transition_grammar_plan"
         and transition_execution.get("status") == "ready_with_transition_execution_plan"
+        and transition_motif.get("status") == "ready_with_transition_motif_plan"
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
         and int(route_summary.get("matchedTransitions") or 0) >= 1
@@ -427,6 +448,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionGrammarSummary": transition_grammar_summary,
             "transitionExecutionStatus": transition_execution.get("status"),
             "transitionExecutionSummary": transition_execution_summary,
+            "transitionMotifStatus": transition_motif.get("status"),
+            "transitionMotifSummary": transition_motif_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
         },

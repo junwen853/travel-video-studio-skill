@@ -35,6 +35,7 @@ Expected files:
 - `resolve_timeline_enrichment.json`: subtitle cues, voiceover/BGM mix plan, stock/aerial placeholders, transition cues, and Resolve timeline markers
 - `resolve_timeline_blueprint.json`: input for DaVinci Resolve API timeline creation
 - `transition_execution_plan/transition_execution_plan.json` / `.md`: Resolve-ready transition recipes for adjacent-pair cuts, dissolves, whip/rotation/speed ramps, bridge inserts, BGM cues, and readback evidence
+- `transition_motif_plan/transition_motif_plan.json` / `.md`: film-level transition motif audit for repeated dissolves, random motion effects, BGM phrase cues, title-zone safety, and owner-script repairs
 - `reference_style_repair_plan/reference_style_repair_plan.json` / `.md`: exact repair rows for blocked reference-style, director-intent, director-polish, or final-QA gaps
 - `resolve_blueprint_preflight.json` / `.md`: no-write Resolve blueprint safety audit covering source files, source ranges, track overlaps, V1 gaps, title cards, subtitles, markers, and source audio
 - `resolve_apply_contract.json` / `.md`: approval contract before any actual DaVinci timeline write
@@ -111,6 +112,7 @@ The package is not final until:
 - Resolve timeline blueprint dry-run passes
 - Resolve timeline blueprint records whether footage selection sorted first-assembly chapter media by tier/score
 - transition execution plan exists before Resolve apply when transition grammar exists; bridge-missing rows must remain blocked until real bridge footage is inserted
+- transition motif plan exists after transition execution and before Resolve apply, proving repeated/template transitions, missing BGM cues, title-zone risk, and unmotivated motion effects are repaired or explicitly assigned
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
 - Resolve blueprint preflight is present and not blocked before any `--apply`
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves

@@ -15,7 +15,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
 - Learns from multiple local reference videos as an aggregate, non-copying batch profile.
 - Plans BGM, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, and visual bridge material.
-- Converts transition decisions into Resolve-ready execution recipes with effect names, duration frames, bridge requirements, BGM cues, subtitle policy, and readback evidence fields.
+- Converts transition decisions into Resolve-ready recipes and audits the whole transition motif chain for repeated dissolves, random motion effects, BGM phrase cues, title-zone safety, and bridge repair owners.
 - Converts blocked reference/director/QA style gaps into concrete repair rows with owner scripts, required artifacts, and acceptance evidence.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
 - Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, route texture, export quality, and V14 baseline maturity.
@@ -70,9 +70,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.11.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.11/travel-video-studio-skill-v0.1.11.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.11.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.12.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.12/travel-video-studio-skill-v0.1.12.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.12.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -149,6 +149,7 @@ A delivery package usually contains:
 - `bgm_sourcing/bgm_sourcing_brief.md`
 - `transition_bridge_plan/transition_bridge_plan.md`
 - `transition_execution_plan/transition_execution_plan.md`
+- `transition_motif_plan/transition_motif_plan.md`
 - `reference_style_repair_plan/reference_style_repair_plan.md`
 - `title_typography_plan/title_typography_plan.md`
 - `visual_establishing_plan/visual_establishing_plan.md`

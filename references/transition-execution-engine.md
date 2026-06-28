@@ -19,14 +19,17 @@ Run this after `prepare_transition_grammar_plan.py` and before rhythm recut, Res
 
 ```bash
 python3 <skill-dir>/scripts/prepare_transition_execution_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/prepare_transition_motif_plan.py --package-dir <package>
 ```
 
 The script writes:
 
 - `transition_execution_plan/transition_execution_plan.json`
 - `transition_execution_plan/transition_execution_plan.md`
+- `transition_motif_plan/transition_motif_plan.json`
+- `transition_motif_plan/transition_motif_plan.md`
 
-It does not write Resolve, queue renders, download assets, or modify source footage.
+These scripts do not write Resolve, queue renders, download assets, or modify source footage.
 
 ## Execution Rules
 
@@ -73,3 +76,4 @@ Before Resolve apply:
 - title-boundary rows suppress or trim subtitles in the title zone
 - scenic/title/transition rows stay BGM-only
 - approved recipes are copied into the Resolve blueprint or apply contract only after title, BGM, and bridge safety pass
+- the transition motif plan proves the whole chain is not just repeated dissolves, random motion effects, or effects hiding weak route jumps
