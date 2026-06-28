@@ -81,6 +81,8 @@ python3 <skill-dir>/scripts/analyze_reference_video.py --reference /path/to/refe
 
 The local reference analysis must be a reusable style profile, not only a contact sheet. It should record duration, frame rate, bitrate, scene-cut pacing, average/median shot length, audio loudness/silence, sampled frame paths with timecodes, and the non-copying usage contract. Use it to calibrate shot rhythm, route texture, BGM/no-voiceover support, subtitle density, and breathing room before judging an edit as Bilibili/reference-like.
 
+When the user provides multiple downloaded creator-reference videos, especially `叽叽歪歪的平行世界`, do not learn from a few random frames only. Review full-film timeline strips, opening strips, ending strips, scene-cut pacing, audio continuity, transition context, and any provided cover/title screenshots before writing Skill rules. Then read `references/parallel-world-vlog-style.md` and apply its non-copying cover/title, opening, chapter-rhythm, transition, effect, audio, caption, and ending rules.
+
 Use `scripts/generate_title_cards.py` after `delivery_plan.json` exists to create cinematic title/place card MP4 assets and inject them into the Resolve blueprint.
 
 Use `scripts/make_city_aerial_title.py` for the opening and major city chapter hooks. It composites clean English city typography such as `TOKYO`, `OSAKA`, `PARIS`, or `LOS ANGELES` onto licensed aerial/establishing footage. Do not use a black title slate as the opening hook for a client delivery.
@@ -179,7 +181,9 @@ Use `scripts/audit_v14_baseline_contract.py` as the reusable "first draft should
 
 ## Style QA Upgrade
 
-Read `references/bilibili-travel-style.md` before any long-form travel structure, title, narration, BGM, transition, or final QA work. Treat the listed creators and the local Malta film as non-copying style references: extract pacing, route rhythm, transition craft, title restraint, BGM energy, and subtitle density, but never copy their exact titles, music, narration, or footage.
+Read `references/bilibili-travel-style.md` before any long-form travel structure, title, narration, BGM, transition, or final QA work. Treat the listed creators and the local Malta film as non-copying style references: extract pacing, route rhythm, transition craft, title restraint, BGM energy, and subtitle density, but never copy their exact titles, music, narration, or footage. Read `references/parallel-world-vlog-style.md` when the user references `叽叽歪歪的平行世界`, provides downloaded videos from that creator, asks how the cover/thumbnail is made, or wants a first draft closer to that Bilibili long-form travel style.
+
+For cover, thumbnail, and hero title design, follow the Parallel World cover formula: high-recognition aerial/skyline/coast/landmark/route background; oversized 1-5 word Chinese destination title; smaller English/place subtitle beneath; yellow/orange/white high-contrast typography; no route/date clutter, stacked city names, internal labels, project slugs, or subtitles over the hero title.
 
 Resolve is the default finishing surface when DaVinci Resolve is installed and reachable. Do not stop at an FFmpeg-only assembly when the user asks for DaVinci, a finished film, or a reusable Skill. Build or revise a real Resolve project/timeline through the official API, read it back with `audit_resolve_timeline.py`, and render from Resolve unless Resolve is unavailable or the user explicitly chooses a non-Resolve route.
 
@@ -216,6 +220,8 @@ Run `scripts/audit_bgm_audio_contract.py` before trusting a BGM/no-voiceover cla
 Run `scripts/prepare_audio_scene_policy_plan.py` before any Resolve apply when the user has complained about missing BGM, scenic voice leakage, or unwanted voiceover. It must enumerate opening/title/transition/establishing/effect/feedback windows, prove ready A3 BGM coverage, require A1/A2 mute or absence, and preserve exact user complaint times such as `reported_voice_at_7_04=7:04` as regression probes.
 
 Run `scripts/prepare_edit_rhythm_plan.py` before any Resolve apply when the user says the edit feels AI-made, badly cut, too flat, or unlike the Malta/Bilibili reference. It must enumerate primary visual shots and chapter rhythm rows, compare pacing to the reference profile, identify long raw holds and missing cutaways, and turn them into trim/split/insert decisions instead of relying only on post-render style audits.
+
+When applying the Parallel World reference, the first 3 minutes must contain a viewer promise, destination proof, and practical route/arrival footage; long person/context sections must be supported by B-roll or visual evidence; the ending must include route aftertaste rather than stopping on a leftover clip.
 
 Run `scripts/prepare_rhythm_recut_blueprint.py` immediately after that plan when long-shot risks exist. The output must be a separate candidate blueprint that uses existing local footage as motivated cutaways, keeps total duration stable, and can be preflighted before any active Resolve blueprint is replaced.
 
@@ -336,6 +342,7 @@ If any required item is missing, report the missing item and the next action ins
 4. Read `references/davinci-resolve-api.md` before touching Resolve.
 5. Read `references/long-form-travel-style.md` before drafting structure or narration.
 5a. Read `references/bilibili-travel-style.md` before cutting style, titles, BGM, transitions, or final QA when the user asks for Bilibili/travel-vlog polish or provides a local reference film.
+5b. Read `references/parallel-world-vlog-style.md` when the user provides `叽叽歪歪的平行世界` videos/screenshots, asks how their cover/title is made, or wants the Skill to learn that creator's opening, transition, cover, and ending style.
 6. Read `references/narration-subtitles.md` before writing narration, TTS, or subtitles.
 7. Read `references/music-stock-fonts.md` before searching for BGM, aerials, stock inserts, or fonts.
 8. Read `references/output-contracts.md` when interpreting route/location JSON artifacts.

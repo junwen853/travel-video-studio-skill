@@ -324,6 +324,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "openingRowCount": len(opening_rows),
             "chapterRowCount": len(chapter_rows),
             "endingRowCount": len(ending_rows),
+            "thumbnailCoverPolicy": "parallel_world_establishing_background_plus_oversized_destination_title",
             "fontVerified": font["manifestFontExists"] and font["verifiedFontItemCount"] >= 1,
             "titleZoneMode": title_zone["mode"],
             "titleZoneCount": title_zone["zoneCount"],
@@ -333,6 +334,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
         },
         "policy": {
             "openingTitlePolicy": "single clean city/place title only; no secondary city, route/date label, subtitle, or stacked/ghosted text behind the hero title",
+            "thumbnailCoverPolicy": "use one high-recognition aerial/skyline/coast/landmark/route background, oversized 1-5 word Chinese destination title, smaller English/place subtitle, yellow/orange/white high-contrast typography, and no internal labels or route/date clutter",
             "chapterTitlePolicy": "short readable place/day label on scenic video; route arrows allowed only for a movement chapter, never for the opening hero title",
             "endingTitlePolicy": "short closing place/region title with aftertaste; no project slug or internal route label",
             "fontPolicy": "use verified system-font-render-only or licensed font evidence; do not redistribute commercial font files",
@@ -345,6 +347,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
         "titleRows": rows,
         "selectionRubric": {
             "pass": [
+                "Cover/hero title candidate uses a high-recognition establishing background, oversized destination title, and smaller English/place subtitle.",
                 "Opening has exactly one clean title value and no subtitle or route/date text behind it.",
                 "Every opening/chapter/ending title row uses a real video segment, not a black slate or image card.",
                 "Font evidence is verified as render-only system font or licensed selected font.",
@@ -352,6 +355,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
                 "Title bridge contract passes with zero stacked text layers and zero subtitle overlays.",
             ],
             "reject": [
+                "Cover/hero title uses a low-recognition closeup, timid small text, long sentence, AI-looking gradient, or cluttered handheld frame.",
                 "Opening title includes a route label such as TOKYO / OSAKA, date, project slug, or secondary city.",
                 "A title row has missing media, black title_cards media, PNG/JPG slate, or unverified stock background.",
                 "A subtitle overlay or extra text clip overlaps the hero/chapter title window.",

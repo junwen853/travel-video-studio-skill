@@ -15,6 +15,7 @@ This file converts user-requested reference creators and an optional local refer
 - Pixabay Music is an alternate traceable BGM source when Mixkit does not fit the mood: https://pixabay.com/music/
 - Optional local reference film: analyze any user-supplied long-form travel reference with `scripts/analyze_reference_video.py`.
 - User-specified creator reference: `叽叽歪歪的平行世界`
+- Local four-video creator learning profile: read `references/parallel-world-vlog-style.md` when the user provides downloaded videos or cover/title screenshots from `叽叽歪歪的平行世界`.
 
 The Bilibili pages may be dynamic or partially inaccessible in headless browsing. Treat them as style references to study visually when available, not as sources to copy.
 
@@ -53,6 +54,8 @@ The opening must make the city/place immediately legible and premium.
 - Do not put route copy, dates, subtitles, or small labels behind the city title.
 - Avoid black slates and generic `JAPAN 2025` cards for final delivery.
 - Let the opening breathe with BGM only unless the user explicitly approves spoken narration there.
+
+For `叽叽歪歪的平行世界`-style references, use the stricter opening/cover pattern in `parallel-world-vlog-style.md`: viewer promise, destination proof, practical route/arrival footage, and a cover/hero title built from a high-recognition establishing image with a huge destination title plus small English/place subtitle.
 
 ## Route Rhythm
 
@@ -158,8 +161,11 @@ For any user-supplied long-form local reference film, analyze:
 - how transport/streets/food/interiors connect destinations
 - subtitle density and tone
 - how long scenic shots are allowed to breathe
+- cover/title card construction when screenshots or title frames are provided: background recognizability, title scale, Chinese/English hierarchy, color contrast, platform safe zones, and absence of internal labels
 
 Use those observations as pacing targets, not as assets to copy.
+
+When the user asks to learn from the four downloaded `叽叽歪歪的平行世界` videos, do not stop at random frame sampling. Review full-film timeline strips, opening strips, ending strips, transition context, and cover screenshots, then apply `parallel-world-vlog-style.md` as the reusable non-copying standard.
 
 Observed reusable traits from the V14 training reference pass:
 

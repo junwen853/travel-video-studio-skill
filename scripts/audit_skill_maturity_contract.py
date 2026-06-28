@@ -93,14 +93,28 @@ REQUIRED_SKILL_PATTERNS = {
     "forward_test_rule": "forward-test",
     "blocked_recovery_rule": "blocked-project recovery",
     "v14_baseline_rule": "audit_v14_baseline_contract.py",
+    "parallel_world_reference_rule": "parallel-world-vlog-style.md",
+    "parallel_world_cover_rule": "high-recognition aerial/skyline/coast/landmark/route background",
 }
 
 REQUIRED_STYLE_PATTERNS = {
     "ysjf_anchor": "space.bilibili.com/946974",
     "parallel_world_anchor": "space.bilibili.com/405004967",
+    "parallel_world_profile": "parallel-world-vlog-style.md",
+    "full_timeline_review": "full-film timeline strips",
+    "cover_title_review": "cover/title card construction",
     "local_reference_profile": "local reference film",
     "mixkit_music": "mixkit.co/free-stock-music",
     "non_copying": "not as assets to copy",
+}
+
+REQUIRED_PARALLEL_WORLD_PATTERNS = {
+    "full_review_method": "full-film timeline strips every 10 seconds",
+    "cover_title_formula": "Cover And Hero Title Style",
+    "oversized_destination_title": "oversized 1-5 word Chinese destination title",
+    "opening_route_promise": "viewer promise, destination proof",
+    "talking_segment_broll": "Long talking segments should be supported by the place",
+    "ending_aftertaste": "End with aftertaste after the main experience",
 }
 
 
@@ -1352,6 +1366,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Bilibili/Malta style references are source-anchored and non-copying",
         all(style_patterns.values()),
         {"reference": str(skill_dir / "references" / "bilibili-travel-style.md"), "patterns": style_patterns},
+    )
+    parallel_patterns, _ = text_contains(skill_dir / "references" / "parallel-world-vlog-style.md", REQUIRED_PARALLEL_WORLD_PATTERNS)
+    add_check(
+        checks,
+        "Parallel World full-review, cover, opening, transition, and ending lessons are reusable",
+        all(parallel_patterns.values()),
+        {"reference": str(skill_dir / "references" / "parallel-world-vlog-style.md"), "patterns": parallel_patterns},
     )
     reference_evidence = reference_profile_evidence(find_reference_analysis(package_dir))
     add_check(
