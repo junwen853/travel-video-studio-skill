@@ -33,6 +33,7 @@ SKILL_PATTERNS = {
     "transition_motif": "prepare_transition_motif_plan.py",
     "bridge_sequence": "prepare_bridge_sequence_plan.py",
     "bridge_sequence_blueprint": "prepare_bridge_sequence_blueprint.py",
+    "rhythm_recut_blueprint": "prepare_rhythm_recut_blueprint.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "route_texture": "audit_route_texture_contract.py",
     "final_qa": "run_final_qa_suite.py",
@@ -71,6 +72,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_motif_plan.py",
     "prepare_bridge_sequence_plan.py",
     "prepare_bridge_sequence_blueprint.py",
+    "prepare_rhythm_recut_blueprint.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_style_alignment.py",
     "audit_route_texture_contract.py",
@@ -178,6 +180,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
     bridge_sequence_blueprint = load_json(package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json") or {}
+    rhythm_recut_blueprint = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
     route_texture = load_json(package_dir / "route_texture_contract_audit.json") or {}
@@ -589,6 +592,50 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionCueCount": bgm_phrase_transition_cues,
         },
     )
+    rhythm_recut_blueprint_summary = get_summary(rhythm_recut_blueprint)
+    rhythm_recut_outputs = rhythm_recut_blueprint.get("outputs") if isinstance(rhythm_recut_blueprint.get("outputs"), dict) else {}
+    rhythm_recut_inputs = rhythm_recut_blueprint.get("inputs") if isinstance(rhythm_recut_blueprint.get("inputs"), dict) else {}
+    rhythm_recut_candidate_path = Path(str(rhythm_recut_outputs.get("candidateBlueprint") or package_dir / "rhythm_recut_blueprint" / "resolve_timeline_blueprint_rhythm_recut.json"))
+    rhythm_recut_candidate = load_json(rhythm_recut_candidate_path) or {}
+    rhythm_recut_plan = rhythm_recut_candidate.get("rhythmRecutPlan") if isinstance(rhythm_recut_candidate.get("rhythmRecutPlan"), dict) else {}
+    rhythm_recut_bgm_rows = rhythm_recut_candidate.get("bgmPhraseCandidates") if isinstance(rhythm_recut_candidate.get("bgmPhraseCandidates"), list) else []
+    rhythm_recut_clip_annotations = sum(len(clip.get("bgmPhraseCandidates") or []) for clip in rhythm_recut_candidate.get("clips", []) if isinstance(clip, dict) and isinstance(clip.get("bgmPhraseCandidates"), list))
+    rhythm_recut_transition_cues = sum(1 for transition in rhythm_recut_candidate.get("transitions", []) if isinstance(transition, dict) and isinstance(transition.get("bgmPhraseCandidate"), dict))
+    rhythm_recut_status = rhythm_recut_blueprint.get("status")
+    rhythm_recut_ready = rhythm_recut_status == "ready_no_recut_needed" or (
+        rhythm_recut_status == "ready_with_rhythm_recut_blueprint"
+        and int(rhythm_recut_blueprint_summary.get("splitSourceClipCount") or 0) > 0
+        and int(rhythm_recut_blueprint_summary.get("cutawayInsertCount") or 0) > 0
+        and float(rhythm_recut_blueprint_summary.get("averagePrimaryShotAfterSeconds") or 0) < float(rhythm_recut_blueprint_summary.get("averagePrimaryShotBeforeSeconds") or 0)
+    )
+    add_check(
+        checks,
+        "Rhythm recut blueprint preserves transition, effect, and BGM phrase candidate metadata",
+        rhythm_recut_ready
+        and rhythm_recut_candidate_path.exists()
+        and rhythm_recut_inputs.get("baseBlueprintKind") == "bgm_phrase_candidate"
+        and rhythm_recut_plan.get("sourceBlueprintKind") == "bgm_phrase_candidate"
+        and isinstance(rhythm_recut_candidate.get("rhythmRecutPlan"), dict)
+        and isinstance(rhythm_recut_candidate.get("bgmPhraseBlueprintPlan"), dict)
+        and rhythm_recut_blueprint_summary.get("bgmPhrasePlanPreserved") is True
+        and int(rhythm_recut_blueprint_summary.get("bgmPhraseCandidateCount") or 0) == len(rhythm_recut_bgm_rows)
+        and len(rhythm_recut_bgm_rows) >= 4
+        and int(rhythm_recut_blueprint_summary.get("bgmPhraseClipAnnotationCount") or 0) == rhythm_recut_clip_annotations
+        and rhythm_recut_clip_annotations >= len(rhythm_recut_bgm_rows)
+        and int(rhythm_recut_blueprint_summary.get("bgmPhraseTransitionCueCount") or 0) == rhythm_recut_transition_cues
+        and rhythm_recut_transition_cues >= 1
+        and abs(float(rhythm_recut_blueprint_summary.get("durationDeltaSeconds") or 0.0)) <= 0.5,
+        {
+            "rhythmRecutStatus": rhythm_recut_blueprint.get("status"),
+            "rhythmRecutSummary": rhythm_recut_blueprint_summary,
+            "candidateBlueprint": str(rhythm_recut_candidate_path),
+            "baseBlueprintKind": rhythm_recut_inputs.get("baseBlueprintKind"),
+            "candidateSourceBlueprintKind": rhythm_recut_plan.get("sourceBlueprintKind"),
+            "candidateBgmPhraseCount": len(rhythm_recut_bgm_rows),
+            "clipAnnotationCount": rhythm_recut_clip_annotations,
+            "transitionCueCount": rhythm_recut_transition_cues,
+        },
+    )
     reference_repair_summary = get_summary(reference_repair)
     reference_batch_summary = get_summary(reference_batch)
     route_summary = get_summary(route_texture)
@@ -613,6 +660,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and bridge_sequence_blueprint.get("status") == "ready_with_bridge_sequence_blueprint"
         and effect_motion_blueprint.get("status") == "ready_with_effect_motion_blueprint"
         and bgm_phrase_blueprint.get("status") == "ready_with_bgm_phrase_blueprint"
+        and rhythm_recut_blueprint.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
         and int(route_summary.get("matchedTransitions") or 0) >= 1
@@ -650,6 +698,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "effectMotionBlueprintSummary": effect_motion_blueprint_summary,
             "bgmPhraseBlueprintStatus": bgm_phrase_blueprint.get("status"),
             "bgmPhraseBlueprintSummary": bgm_phrase_blueprint_summary,
+            "rhythmRecutBlueprintStatus": rhythm_recut_blueprint.get("status"),
+            "rhythmRecutBlueprintSummary": rhythm_recut_blueprint_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
         },

@@ -528,21 +528,88 @@ def sort_clips(clips: list[dict[str, Any]]) -> list[dict[str, Any]]:
     )
 
 
+def choose_base_blueprint(package_dir: Path) -> tuple[dict[str, Any] | None, Path, str]:
+    candidates = [
+        (
+            package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json",
+            "candidateBlueprint",
+            "bgm_phrase_candidate",
+        ),
+        (
+            package_dir / "effect_motion_blueprint" / "effect_motion_blueprint_report.json",
+            "candidateBlueprint",
+            "effect_motion_candidate",
+        ),
+        (
+            package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json",
+            "candidateBlueprint",
+            "transition_execution_candidate",
+        ),
+        (
+            package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json",
+            "candidateBlueprint",
+            "bridge_sequence_candidate",
+        ),
+    ]
+    for report_path, output_key, kind in candidates:
+        report = load_json(report_path) or {}
+        outputs = report.get("outputs") if isinstance(report.get("outputs"), dict) else {}
+        raw_candidate_path = outputs.get(output_key)
+        if not raw_candidate_path or not str(report.get("status") or "").startswith("ready"):
+            continue
+        candidate_path = Path(str(raw_candidate_path)).expanduser()
+        if not candidate_path.is_absolute():
+            candidate_path = (package_dir / candidate_path).resolve()
+        candidate = load_json(candidate_path)
+        if isinstance(candidate, dict) and candidate_path.is_file():
+            return candidate, candidate_path, kind
+    active = package_dir / "resolve_timeline_blueprint.json"
+    return load_json(active), active, "active_blueprint"
+
+
 def timeline_duration(clips: list[dict[str, Any]], fallback: float = 0.0) -> float:
     ends = [timeline_end(clip) for clip in clips if isinstance(clip, dict) and is_video_clip(clip) and timeline_end(clip) > 0]
     return max([fallback, *ends], default=fallback)
 
 
+def reapply_bgm_phrase_annotations(candidate: dict[str, Any], clips: list[dict[str, Any]]) -> tuple[int, int, int, bool]:
+    rows = candidate.get("bgmPhraseCandidates") if isinstance(candidate.get("bgmPhraseCandidates"), list) else []
+    if not rows:
+        return 0, 0, 0, False
+    annotation_count = 0
+    for clip in clips:
+        if isinstance(clip, dict) and "bgmPhraseCandidates" in clip:
+            clip.pop("bgmPhraseCandidates", None)
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        start = as_float(row.get("timelineStartSeconds"))
+        end = as_float(row.get("timelineEndSeconds"))
+        if start is None or end is None or end <= start:
+            continue
+        for clip in clips:
+            if not isinstance(clip, dict) or not is_video_clip(clip):
+                continue
+            if timeline_start(clip) < end and timeline_end(clip) > start:
+                clip.setdefault("bgmPhraseCandidates", []).append(row)
+                annotation_count += 1
+    transitions = candidate.get("transitions") if isinstance(candidate.get("transitions"), list) else []
+    transition_cues = sum(1 for row in transitions if isinstance(row, dict) and isinstance(row.get("bgmPhraseCandidate"), dict))
+    audio_plan = candidate.get("audioPlan") if isinstance(candidate.get("audioPlan"), dict) else {}
+    bgm_map = audio_plan.get("bgmPhraseMap") if isinstance(audio_plan.get("bgmPhraseMap"), dict) else {}
+    return len(rows), annotation_count, transition_cues, isinstance(candidate.get("bgmPhraseBlueprintPlan"), dict) and isinstance(bgm_map, dict)
+
+
 def build_candidate(package_dir: Path, *, cutaway_seconds: float) -> dict[str, Any]:
     package_dir = package_dir.expanduser().resolve()
-    blueprint_path = package_dir / "resolve_timeline_blueprint.json"
+    active_blueprint_path = package_dir / "resolve_timeline_blueprint.json"
     plan_path = package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json"
     output_dir = package_dir / "rhythm_recut_blueprint"
     candidate_path = output_dir / "resolve_timeline_blueprint_rhythm_recut.json"
     report_path = output_dir / "rhythm_recut_blueprint_report.json"
     markdown_path = output_dir / "rhythm_recut_blueprint_report.md"
 
-    blueprint = load_json(blueprint_path)
+    blueprint, blueprint_path, base_kind = choose_base_blueprint(package_dir)
     edit_plan = load_json(plan_path)
     if not isinstance(blueprint, dict) or not isinstance(edit_plan, dict):
         return {
@@ -552,6 +619,9 @@ def build_candidate(package_dir: Path, *, cutaway_seconds: float) -> dict[str, A
             "inputs": {
                 "resolveBlueprint": str(blueprint_path),
                 "resolveBlueprintExists": blueprint_path.exists(),
+                "baseBlueprintKind": base_kind,
+                "activeResolveBlueprint": str(active_blueprint_path),
+                "activeResolveBlueprintExists": active_blueprint_path.exists(),
                 "editRhythmPlan": str(plan_path),
                 "editRhythmPlanExists": plan_path.exists(),
             },
@@ -604,16 +674,25 @@ def build_candidate(package_dir: Path, *, cutaway_seconds: float) -> dict[str, A
 
     revised_clips = sort_clips(revised_clips)
     candidate = copy.deepcopy(blueprint)
+    bgm_phrase_count, bgm_clip_annotation_count, bgm_transition_cue_count, bgm_phrase_plan_preserved = reapply_bgm_phrase_annotations(candidate, revised_clips)
     candidate["clips"] = revised_clips
     candidate["updatedAt"] = datetime.now().isoformat(timespec="seconds")
     candidate["rhythmRecutPlan"] = {
         "status": "candidate_not_applied_to_resolve",
         "createdAt": candidate["updatedAt"],
         "sourceBlueprint": str(blueprint_path),
+        "sourceBlueprintKind": base_kind,
+        "activeResolveBlueprint": str(active_blueprint_path),
         "sourceEditRhythmPlan": str(plan_path),
         "report": str(report_path),
         "defaultBehavior": "writes a separate candidate blueprint and leaves the original blueprint untouched",
         "cutawaySeconds": cutaway_seconds,
+        "preservedCandidateMetadata": {
+            "bgmPhraseCandidateCount": bgm_phrase_count,
+            "bgmPhraseClipAnnotationCount": bgm_clip_annotation_count,
+            "bgmPhraseTransitionCueCount": bgm_transition_cue_count,
+            "bgmPhrasePlanPreserved": bgm_phrase_plan_preserved,
+        },
     }
 
     before_visual = visual_stat_clips(original_clips)
@@ -646,6 +725,8 @@ def build_candidate(package_dir: Path, *, cutaway_seconds: float) -> dict[str, A
         "packageDir": str(package_dir),
         "inputs": {
             "resolveBlueprint": str(blueprint_path),
+            "baseBlueprintKind": base_kind,
+            "activeResolveBlueprint": str(active_blueprint_path),
             "editRhythmPlan": str(plan_path),
         },
         "outputs": {
@@ -677,6 +758,10 @@ def build_candidate(package_dir: Path, *, cutaway_seconds: float) -> dict[str, A
             "durationDeltaSeconds": duration_delta,
             "targetAverageUpperSeconds": target["targetAverageUpperSeconds"],
             "longShotSoftLimitSeconds": target["longShotSoftLimitSeconds"],
+            "bgmPhraseCandidateCount": bgm_phrase_count,
+            "bgmPhraseClipAnnotationCount": bgm_clip_annotation_count,
+            "bgmPhraseTransitionCueCount": bgm_transition_cue_count,
+            "bgmPhrasePlanPreserved": bgm_phrase_plan_preserved,
         },
         "recutRows": recut_rows,
         "keptLongRows": kept_long_rows,
@@ -739,6 +824,9 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         "",
         f"- Candidate blueprint: `{(report.get('outputs') or {}).get('candidateBlueprint')}`",
         f"- Report JSON: `{(report.get('outputs') or {}).get('reportJson')}`",
+        f"- Base blueprint kind: `{(report.get('inputs') or {}).get('baseBlueprintKind')}`",
+        f"- BGM phrase metadata preserved: `{(report.get('summary') or {}).get('bgmPhrasePlanPreserved')}`",
+        f"- BGM phrase rows / clip annotations / transition cues: `{(report.get('summary') or {}).get('bgmPhraseCandidateCount')}` / `{(report.get('summary') or {}).get('bgmPhraseClipAnnotationCount')}` / `{(report.get('summary') or {}).get('bgmPhraseTransitionCueCount')}`",
         "",
         "## Recut Decisions",
     ]

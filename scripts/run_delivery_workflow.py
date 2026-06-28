@@ -562,10 +562,12 @@ def summarize_rhythm_recut_blueprint(plan: dict[str, Any] | None) -> dict[str, A
     if not plan:
         return None
     summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    inputs = plan.get("inputs") if isinstance(plan.get("inputs"), dict) else {}
     outputs = plan.get("outputs") if isinstance(plan.get("outputs"), dict) else {}
     return {
         "exists": True,
         "status": plan.get("status"),
+        "baseBlueprintKind": inputs.get("baseBlueprintKind"),
         "candidateBlueprint": outputs.get("candidateBlueprint"),
         "longEditableClipCount": summary.get("longEditableClipCount"),
         "splitSourceClipCount": summary.get("splitSourceClipCount"),
@@ -575,6 +577,10 @@ def summarize_rhythm_recut_blueprint(plan: dict[str, Any] | None) -> dict[str, A
         "longShotRiskBefore": summary.get("longShotRiskBefore"),
         "longShotRiskAfter": summary.get("longShotRiskAfter"),
         "durationDeltaSeconds": summary.get("durationDeltaSeconds"),
+        "bgmPhrasePlanPreserved": summary.get("bgmPhrasePlanPreserved"),
+        "bgmPhraseCandidateCount": summary.get("bgmPhraseCandidateCount"),
+        "bgmPhraseClipAnnotationCount": summary.get("bgmPhraseClipAnnotationCount"),
+        "bgmPhraseTransitionCueCount": summary.get("bgmPhraseTransitionCueCount"),
     }
 
 
@@ -1100,6 +1106,23 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Candidate transitions: {execution_blueprint.get('candidateTransitionCount')}",
                 f"- Blocked rows: {execution_blueprint.get('blockedRowCount')}",
                 f"- Missing clip matches: {execution_blueprint.get('rowsMissingClipMatch')}",
+            ]
+        )
+    if report.get("rhythmRecutBlueprintSummary"):
+        recut = report["rhythmRecutBlueprintSummary"]
+        lines.extend(
+            [
+                "",
+                "## Rhythm Recut Blueprint",
+                f"- Exists: `{recut.get('exists')}`",
+                f"- Status: `{recut.get('status')}`",
+                f"- Base blueprint: `{recut.get('baseBlueprintKind')}`",
+                f"- Long/split/cutaway: {recut.get('longEditableClipCount')} / {recut.get('splitSourceClipCount')} / {recut.get('cutawayInsertCount')}",
+                f"- Average shot before/after: {recut.get('averagePrimaryShotBeforeSeconds')} / {recut.get('averagePrimaryShotAfterSeconds')}",
+                f"- Long-shot risk before/after: {recut.get('longShotRiskBefore')} / {recut.get('longShotRiskAfter')}",
+                f"- Duration delta: {recut.get('durationDeltaSeconds')}",
+                f"- BGM phrase preserved: `{recut.get('bgmPhrasePlanPreserved')}`",
+                f"- BGM phrase rows/clip annotations/transition cues: {recut.get('bgmPhraseCandidateCount')} / {recut.get('bgmPhraseClipAnnotationCount')} / {recut.get('bgmPhraseTransitionCueCount')}",
             ]
         )
     if report.get("referenceStyleRepairSummary"):

@@ -2936,11 +2936,19 @@ def rhythm_recut_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json"
     data = load_json(path) or {}
     summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
     outputs = data.get("outputs") if isinstance(data.get("outputs"), dict) else {}
     safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
     rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
     rows = data.get("recutRows") if isinstance(data.get("recutRows"), list) else []
     candidate = Path(str(outputs.get("candidateBlueprint") or ""))
+    candidate_data = load_json(candidate) or {}
+    candidate_plan = candidate_data.get("rhythmRecutPlan") if isinstance(candidate_data.get("rhythmRecutPlan"), dict) else {}
+    candidate_clips = candidate_data.get("clips") if isinstance(candidate_data.get("clips"), list) else []
+    candidate_transitions = candidate_data.get("transitions") if isinstance(candidate_data.get("transitions"), list) else []
+    candidate_bgm_rows = candidate_data.get("bgmPhraseCandidates") if isinstance(candidate_data.get("bgmPhraseCandidates"), list) else []
+    candidate_bgm_clip_annotations = sum(len(clip.get("bgmPhraseCandidates") or []) for clip in candidate_clips if isinstance(clip, dict) and isinstance(clip.get("bgmPhraseCandidates"), list))
+    candidate_bgm_transition_cues = sum(1 for transition in candidate_transitions if isinstance(transition, dict) and isinstance(transition.get("bgmPhraseCandidate"), dict))
     decision_fields = {
         "approveCandidateBlueprint",
         "selectedCutawaySource",
@@ -2964,6 +2972,10 @@ def rhythm_recut_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
         "path": str(path),
         "exists": path.exists(),
         "status": data.get("status"),
+        "baseBlueprintKind": inputs.get("baseBlueprintKind"),
+        "candidateHasRhythmRecutPlan": isinstance(candidate_data.get("rhythmRecutPlan"), dict),
+        "candidateSourceBlueprintKind": candidate_plan.get("sourceBlueprintKind"),
+        "candidateHasBgmPhrasePlan": isinstance(candidate_data.get("bgmPhraseBlueprintPlan"), dict),
         "candidateBlueprint": str(candidate) if outputs.get("candidateBlueprint") else None,
         "candidateBlueprintExists": candidate.exists() if outputs.get("candidateBlueprint") else False,
         "originalClipCount": summary.get("originalClipCount"),
@@ -2984,6 +2996,13 @@ def rhythm_recut_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
         "durationDeltaSeconds": summary.get("durationDeltaSeconds"),
         "targetAverageUpperSeconds": summary.get("targetAverageUpperSeconds"),
         "longShotSoftLimitSeconds": summary.get("longShotSoftLimitSeconds"),
+        "bgmPhraseCandidateCount": summary.get("bgmPhraseCandidateCount"),
+        "bgmPhraseClipAnnotationCount": summary.get("bgmPhraseClipAnnotationCount"),
+        "bgmPhraseTransitionCueCount": summary.get("bgmPhraseTransitionCueCount"),
+        "bgmPhrasePlanPreserved": summary.get("bgmPhrasePlanPreserved"),
+        "candidateBgmPhraseCandidateCount": len(candidate_bgm_rows),
+        "candidateBgmPhraseClipAnnotationCount": candidate_bgm_clip_annotations,
+        "candidateBgmPhraseTransitionCueCount": candidate_bgm_transition_cues,
         "recutRowCount": len(rows),
         "rowsWithDecisionFields": rows_with_decision_fields,
         "rowsWithCutaways": rows_with_cutaways,
@@ -3016,6 +3035,17 @@ def rhythm_recut_blueprint_ready(evidence: dict[str, Any]) -> bool:
     return (
         evidence.get("exists")
         and evidence.get("candidateBlueprintExists") is True
+        and evidence.get("baseBlueprintKind") == "bgm_phrase_candidate"
+        and evidence.get("candidateHasRhythmRecutPlan") is True
+        and evidence.get("candidateSourceBlueprintKind") == "bgm_phrase_candidate"
+        and evidence.get("candidateHasBgmPhrasePlan") is True
+        and evidence.get("bgmPhrasePlanPreserved") is True
+        and int(evidence.get("bgmPhraseCandidateCount") or 0) >= 4
+        and int(evidence.get("bgmPhraseCandidateCount") or 0) == int(evidence.get("candidateBgmPhraseCandidateCount") or 0)
+        and int(evidence.get("bgmPhraseClipAnnotationCount") or 0) == int(evidence.get("candidateBgmPhraseClipAnnotationCount") or 0)
+        and int(evidence.get("bgmPhraseClipAnnotationCount") or 0) >= int(evidence.get("bgmPhraseCandidateCount") or 0)
+        and int(evidence.get("bgmPhraseTransitionCueCount") or 0) == int(evidence.get("candidateBgmPhraseTransitionCueCount") or 0)
+        and int(evidence.get("bgmPhraseTransitionCueCount") or 0) >= 1
         and (improved_recut or no_recut_needed)
         and int(evidence.get("rowsWithDecisionFields") or 0) == recut_rows
         and abs(float(evidence.get("durationDeltaSeconds") or 0.0)) <= 0.5

@@ -126,6 +126,7 @@ The package is not final until:
 - transition motif plan exists after transition execution and before Resolve apply, proving repeated/template transitions, missing BGM cues, title-zone risk, and unmotivated motion effects are repaired or explicitly assigned
 - bridge sequence plan exists after transition motif and before rhythm recut/Resolve apply, proving important route/title/timeline-gap transitions have 2-5 shot bridge beats or owner-script repairs
 - bridge sequence blueprint report exists before Resolve apply when local bridge candidates are available, proving those beats became video-only candidate clips without mutating the active blueprint by default
+- rhythm recut blueprint report exists before Resolve apply when long-shot risks exist, proving the recut started from the BGM phrase candidate and preserved transition/effect/BGM phrase metadata
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
 - Resolve blueprint preflight is present and not blocked before any `--apply`
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves
