@@ -77,7 +77,7 @@ The reference style rarely depends on flashy transitions. It uses physical route
 
 - Prefer road, ferry, train, walking, airport/station, parking, hotel window, escalator, signage, map/device screen, food-table reset, night-to-day change, or weather as bridge footage.
 - Use match cuts where possible: window to skyline, vehicle movement to road, sign to destination, food closeup to table reaction, landscape wide to human reaction.
-- Use simple dissolves or short fades for time-of-day or mood shifts. Avoid glitch, spin, zoom-whip, flash-frame, and generic template transitions unless the actual footage motivates them.
+- Use simple dissolves or short fades for time-of-day or mood shifts. Avoid glitch, random spin, zoom-whip, flash-frame, and generic template transitions unless the actual footage motivates them. A whip-pan or rotation match cut is acceptable only when adjacent real route footage has clear motion energy, such as vehicle movement, walking direction, water movement, aerial drift, or a camera pan.
 - Do not bridge days with black cards only. A title can sit on top of a real bridge image, but the bridge image must still carry the transition.
 - For route changes, include at least one practical travel shot before the next scenic payoff.
 
@@ -89,6 +89,24 @@ Effects should clarify, not decorate.
 - Useful inserts: map/device screen, sign, timetable, museum/context panel, product/vehicle detail, or route-relevant graphic when it explains the travel moment.
 - Forbidden as a default look: heavy template overlays, repeated whoosh transitions, random RGB/glitch effects, stacked captions around titles, fake drone claims, and unrelated stock beauty shots.
 - If using a special insert or graphic, pair it with adjacent real footage so it feels like part of the trip rather than a slideshow detour.
+
+## Creator Cut Selection
+
+Before any rhythm recut or Resolve write, create `creator_cut_plan/creator_cut_plan.json` with:
+
+```bash
+python3 <skill-dir>/scripts/prepare_creator_cut_plan.py --package-dir <package>
+```
+
+Use the plan to be stricter than a normal assembly:
+
+- Hero clips are opening/title/payoff/ending candidates.
+- Main story clips move route, activity, place, or emotion forward.
+- Texture bridge clips connect chapters with street, transport, food, weather, hotel, signage, or quiet travel detail.
+- Utility clips may patch route continuity but should not become long holds.
+- Reject/review clips should be dropped, shortened, or replaced; do not rescue them with spin, flash, zoom, or template effects.
+
+The reference feeling comes from selective shot choice plus route evidence. Effects are secondary.
 
 ## Audio And Caption Behavior
 
@@ -122,6 +140,7 @@ Before saying a package has learned this reference style, verify:
 - The chapter plan includes person/context, movement, texture, payoff, and aftertaste roles.
 - Every day/place boundary has physical bridge footage or an explicit local-footage search row.
 - The edit rhythm plan targets about 3-second median rhythm with some longer breathing shots, not a flat sequence of long raw clips.
+- The creator cut plan rejects/demotes weak clips, assigns every kept clip a creator function, and allows whip/rotation transitions only when motion evidence supports them.
 - Effect motion rows prefer fade/dissolve/match-cut/subtle motion and reject template-heavy effects.
 - BGM/audio policy protects scenic/title/transition windows from accidental source voice.
 - Subtitle/TXT/SRT lines are for viewers, not for the user/editor.

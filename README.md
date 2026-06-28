@@ -64,9 +64,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.3.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.3/travel-video-studio-skill-v0.1.3.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.3.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.4.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.4/travel-video-studio-skill-v0.1.4.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.4.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:

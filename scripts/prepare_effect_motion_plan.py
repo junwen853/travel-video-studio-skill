@@ -29,7 +29,9 @@ DECISION_FIELDS = {
 FORBIDDEN_EFFECT_TERMS = (
     "glitch",
     "shake",
-    "spin",
+    "random spin",
+    "spin template",
+    "unmotivated spin",
     "flash",
     "particle",
     "strobe",
@@ -106,6 +108,8 @@ def forbidden_effect_hits(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for item in items:
         text = lower_text(" ".join(str(item.get(key) or "") for key in ("name", "style", "status", "notes")))
         matched = [term for term in FORBIDDEN_EFFECT_TERMS if term in text]
+        if "spin" in text and not any(term in text for term in ("whip", "rotation match", "motivated", "route motion")):
+            matched.append("unmotivated spin")
         if matched:
             hits.append({"item": item, "forbiddenTerms": matched})
     return hits
@@ -161,6 +165,17 @@ def title_motion_row(row: dict[str, Any], effect_items: list[dict[str, Any]], vi
 
 
 def transition_motion_row(row: dict[str, Any], effect_items: list[dict[str, Any]]) -> dict[str, Any]:
+    required_categories = row.get("requiredVisualCategories") or []
+    category_text = lower_text(" ".join(str(item) for item in required_categories))
+    route_motion_evidence = any(
+        term in category_text
+        for term in ("transport", "vehicle", "road", "train", "station", "walking", "window", "aerial", "water", "bridge")
+    )
+    recommended_style = (
+        "motivated dissolve, match cut, or whip-pan/rotation match cut when adjacent bridge clips share route motion"
+        if route_motion_evidence
+        else "motivated dissolve, match cut by direction/color, or very light route marker; no black-card jump"
+    )
     return {
         "rowType": "transition_motion_bridge",
         "boundaryIndex": row.get("boundaryIndex"),
@@ -174,10 +189,11 @@ def transition_motion_row(row: dict[str, Any], effect_items: list[dict[str, Any]
             "blueprintEffectPlan": effect_plan_evidence(effect_items, "bridge") + effect_plan_evidence(effect_items, "transition"),
         },
         "recommendedMotion": {
-            "style": "motivated dissolve, match cut by direction/color, or very light route marker; no black-card jump",
+            "style": recommended_style,
             "durationFrames": 12,
             "intensity": "subtle",
-            "mustAvoid": ["generic wipe", "flash transition", "hard cut between days", "motion graphic with no route evidence"],
+            "routeMotionEvidence": route_motion_evidence,
+            "mustAvoid": ["generic wipe", "flash transition", "hard cut between days", "random spin", "motion graphic with no route evidence"],
         },
         "decision": dict(DECISION_FIELDS),
     }
@@ -239,6 +255,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
         },
         "policy": {
             "restrainedEffectsOnly": True,
+            "motivatedWhipOrRotationAllowed": True,
             "noTemplateHeavyTransitions": True,
             "noBlackCardFallback": True,
             "titleZoneCheckedBeforeMotion": True,
@@ -254,11 +271,11 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "pass": [
                 "Every opening/chapter/ending title reveal is restrained, readable, and backed by clean title/source evidence.",
                 "Every transition motion row is motivated by bridge footage, route motion, color, direction, or BGM phrasing.",
-                "Effects remain subtle: fades, short dissolves, tiny scale settles, match cuts, or simple route markers.",
+                "Effects remain subtle: fades, short dissolves, tiny scale settles, match cuts, motivated whip-pan/rotation match cuts, or simple route markers.",
                 "No effect hides duplicate titles, black cards, sparse subtitles, missing BGM, or wrong route evidence.",
             ],
             "reject": [
-                "Glitch, spin, flash, shake, particle, logo-reveal, or generic template-pack effects.",
+                "Glitch, random spin, flash, shake, particle, logo-reveal, or generic template-pack effects.",
                 "Motion graphics that replace real route/bridge footage instead of supporting it.",
                 "Any title reveal that causes stacked/ghosted text or subtitle overlap in title zones.",
                 "Transitions that feel like a short-video template instead of observed travel.",
@@ -268,7 +285,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "Fill decision fields for any row that will be implemented in Resolve.",
             "Update resolve_timeline_blueprint.json effectPlan when effect choices become concrete.",
             "After Resolve apply, confirm readback evidence and rerun audit_director_polish_contract.py.",
-            "Keep effect intensity subtle; fix missing BGM, title, or bridge evidence instead of masking it with effects.",
+            "Use whip/rotation only as a route-motion match cut; fix missing BGM, title, or bridge evidence instead of masking it with effects.",
         ],
         "safety": {
             "downloadsExternalAssets": False,

@@ -20,6 +20,7 @@ SKILL_PATTERNS = {
     "orientation_repair": "prepare_orientation_repair_package.py",
     "visual_establishing": "prepare_visual_establishing_plan.py",
     "bilibili_malta": "bilibili-travel-style.md",
+    "creator_cut": "prepare_creator_cut_plan.py",
     "route_texture": "audit_route_texture_contract.py",
     "final_qa": "run_final_qa_suite.py",
     "maturity": "audit_skill_maturity_contract.py",
@@ -44,6 +45,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_bridge_plan.py",
     "prepare_effect_motion_plan.py",
     "prepare_edit_rhythm_plan.py",
+    "prepare_creator_cut_plan.py",
     "audit_reference_style_alignment.py",
     "audit_route_texture_contract.py",
     "audit_director_polish_contract.py",
@@ -137,6 +139,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition = load_json(package_dir / "transition_bridge_plan" / "transition_bridge_plan.json") or {}
     effect = load_json(package_dir / "effect_motion_plan" / "effect_motion_plan.json") or {}
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
+    creator_cut = load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
     route_texture = load_json(package_dir / "route_texture_contract_audit.json") or {}
     director_intent = load_json(package_dir / "director_intent_contract_audit.json") or {}
@@ -319,16 +322,18 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     )
 
     rhythm_summary = get_summary(rhythm)
+    creator_cut_summary = get_summary(creator_cut)
     route_summary = get_summary(route_texture)
     director_summary = get_summary(director_intent)
     add_check(
         checks,
-        "Bilibili/Malta style, route texture, rhythm, and director polish gates pass",
+        "Bilibili/Malta style, creator cut, route texture, rhythm, and director polish gates pass",
         passed_status(reference)
         and passed_status(route_texture)
         and director_intent.get("status") in {"passed", "passed_with_warnings"}
         and passed_status(director_polish)
         and rhythm.get("status") == "ready_with_edit_rhythm_plan"
+        and creator_cut.get("status") == "ready_with_creator_cut_plan"
         and int(route_summary.get("matchedTransitions") or 0) >= 1
         and int(rhythm_summary.get("primaryVisualShotCount") or 0) >= 40,
         {
@@ -340,6 +345,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "directorPolishStatus": director_polish.get("status"),
             "editRhythmStatus": rhythm.get("status"),
             "editRhythmSummary": rhythm_summary,
+            "creatorCutStatus": creator_cut.get("status"),
+            "creatorCutSummary": creator_cut_summary,
         },
     )
 

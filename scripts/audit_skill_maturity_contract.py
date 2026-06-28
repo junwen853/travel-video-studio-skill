@@ -45,6 +45,7 @@ REQUIRED_SCRIPTS = {
         "prepare_feedback_regression_plan.py",
         "prepare_audio_scene_policy_plan.py",
         "prepare_edit_rhythm_plan.py",
+        "prepare_creator_cut_plan.py",
         "prepare_rhythm_recut_blueprint.py",
         "prepare_rhythm_recut_apply_package.py",
         "audit_feedback_regressions.py",
@@ -82,6 +83,7 @@ REQUIRED_SKILL_PATTERNS = {
     "feedback_regression_plan_rule": "prepare_feedback_regression_plan.py",
     "audio_scene_policy_plan_rule": "prepare_audio_scene_policy_plan.py",
     "edit_rhythm_plan_rule": "prepare_edit_rhythm_plan.py",
+    "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
     "rhythm_recut_blueprint_rule": "prepare_rhythm_recut_blueprint.py",
     "rhythm_recut_apply_package_rule": "prepare_rhythm_recut_apply_package.py",
     "scenic_audio_overlap_rule": "no A1/A2 voice or source-audio clips overlapping scenic/title/transition windows",
@@ -95,12 +97,14 @@ REQUIRED_SKILL_PATTERNS = {
     "v14_baseline_rule": "audit_v14_baseline_contract.py",
     "parallel_world_reference_rule": "parallel-world-vlog-style.md",
     "parallel_world_cover_rule": "high-recognition aerial/skyline/coast/landmark/route background",
+    "creator_cut_engine_rule": "creator-cut-engine.md",
 }
 
 REQUIRED_STYLE_PATTERNS = {
     "ysjf_anchor": "space.bilibili.com/946974",
     "parallel_world_anchor": "space.bilibili.com/405004967",
     "parallel_world_profile": "parallel-world-vlog-style.md",
+    "creator_cut_engine": "creator-cut-engine.md",
     "full_timeline_review": "full-film timeline strips",
     "cover_title_review": "cover/title card construction",
     "local_reference_profile": "local reference film",
@@ -727,6 +731,7 @@ def effect_motion_plan_evidence(package_dir: Path) -> dict[str, Any]:
         "rowTypeCounts": row_type_counts,
         "restrainedEffectsOnly": policy.get("restrainedEffectsOnly"),
         "noTemplateHeavyTransitions": policy.get("noTemplateHeavyTransitions"),
+        "motivatedWhipOrRotationAllowed": policy.get("motivatedWhipOrRotationAllowed"),
         "noBlackCardFallback": policy.get("noBlackCardFallback"),
         "titleZoneCheckedBeforeMotion": policy.get("titleZoneCheckedBeforeMotion"),
         "audioMode": policy.get("audioMode"),
@@ -757,6 +762,7 @@ def effect_motion_plan_ready(evidence: dict[str, Any]) -> bool:
         and row_type_counts.get("ending_title_reveal", 0) >= 1
         and row_type_counts.get("transition_motion_bridge", 0) >= 1
         and evidence.get("restrainedEffectsOnly") is True
+        and evidence.get("motivatedWhipOrRotationAllowed") is True
         and evidence.get("noTemplateHeavyTransitions") is True
         and evidence.get("noBlackCardFallback") is True
         and evidence.get("titleZoneCheckedBeforeMotion") is True
@@ -1088,6 +1094,144 @@ def edit_rhythm_plan_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("realFootageFunctionRequired") is True
         and evidence.get("livedInRouteTextureRequired") is True
         and evidence.get("bgmAndCaptionsCarryNoVoiceoverSections") is True
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("writesResolve") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
+def creator_cut_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "creator_cut_plan" / "creator_cut_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("shotRows") if isinstance(data.get("shotRows"), list) else []
+    chapters = data.get("chapterRows") if isinstance(data.get("chapterRows"), list) else []
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    decision_fields = {
+        "approvedUse",
+        "targetDurationSeconds",
+        "trimStartSeconds",
+        "trimEndSeconds",
+        "bridgeBefore",
+        "bridgeAfter",
+        "selectedTransitionEffect",
+        "bgmPhraseCue",
+        "captionFunction",
+        "resolveImplementation",
+        "readbackEvidence",
+        "approvedBy",
+        "approvedAt",
+    }
+    rows_with_decision_fields = 0
+    rows_with_creator_function = 0
+    rows_with_recommended_use = 0
+    rows_with_transition_recipe = 0
+    tier_counts: dict[str, int] = {}
+    function_counts: dict[str, int] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        tier = str(row.get("editorialTier") or "")
+        tier_counts[tier] = tier_counts.get(tier, 0) + 1
+        function = str(row.get("creatorFunction") or "")
+        function_counts[function] = function_counts.get(function, 0) + 1
+        if function:
+            rows_with_creator_function += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decision_fields += 1
+        recommended = row.get("recommendedUse") if isinstance(row.get("recommendedUse"), dict) else {}
+        if recommended.get("use") and recommended.get("targetDurationRangeSeconds"):
+            rows_with_recommended_use += 1
+        recipe = row.get("transitionRecipe") if isinstance(row.get("transitionRecipe"), dict) else {}
+        if recipe.get("style") and recipe.get("mustAvoid"):
+            rows_with_transition_recipe += 1
+    chapters_with_decision_fields = 0
+    chapters_with_functions = 0
+    chapter_decision_fields = {
+        "approvedChapterShape",
+        "replaceOrDropRows",
+        "requiredBridgeInsert",
+        "requiredTextureInsert",
+        "endingOrAftertasteNote",
+        "resolveImplementation",
+        "readbackEvidence",
+        "approvedBy",
+        "approvedAt",
+    }
+    for chapter in chapters:
+        if not isinstance(chapter, dict):
+            continue
+        decision = chapter.get("decision") if isinstance(chapter.get("decision"), dict) else {}
+        if chapter_decision_fields.issubset(set(decision)):
+            chapters_with_decision_fields += 1
+        if int(chapter.get("functionCount") or 0) >= 1:
+            chapters_with_functions += 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "primaryVisualShotCount": summary.get("primaryVisualShotCount"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "creatorDecisionRowCount": summary.get("creatorDecisionRowCount"),
+        "rejectOrUtilityCount": summary.get("rejectOrUtilityCount"),
+        "routeBridgeCandidateCount": summary.get("routeBridgeCandidateCount"),
+        "motivatedRotationCandidateCount": summary.get("motivatedRotationCandidateCount"),
+        "chaptersNeedingCreatorCoverage": summary.get("chaptersNeedingCreatorCoverage"),
+        "tierCounts": summary.get("tierCounts") or tier_counts,
+        "functionCounts": summary.get("functionCounts") or function_counts,
+        "rowCount": len(rows),
+        "chapterRows": len(chapters),
+        "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithCreatorFunction": rows_with_creator_function,
+        "rowsWithRecommendedUse": rows_with_recommended_use,
+        "rowsWithTransitionRecipe": rows_with_transition_recipe,
+        "chaptersWithDecisionFields": chapters_with_decision_fields,
+        "chaptersWithFunctions": chapters_with_functions,
+        "selectiveShotChoiceRequired": policy.get("selectiveShotChoiceRequired"),
+        "weakClipsCanBeRejected": policy.get("weakClipsCanBeRejected"),
+        "everyKeptShotNeedsCreatorFunction": policy.get("everyKeptShotNeedsCreatorFunction"),
+        "physicalBridgeBeforeEffect": policy.get("physicalBridgeBeforeEffect"),
+        "motivatedWhipOrRotationAllowed": policy.get("motivatedWhipOrRotationAllowed"),
+        "templateEffectsRejected": policy.get("templateEffectsRejected"),
+        "referenceAnchoredButNonCopying": policy.get("referenceAnchoredButNonCopying"),
+        "downloadsExternalAssets": policy.get("downloadsExternalAssets"),
+        "writesResolve": policy.get("writesResolve"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def creator_cut_plan_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("primaryVisualShotCount") or 0)
+    chapter_count = int(evidence.get("chapterRowCount") or 0)
+    function_counts = evidence.get("functionCounts") if isinstance(evidence.get("functionCounts"), dict) else {}
+    function_category_count = len([name for name, count in function_counts.items() if int(count or 0) > 0])
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_creator_cut_plan"
+        and row_count >= 10
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("creatorDecisionRowCount") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithCreatorFunction") or 0) == row_count
+        and int(evidence.get("rowsWithRecommendedUse") or 0) == row_count
+        and int(evidence.get("rowsWithTransitionRecipe") or 0) == row_count
+        and chapter_count >= 1
+        and int(evidence.get("chapterRows") or 0) == chapter_count
+        and int(evidence.get("chaptersWithDecisionFields") or 0) == chapter_count
+        and int(evidence.get("chaptersWithFunctions") or 0) == chapter_count
+        and function_category_count >= 4
+        and int(evidence.get("routeBridgeCandidateCount") or 0) >= 1
+        and evidence.get("selectiveShotChoiceRequired") is True
+        and evidence.get("weakClipsCanBeRejected") is True
+        and evidence.get("everyKeptShotNeedsCreatorFunction") is True
+        and evidence.get("physicalBridgeBeforeEffect") is True
+        and evidence.get("motivatedWhipOrRotationAllowed") is True
+        and evidence.get("templateEffectsRejected") is True
+        and evidence.get("referenceAnchoredButNonCopying") is True
         and evidence.get("downloadsExternalAssets") is False
         and evidence.get("writesResolve") is False
         and evidence.get("hasPassRubric") is True
@@ -1450,6 +1594,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Edit rhythm plan proactively turns AI-assembly and flat pacing feedback into shot-purpose rows",
         edit_rhythm_plan_ready(rhythm_plan_evidence),
         rhythm_plan_evidence,
+    )
+    creator_cut_evidence = creator_cut_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Creator cut plan turns reference quality into selective shot choice, bridge use, and motivated transition decisions",
+        creator_cut_plan_ready(creator_cut_evidence),
+        creator_cut_evidence,
     )
     rhythm_recut_evidence = rhythm_recut_blueprint_evidence(package_dir)
     add_check(

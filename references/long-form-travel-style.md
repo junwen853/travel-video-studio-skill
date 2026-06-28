@@ -71,10 +71,11 @@ This plan should exist before Resolve writes when the user wants Malta/Bilibili-
 Then generate `rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json` with:
 
 ```bash
+python3 <skill-dir>/scripts/prepare_creator_cut_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_rhythm_recut_blueprint.py --package-dir <package>
 ```
 
-This candidate turns the diagnosis into an executable Resolve blueprint draft without touching the original blueprint by default. It should shorten flat holds into main segments plus existing-footage cutaways, preserve the package duration, keep inserted clips video-only/BGM-led, and pass `audit_resolve_blueprint.py --blueprint <candidate> --package-dir <package>` before any `--update-blueprint` or Resolve apply.
+The creator cut plan must run first. It decides which clips are hero, main story, texture bridge, utility, or reject/review; assigns creator functions; and records whether any whip-pan or rotation transition is truly motivated by route motion. The rhythm recut candidate then turns the diagnosis into an executable Resolve blueprint draft without touching the original blueprint by default. It should shorten flat holds into main segments plus existing-footage cutaways, preserve the package duration, keep inserted clips video-only/BGM-led, and pass `audit_resolve_blueprint.py --blueprint <candidate> --package-dir <package>` before any `--update-blueprint` or Resolve apply.
 
 When the candidate is approved, use a package fork before touching Resolve:
 
