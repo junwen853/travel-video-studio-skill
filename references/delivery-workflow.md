@@ -58,6 +58,8 @@ Expected files:
 - `asset_sourcing/asset_sourcing_packet.json` / `.md`: provider/license directory, exact selection fields, approval evidence requirements, and sourcing next actions
 - `asset_sourcing/asset_decision_reconciliation.json` / `.md`: dry-run or applied reconciliation of filled sourcing decisions back into the asset ledger
 - `bgm_cues.md`: music mood, timing, source/license status
+- `effect_motion_blueprint/resolve_timeline_blueprint_effect_motion.json`: non-destructive Resolve candidate containing restrained title/transition effect-motion metadata and markers
+- `effect_motion_blueprint/effect_motion_blueprint_report.json` / `.md`: effect-motion materialization summary, safety flags, and approval/follow-up instructions
 - `qa_checklist.md`: final delivery checklist
 - `delivery_audit.json` / `delivery_audit.md`: machine-readable final readiness audit
 - `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
@@ -125,6 +127,7 @@ The package is not final until:
 - Resolve blueprint preflight is present and not blocked before any `--apply`
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves
 - title/place cards have been generated or explicitly deferred
+- effect motion blueprint report exists before Resolve apply when effect motion rows are ready, proving restrained title/transition effects became candidate metadata without mutating the active blueprint by default
 - actual Resolve writes have a readback audit report
 - render plan has been prepared and re-audited
 - `delivery_audit.json` reports no blockers before final render

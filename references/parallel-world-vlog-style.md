@@ -98,6 +98,7 @@ The reference style rarely depends on flashy transitions. It uses physical route
 Effects should clarify, not decorate.
 
 - Allowed by default: clean title fade-in/out, subtle scale drift on scenic still-like shots, gentle dissolve, match cut, restrained speed ramp for vehicle/water/aerial motion, short freeze or monochrome emphasis only when used as a clear explanation beat.
+- Materialize approved restrained effects with `prepare_effect_motion_blueprint.py` before Resolve apply, so fade/scale/whip/rotation/ramp choices are candidate metadata, not loose notes.
 - Useful inserts: map/device screen, sign, timetable, museum/context panel, product/vehicle detail, or route-relevant graphic when it explains the travel moment.
 - Forbidden as a default look: heavy template overlays, repeated whoosh transitions, random RGB/glitch effects, stacked captions around titles, fake drone claims, and unrelated stock beauty shots.
 - If using a special insert or graphic, pair it with adjacent real footage so it feels like part of the trip rather than a slideshow detour.
@@ -177,6 +178,7 @@ Before saying a package has learned this reference style, verify:
 - The bridge sequence blueprint report proves local bridge beats are present as video-only candidate clips before Resolve apply.
 - The reference style repair plan converts blocked reference/director/QA checks into P0/P1 repair rows before the next Resolve write.
 - Effect motion rows prefer fade/dissolve/match-cut/subtle motion and reject template-heavy effects.
+- Effect motion blueprint rows prove approved effects are candidate-materialized on clips before Resolve apply.
 - BGM/audio policy protects scenic/title/transition windows from accidental source voice.
 - Subtitle/TXT/SRT lines are for viewers, not for the user/editor.
 - The ending resolves with route aftertaste rather than stopping abruptly.

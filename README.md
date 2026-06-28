@@ -14,7 +14,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Plans each chapter as a complete vlog arc: context, movement, lived-in texture, destination payoff, and aftertaste/handoff before rhythm or Resolve trust.
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
 - Learns from multiple local reference videos as an aggregate, non-copying batch profile.
-- Plans BGM, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, and visual bridge material.
+- Plans BGM, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, visual bridge material, and restrained effect-motion candidates.
 - Converts transition decisions into Resolve-ready recipes and candidate blueprint metadata, audits the whole transition motif chain, plans 2-5 shot bridge sequences, and materializes those beats into a non-destructive Resolve candidate blueprint.
 - Converts blocked reference/director/QA style gaps into concrete repair rows with owner scripts, required artifacts, and acceptance evidence.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
@@ -70,9 +70,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.15.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.15/travel-video-studio-skill-v0.1.15.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.15.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.16.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.16/travel-video-studio-skill-v0.1.16.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.16.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -154,6 +154,7 @@ A delivery package usually contains:
 - `bridge_sequence_plan/bridge_sequence_plan.md`
 - `bridge_sequence_blueprint/bridge_sequence_blueprint_report.md`
 - `reference_style_repair_plan/reference_style_repair_plan.md`
+- `effect_motion_blueprint/effect_motion_blueprint_report.md`
 - `title_typography_plan/title_typography_plan.md`
 - `visual_establishing_plan/visual_establishing_plan.md`
 - `resolve_timeline_blueprint.json`

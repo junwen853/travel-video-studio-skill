@@ -19,6 +19,7 @@ SKILL_PATTERNS = {
     "caption_overlay": "prepare_subtitle_overlay_asset.py",
     "orientation_repair": "prepare_orientation_repair_package.py",
     "visual_establishing": "prepare_visual_establishing_plan.py",
+    "effect_motion_blueprint": "prepare_effect_motion_blueprint.py",
     "bilibili_malta": "bilibili-travel-style.md",
     "reference_batch_profile": "prepare_reference_batch_profile.py",
     "footage_select": "prepare_footage_select_plan.py",
@@ -55,6 +56,7 @@ REQUIRED_SCRIPTS = [
     "prepare_visual_establishing_plan.py",
     "prepare_transition_bridge_plan.py",
     "prepare_effect_motion_plan.py",
+    "prepare_effect_motion_blueprint.py",
     "prepare_reference_batch_profile.py",
     "prepare_footage_select_plan.py",
     "prepare_opening_story_plan.py",
@@ -160,6 +162,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     visual_establishing = load_json(package_dir / "visual_establishing_plan" / "visual_establishing_plan.json") or {}
     transition = load_json(package_dir / "transition_bridge_plan" / "transition_bridge_plan.json") or {}
     effect = load_json(package_dir / "effect_motion_plan" / "effect_motion_plan.json") or {}
+    effect_motion_blueprint = load_json(package_dir / "effect_motion_blueprint" / "effect_motion_blueprint_report.json") or {}
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     opening_story = load_json(package_dir / "opening_story_plan" / "opening_story_plan.json") or {}
@@ -390,6 +393,46 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         },
     )
 
+    effect_motion_blueprint_summary = get_summary(effect_motion_blueprint)
+    effect_motion_blueprint_rows = int(effect_motion_blueprint_summary.get("effectRowCount") or 0)
+    effect_motion_blueprint_outputs = effect_motion_blueprint.get("outputs") if isinstance(effect_motion_blueprint.get("outputs"), dict) else {}
+    effect_candidate_path = Path(str(effect_motion_blueprint_outputs.get("candidateBlueprint") or package_dir / "effect_motion_blueprint" / "resolve_timeline_blueprint_effect_motion.json"))
+    effect_candidate = load_json(effect_candidate_path) or {}
+    effect_candidates = effect_candidate.get("effectMotionCandidates") if isinstance(effect_candidate.get("effectMotionCandidates"), list) else []
+    effect_markers = [
+        marker for marker in effect_candidate.get("timelineMarkers", [])
+        if isinstance(marker, dict) and marker.get("role") == "effect_motion_candidate_marker"
+    ] if isinstance(effect_candidate.get("timelineMarkers"), list) else []
+    effect_clip_annotations = sum(len(clip.get("effectMotionCandidates") or []) for clip in effect_candidate.get("clips", []) if isinstance(clip, dict) and isinstance(clip.get("effectMotionCandidates"), list))
+    add_check(
+        checks,
+        "Effect motion blueprint materializes restrained title and transition effects into candidate metadata",
+        effect_motion_blueprint.get("status") == "ready_with_effect_motion_blueprint"
+        and effect_motion_blueprint_rows >= 3
+        and int(effect_motion_blueprint_summary.get("materializedEffectCount") or 0) == effect_motion_blueprint_rows
+        and int(effect_motion_blueprint_summary.get("candidateEffectMotionCount") or 0) == len(effect_candidates)
+        and int(effect_motion_blueprint_summary.get("candidateEffectMotionCount") or 0) == effect_motion_blueprint_rows
+        and int(effect_motion_blueprint_summary.get("rowsWithDecisionFields") or 0) == effect_motion_blueprint_rows
+        and int(effect_motion_blueprint_summary.get("rowsWithClipMatch") or 0) == effect_motion_blueprint_rows
+        and int(effect_motion_blueprint_summary.get("blockedRowCount") or 0) == 0
+        and int(effect_motion_blueprint_summary.get("titleMotionRowCount") or 0) >= 3
+        and int(effect_motion_blueprint_summary.get("transitionMotionRowCount") or 0) >= 1
+        and int(effect_motion_blueprint_summary.get("motionEffectRowsWithEvidence") or 0) == int(effect_motion_blueprint_summary.get("motionEffectRowCount") or 0)
+        and int(effect_motion_blueprint_summary.get("forbiddenEffectHitCount") or 0) == 0
+        and effect_candidate_path.exists()
+        and isinstance(effect_candidate.get("effectMotionBlueprintPlan"), dict)
+        and len(effect_markers) == effect_motion_blueprint_rows
+        and effect_clip_annotations >= effect_motion_blueprint_rows,
+        {
+            "effectMotionBlueprintStatus": effect_motion_blueprint.get("status"),
+            "effectMotionBlueprintSummary": effect_motion_blueprint_summary,
+            "candidateBlueprint": str(effect_candidate_path),
+            "candidateEffectMotionCount": len(effect_candidates),
+            "markerCount": len(effect_markers),
+            "clipAnnotationCount": effect_clip_annotations,
+        },
+    )
+
     transition_motif_summary = get_summary(transition_motif)
     transition_motif_rows = int(transition_motif_summary.get("transitionRowCount") or 0)
     add_check(
@@ -522,6 +565,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_motif.get("status") == "ready_with_transition_motif_plan"
         and bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
         and bridge_sequence_blueprint.get("status") == "ready_with_bridge_sequence_blueprint"
+        and effect_motion_blueprint.get("status") == "ready_with_effect_motion_blueprint"
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
         and int(route_summary.get("matchedTransitions") or 0) >= 1
@@ -555,6 +599,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "bridgeSequenceSummary": bridge_sequence_summary,
             "bridgeSequenceBlueprintStatus": bridge_sequence_blueprint.get("status"),
             "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,
+            "effectMotionBlueprintStatus": effect_motion_blueprint.get("status"),
+            "effectMotionBlueprintSummary": effect_motion_blueprint_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
         },

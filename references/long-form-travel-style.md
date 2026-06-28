@@ -167,6 +167,7 @@ The package is not long-form ready unless it has:
 - `transition_motif_plan/transition_motif_plan.json` proves the whole transition chain avoids repeated/template defaults and has BGM/title-zone/repair evidence
 - `bridge_sequence_plan/bridge_sequence_plan.json` proves important route/title/timeline-gap transitions have 2-5 shot bridge beats or owner-script repairs
 - `bridge_sequence_blueprint/bridge_sequence_blueprint_report.json` proves local bridge beats were materialized into a non-destructive candidate blueprint before Resolve apply
+- `effect_motion_blueprint/effect_motion_blueprint_report.json` proves restrained title/transition motion rows were materialized into candidate clip metadata before Resolve apply
 - `reference_style_repair_plan/reference_style_repair_plan.json` proves blocked reference/director/QA style gaps become executable repair rows before another Resolve write
 - chapter time allocations
 - transition plan between chapters/days

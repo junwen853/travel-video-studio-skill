@@ -43,6 +43,7 @@ REQUIRED_SCRIPTS = {
         "prepare_title_typography_plan.py",
         "prepare_visual_establishing_plan.py",
         "prepare_effect_motion_plan.py",
+        "prepare_effect_motion_blueprint.py",
         "prepare_feedback_regression_plan.py",
         "prepare_audio_scene_policy_plan.py",
         "prepare_footage_select_plan.py",
@@ -91,6 +92,7 @@ REQUIRED_SKILL_PATTERNS = {
     "title_typography_plan_rule": "prepare_title_typography_plan.py",
     "visual_establishing_plan_rule": "prepare_visual_establishing_plan.py",
     "effect_motion_plan_rule": "prepare_effect_motion_plan.py",
+    "effect_motion_blueprint_rule": "prepare_effect_motion_blueprint.py",
     "feedback_regression_plan_rule": "prepare_feedback_regression_plan.py",
     "audio_scene_policy_plan_rule": "prepare_audio_scene_policy_plan.py",
     "footage_select_plan_rule": "prepare_footage_select_plan.py",
@@ -129,6 +131,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_motif_engine_rule": "transition-motif-engine.md",
     "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
+    "effect_motion_blueprint_engine_rule": "effect-motion-blueprint-engine.md",
     "reference_style_repair_engine_rule": "reference-style-repair-engine.md",
 }
 
@@ -146,6 +149,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_motif_engine": "transition-motif-engine.md",
     "bridge_sequence_engine": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
+    "effect_motion_blueprint_engine": "effect-motion-blueprint-engine.md",
     "reference_style_repair_engine": "reference-style-repair-engine.md",
     "opening_story_engine": "opening-story-engine.md",
     "full_timeline_review": "full-film timeline strips",
@@ -893,6 +897,152 @@ def effect_motion_plan_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("audioMode") == "bgm_only_no_camera_voice"
         and evidence.get("downloadsExternalAssets") is False
         and evidence.get("writesResolve") is False
+        and evidence.get("hasPassRubric") is True
+        and evidence.get("hasRejectRubric") is True
+    )
+
+
+def effect_motion_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "effect_motion_blueprint" / "effect_motion_blueprint_report.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    outputs = data.get("outputs") if isinstance(data.get("outputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rubric = data.get("selectionRubric") if isinstance(data.get("selectionRubric"), dict) else {}
+    rows = data.get("materializedRows") if isinstance(data.get("materializedRows"), list) else []
+    candidate_path = Path(str(outputs.get("candidateBlueprint") or package_dir / "effect_motion_blueprint" / "resolve_timeline_blueprint_effect_motion.json"))
+    candidate = load_json(candidate_path) or {}
+    candidates = candidate.get("effectMotionCandidates") if isinstance(candidate.get("effectMotionCandidates"), list) else []
+    clips = candidate.get("clips") if isinstance(candidate.get("clips"), list) else []
+    markers = [
+        marker for marker in candidate.get("timelineMarkers", [])
+        if isinstance(marker, dict) and marker.get("role") == "effect_motion_candidate_marker"
+    ] if isinstance(candidate.get("timelineMarkers"), list) else []
+    decision_fields = {
+        "approveCandidateBlueprint",
+        "approvedEffectRows",
+        "resolveImplementation",
+        "preflightEvidence",
+        "timelineReadbackEvidence",
+        "frameSampleEvidence",
+        "approvedBy",
+        "approvedAt",
+        "editorNotes",
+    }
+    rows_materialized = 0
+    rows_with_decisions = 0
+    rows_with_clip_match = 0
+    rows_title_safe = 0
+    rows_motion_safe = 0
+    rows_without_forbidden = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        if row.get("status") == "materialized":
+            rows_materialized += 1
+        if int(row.get("matchedClipCount") or 0) > 0:
+            rows_with_clip_match += 1
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            rows_with_decisions += 1
+        if row.get("titleZoneSafe") is True:
+            rows_title_safe += 1
+        if row.get("motionEvidenceSatisfied") is True:
+            rows_motion_safe += 1
+        if not row.get("forbiddenEffectHits"):
+            rows_without_forbidden += 1
+    clip_annotation_count = sum(len(clip.get("effectMotionCandidates") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("effectMotionCandidates"), list))
+    candidate_decision_count = 0
+    candidate_bgm_only_count = 0
+    candidate_without_forbidden = 0
+    for item in candidates:
+        if not isinstance(item, dict):
+            continue
+        decision = item.get("decision") if isinstance(item.get("decision"), dict) else {}
+        if decision_fields.issubset(set(decision)):
+            candidate_decision_count += 1
+        if item.get("audioTreatment") == "bgm_only_no_camera_voice":
+            candidate_bgm_only_count += 1
+        if not item.get("forbiddenEffectHits"):
+            candidate_without_forbidden += 1
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "candidateBlueprint": str(candidate_path),
+        "candidateBlueprintExists": candidate_path.exists(),
+        "candidateHasEffectMotionPlan": isinstance(candidate.get("effectMotionBlueprintPlan"), dict),
+        "effectRowCount": summary.get("effectRowCount"),
+        "materializedEffectCount": summary.get("materializedEffectCount"),
+        "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
+        "rowsWithClipMatch": summary.get("rowsWithClipMatch"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "titleMotionRowCount": summary.get("titleMotionRowCount"),
+        "transitionMotionRowCount": summary.get("transitionMotionRowCount"),
+        "motionEffectRowCount": summary.get("motionEffectRowCount"),
+        "motionEffectRowsWithEvidence": summary.get("motionEffectRowsWithEvidence"),
+        "forbiddenEffectHitCount": summary.get("forbiddenEffectHitCount"),
+        "candidateEffectMotionCount": summary.get("candidateEffectMotionCount"),
+        "rowCount": len(rows),
+        "rowsMaterializedByRow": rows_materialized,
+        "rowsWithDecisionFieldsByRow": rows_with_decisions,
+        "rowsWithClipMatchByRow": rows_with_clip_match,
+        "rowsTitleZoneSafe": rows_title_safe,
+        "rowsMotionSafe": rows_motion_safe,
+        "rowsWithoutForbiddenHits": rows_without_forbidden,
+        "candidateEffects": len(candidates),
+        "candidateMarkers": len(markers),
+        "clipAnnotationCount": clip_annotation_count,
+        "candidateRowsWithDecisionFields": candidate_decision_count,
+        "candidateRowsBgmOnly": candidate_bgm_only_count,
+        "candidateRowsWithoutForbiddenHits": candidate_without_forbidden,
+        "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "mutatesActiveBlueprintByDefault": safety.get("mutatesActiveBlueprintByDefault"),
+        "hasPassRubric": bool(rubric.get("pass")),
+        "hasRejectRubric": bool(rubric.get("reject")),
+    }
+
+
+def effect_motion_blueprint_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("effectRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_effect_motion_blueprint"
+        and evidence.get("candidateBlueprintExists")
+        and evidence.get("candidateHasEffectMotionPlan")
+        and row_count >= 3
+        and int(evidence.get("materializedEffectCount") or 0) == row_count
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("rowsMaterializedByRow") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithClipMatch") or 0) == row_count
+        and int(evidence.get("rowsWithClipMatchByRow") or 0) == row_count
+        and int(evidence.get("blockedRowCount") or 0) == 0
+        and int(evidence.get("titleMotionRowCount") or 0) >= 3
+        and int(evidence.get("transitionMotionRowCount") or 0) >= 1
+        and int(evidence.get("motionEffectRowsWithEvidence") or 0) == int(evidence.get("motionEffectRowCount") or 0)
+        and int(evidence.get("forbiddenEffectHitCount") or 0) == 0
+        and int(evidence.get("rowsTitleZoneSafe") or 0) == row_count
+        and int(evidence.get("rowsMotionSafe") or 0) == row_count
+        and int(evidence.get("rowsWithoutForbiddenHits") or 0) == row_count
+        and int(evidence.get("candidateEffectMotionCount") or 0) == row_count
+        and int(evidence.get("candidateEffects") or 0) == row_count
+        and int(evidence.get("candidateMarkers") or 0) == row_count
+        and int(evidence.get("clipAnnotationCount") or 0) >= row_count
+        and int(evidence.get("candidateRowsWithDecisionFields") or 0) == row_count
+        and int(evidence.get("candidateRowsBgmOnly") or 0) == row_count
+        and int(evidence.get("candidateRowsWithoutForbiddenHits") or 0) == row_count
+        and evidence.get("activeBlueprintUpdated") is False
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("mutatesActiveBlueprintByDefault") is False
         and evidence.get("hasPassRubric") is True
         and evidence.get("hasRejectRubric") is True
     )
@@ -2967,6 +3117,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Effect motion plan proactively turns bare-concatenation/template-effect feedback into restrained motion rows",
         effect_motion_plan_ready(effect_plan_evidence),
         effect_plan_evidence,
+    )
+    effect_blueprint_evidence = effect_motion_blueprint_evidence(package_dir)
+    add_check(
+        checks,
+        "Effect motion blueprint materializes restrained title and transition effects into a non-destructive Resolve candidate",
+        effect_motion_blueprint_ready(effect_blueprint_evidence),
+        effect_blueprint_evidence,
     )
     feedback_plan_evidence = feedback_regression_plan_evidence(package_dir)
     add_check(
