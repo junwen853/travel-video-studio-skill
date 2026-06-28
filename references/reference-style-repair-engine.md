@@ -8,6 +8,7 @@ The repair engine turns vague style feedback into a concrete repair queue. It do
 
 ```bash
 python3 <skill-dir>/scripts/prepare_reference_style_repair_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/audit_reference_repair_closure.py --package-dir <package>
 ```
 
 Optional local reference profile:
@@ -22,6 +23,8 @@ Outputs:
 
 - `reference_style_repair_plan/reference_style_repair_plan.json`
 - `reference_style_repair_plan/reference_style_repair_plan.md`
+- `reference_repair_closure_audit.json`
+- `reference_repair_closure_audit.md`
 
 ## What It Repairs
 
@@ -55,6 +58,7 @@ Pass only when:
 
 - every blocked reference/director/QA check has an exact repair row
 - P0 rows identify the next artifact to regenerate or audit
+- P0 rows are closed by `audit_reference_repair_closure.py` before another Resolve/final-quality claim
 - shot pacing, opening/title, route bridge, audio/caption, and ending issues map to concrete Skill scripts
 - the plan stays non-destructive
 
@@ -66,4 +70,4 @@ Reject:
 
 ## Workflow Position
 
-Run this after `prepare_rhythm_recut_blueprint.py` during safe workflow and again after rendered-draft audits. Use it as the bridge from "the audit says it is not good enough" to "these are the exact rows to fix before the next Resolve write."
+Run this after `prepare_rhythm_recut_blueprint.py` during safe workflow and again after rendered-draft audits. Use the repair plan as the bridge from "the audit says it is not good enough" to "these are the exact rows to fix before the next Resolve write"; use the closure audit as the gate that proves P0 rows have required artifacts, post-repair audits, and readback/frame evidence.

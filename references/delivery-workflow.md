@@ -44,6 +44,7 @@ Expected files:
 - `transition_polish_blueprint/resolve_timeline_blueprint_transition_polish.json`: non-destructive Resolve candidate containing final BGM-hit, title-safe, motion-proven transition polish metadata
 - `transition_polish_blueprint/transition_polish_blueprint_report.json` / `.md`: final transition polish summary, safety flags, and approval/follow-up instructions
 - `reference_style_repair_plan/reference_style_repair_plan.json` / `.md`: exact repair rows for blocked reference-style, director-intent, director-polish, or final-QA gaps
+- `reference_repair_closure_audit.json` / `.md`: closure gate proving P0 reference-style repair rows have required artifacts, post-repair audit evidence, and readback/frame evidence
 - `resolve_blueprint_preflight.json` / `.md`: no-write Resolve blueprint safety audit covering source files, source ranges, track overlaps, V1 gaps, title cards, subtitles, markers, and source audio
 - `resolve_apply_contract.json` / `.md`: approval contract before any actual DaVinci timeline write
 - `davinci_build_notes.md`: Resolve write steps and remaining manual/polish passes
@@ -131,6 +132,7 @@ The package is not final until:
 - rhythm recut blueprint report exists before Resolve apply when long-shot risks exist, proving the recut started from the BGM phrase candidate and preserved transition/effect/BGM phrase metadata
 - transition polish blueprint report exists before Resolve apply, proving final transitions carry BGM-hit timing, title/subtitle avoidance, motion-evidence checks, and restrained keyframes after rhythm recut
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
+- reference repair closure audit exists after the repair plan; P0 rows must be closed or Resolve/final-quality claims stay blocked
 - Resolve blueprint preflight is present and not blocked before any `--apply`
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves
 - title/place cards have been generated or explicitly deferred

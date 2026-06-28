@@ -36,6 +36,7 @@ SKILL_PATTERNS = {
     "rhythm_recut_blueprint": "prepare_rhythm_recut_blueprint.py",
     "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
+    "reference_repair_closure": "audit_reference_repair_closure.py",
     "route_texture": "audit_route_texture_contract.py",
     "final_qa": "run_final_qa_suite.py",
     "maturity": "audit_skill_maturity_contract.py",
@@ -76,6 +77,7 @@ REQUIRED_SCRIPTS = [
     "prepare_rhythm_recut_blueprint.py",
     "prepare_transition_polish_blueprint.py",
     "prepare_reference_style_repair_plan.py",
+    "audit_reference_repair_closure.py",
     "audit_reference_style_alignment.py",
     "audit_route_texture_contract.py",
     "audit_director_polish_contract.py",
@@ -185,6 +187,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     rhythm_recut_blueprint = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
     transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
+    reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
     route_texture = load_json(package_dir / "route_texture_contract_audit.json") or {}
     director_intent = load_json(package_dir / "director_intent_contract_audit.json") or {}
@@ -696,6 +699,38 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         },
     )
     reference_repair_summary = get_summary(reference_repair)
+    reference_repair_closure_summary = get_summary(reference_repair_closure)
+    reference_repair_closure_rows = reference_repair_closure.get("closureRows") if isinstance(reference_repair_closure.get("closureRows"), list) else []
+    reference_repair_closure_p0 = [row for row in reference_repair_closure_rows if isinstance(row, dict) and row.get("priority") == "P0"]
+    reference_repair_closure_p0_closed = [row for row in reference_repair_closure_p0 if row.get("status") == "closed"]
+    reference_repair_needs_repairs = reference_repair.get("status") == "ready_with_reference_style_repair_plan"
+    reference_repair_no_repairs = reference_repair.get("status") == "ready_no_reference_style_repairs_needed"
+    add_check(
+        checks,
+        "Reference repair closure audit proves P0 style fixes are closed by artifacts and post-repair evidence",
+        reference_repair_closure.get("status") in {"passed", "passed_with_evidence_warnings"}
+        and (
+            (
+                reference_repair_no_repairs
+                and int(reference_repair_closure_summary.get("repairRowCount") or 0) == 0
+            )
+            or (
+                reference_repair_needs_repairs
+                and int(reference_repair_closure_summary.get("repairRowCount") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
+                and int(reference_repair_closure_summary.get("p0ClosedRowCount") or 0) == int(reference_repair_closure_summary.get("p0RepairRowCount") or 0)
+                and len(reference_repair_closure_p0_closed) == len(reference_repair_closure_p0)
+                and int(reference_repair_closure_summary.get("blockedRowCount") or 0) == 0
+                and not reference_repair_closure.get("blockers")
+            )
+        ),
+        {
+            "referenceStyleRepairStatus": reference_repair.get("status"),
+            "referenceStyleRepairSummary": reference_repair_summary,
+            "referenceRepairClosureStatus": reference_repair_closure.get("status"),
+            "referenceRepairClosureSummary": reference_repair_closure_summary,
+            "p0ClosureRows": reference_repair_closure_p0,
+        },
+    )
     reference_batch_summary = get_summary(reference_batch)
     route_summary = get_summary(route_texture)
     director_summary = get_summary(director_intent)
@@ -722,6 +757,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and rhythm_recut_blueprint.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}
         and transition_polish_blueprint.get("status") == "ready_with_transition_polish_blueprint"
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
+        and reference_repair_closure.get("status") in {"passed", "passed_with_evidence_warnings"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
         and int(route_summary.get("matchedTransitions") or 0) >= 1
         and int(rhythm_summary.get("primaryVisualShotCount") or 0) >= 40,
@@ -764,6 +800,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionPolishBlueprintSummary": transition_polish_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
+            "referenceRepairClosureStatus": reference_repair_closure.get("status"),
+            "referenceRepairClosureSummary": reference_repair_closure_summary,
         },
     )
 

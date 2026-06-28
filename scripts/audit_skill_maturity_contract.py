@@ -60,6 +60,7 @@ REQUIRED_SCRIPTS = {
         "prepare_bridge_sequence_plan.py",
         "prepare_bridge_sequence_blueprint.py",
         "prepare_reference_style_repair_plan.py",
+        "audit_reference_repair_closure.py",
         "prepare_rhythm_recut_blueprint.py",
         "prepare_rhythm_recut_apply_package.py",
         "audit_feedback_regressions.py",
@@ -113,6 +114,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bridge_sequence_plan_rule": "prepare_bridge_sequence_plan.py",
     "bridge_sequence_blueprint_rule": "prepare_bridge_sequence_blueprint.py",
     "reference_style_repair_plan_rule": "prepare_reference_style_repair_plan.py",
+    "reference_repair_closure_rule": "audit_reference_repair_closure.py",
     "rhythm_recut_blueprint_rule": "prepare_rhythm_recut_blueprint.py",
     "rhythm_recut_apply_package_rule": "prepare_rhythm_recut_apply_package.py",
     "scenic_audio_overlap_rule": "no A1/A2 voice or source-audio clips overlapping scenic/title/transition windows",
@@ -2937,6 +2939,84 @@ def reference_style_repair_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def reference_repair_closure_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "reference_repair_closure_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rows = data.get("closureRows") if isinstance(data.get("closureRows"), list) else []
+    row_count = len([row for row in rows if isinstance(row, dict)])
+    p0_rows = [row for row in rows if isinstance(row, dict) and row.get("priority") == "P0"]
+    closed_rows = [row for row in rows if isinstance(row, dict) and row.get("status") == "closed"]
+    p0_closed_rows = [row for row in p0_rows if row.get("status") == "closed"]
+    rows_with_owner = sum(1 for row in rows if isinstance(row, dict) and row.get("ownerScriptExists") is True)
+    rows_with_artifact = sum(1 for row in rows if isinstance(row, dict) and row.get("requiredArtifactExists") is True)
+    rows_with_evidence = sum(1 for row in rows if isinstance(row, dict) and row.get("hasReadbackOrFrameSample") is True)
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "referenceStyleRepairPlanExists": inputs.get("referenceStyleRepairPlanExists"),
+        "referenceStyleRepairPlanStatus": inputs.get("referenceStyleRepairPlanStatus"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "p0RepairRowCount": summary.get("p0RepairRowCount"),
+        "closedRowCount": summary.get("closedRowCount"),
+        "p0ClosedRowCount": summary.get("p0ClosedRowCount"),
+        "needsEditorEvidenceRowCount": summary.get("needsEditorEvidenceRowCount"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "rowCount": row_count,
+        "p0RowsByRow": len(p0_rows),
+        "closedRowsByRow": len(closed_rows),
+        "p0ClosedRowsByRow": len(p0_closed_rows),
+        "rowsWithOwnerScript": rows_with_owner,
+        "rowsWithArtifact": rows_with_artifact,
+        "rowsWithEvidence": rows_with_evidence,
+        "blockerCount": len(data.get("blockers") or []),
+        "warningCount": len(data.get("warnings") or []),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+    }
+
+
+def reference_repair_closure_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("repairRowCount") or 0)
+    p0_count = int(evidence.get("p0RepairRowCount") or 0)
+    if evidence.get("referenceStyleRepairPlanStatus") == "ready_no_reference_style_repairs_needed":
+        return (
+            evidence.get("exists")
+            and evidence.get("status") == "passed"
+            and row_count == 0
+            and int(evidence.get("blockedRowCount") or 0) == 0
+            and evidence.get("writesResolve") is False
+            and evidence.get("queuesRender") is False
+            and evidence.get("downloadsExternalAssets") is False
+            and evidence.get("modifiesSourceFootage") is False
+        )
+    return (
+        evidence.get("exists")
+        and evidence.get("referenceStyleRepairPlanExists") is True
+        and evidence.get("status") in {"passed", "passed_with_evidence_warnings"}
+        and row_count >= 1
+        and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("p0RowsByRow") or 0) == p0_count
+        and int(evidence.get("closedRowCount") or 0) == int(evidence.get("closedRowsByRow") or 0)
+        and int(evidence.get("p0ClosedRowCount") or 0) == p0_count
+        and int(evidence.get("p0ClosedRowsByRow") or 0) == p0_count
+        and int(evidence.get("blockedRowCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and int(evidence.get("rowsWithOwnerScript") or 0) == row_count
+        and int(evidence.get("rowsWithArtifact") or 0) == row_count
+        and int(evidence.get("rowsWithEvidence") or 0) >= p0_count
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+    )
+
+
 def rhythm_recut_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json"
     data = load_json(path) or {}
@@ -3566,6 +3646,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Reference style repair plan turns blocked reference, director, and QA checks into executable repair rows",
         reference_style_repair_plan_ready(reference_repair_evidence),
         reference_repair_evidence,
+    )
+    reference_repair_closure = reference_repair_closure_evidence(package_dir)
+    add_check(
+        checks,
+        "Reference repair closure audit proves P0 style repairs are closed before another Resolve claim",
+        reference_repair_closure_ready(reference_repair_closure),
+        reference_repair_closure,
     )
     rhythm_recut_evidence = rhythm_recut_blueprint_evidence(package_dir)
     add_check(

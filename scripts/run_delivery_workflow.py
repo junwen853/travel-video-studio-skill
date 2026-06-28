@@ -630,6 +630,24 @@ def summarize_reference_style_repair_plan(plan: dict[str, Any] | None) -> dict[s
     }
 
 
+def summarize_reference_repair_closure(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "p0RepairRowCount": summary.get("p0RepairRowCount"),
+        "closedRowCount": summary.get("closedRowCount"),
+        "p0ClosedRowCount": summary.get("p0ClosedRowCount"),
+        "needsEditorEvidenceRowCount": summary.get("needsEditorEvidenceRowCount"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_rhythm_recut_apply_package(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -1184,6 +1202,21 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Reference profile available: `{repair.get('referenceProfileAvailable')}`",
             ]
         )
+    if report.get("referenceRepairClosureSummary"):
+        closure = report["referenceRepairClosureSummary"]
+        lines.extend(
+            [
+                "",
+                "## Reference Repair Closure",
+                f"- Exists: `{closure.get('exists')}`",
+                f"- Status: `{closure.get('status')}`",
+                f"- Repair rows: {closure.get('repairRowCount')}",
+                f"- P0 closed: {closure.get('p0ClosedRowCount')} / {closure.get('p0RepairRowCount')}",
+                f"- Closed rows: {closure.get('closedRowCount')}",
+                f"- Needs editor evidence: {closure.get('needsEditorEvidenceRowCount')}",
+                f"- Blocked rows: {closure.get('blockedRowCount')}",
+            ]
+        )
     if report.get("dryRunSummary"):
         dry = report["dryRunSummary"]
         lines.extend(
@@ -1413,6 +1446,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
+    reference_repair_closure_cmd = ["python3", str(SCRIPTS_DIR / "audit_reference_repair_closure.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_reference_repair_closure", reference_repair_closure_cmd, ok_codes={0, 2}))
+
     if args.prepare_rhythm_recut_apply_package:
         rhythm_recut_apply_cmd = [
             "python3",
@@ -1498,6 +1534,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     rhythm_recut_summary = None
     transition_polish_summary = None
     reference_style_repair_summary = None
+    reference_repair_closure_summary = None
     rhythm_recut_apply_summary = None
     resolve_apply_contract_summary = None
     resolve_blueprint_preflight_summary = None
@@ -1591,6 +1628,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             transition_polish_summary = summarize_transition_polish_blueprint(payload)
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
+        if step["id"] == "audit_reference_repair_closure":
+            reference_repair_closure_summary = summarize_reference_repair_closure(payload)
+            if reference_repair_closure_summary and reference_repair_closure_summary.get("status") == "blocked":
+                blockers.extend(f"Reference repair closure blocker: {item}" for item in reference_repair_closure_summary.get("blockers") or [])
+            if reference_repair_closure_summary and reference_repair_closure_summary.get("warnings"):
+                warnings.extend(f"Reference repair closure warning: {item}" for item in reference_repair_closure_summary.get("warnings") or [])
         if step["id"] == "prepare_rhythm_recut_apply_package":
             rhythm_recut_apply_summary = summarize_rhythm_recut_apply_package(payload)
         if step["id"] == "prepare_resolve_apply_contract":
@@ -1719,6 +1762,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
         )
+    if package_dir and (package_dir / "reference_repair_closure_audit.json").exists():
+        reference_repair_closure_summary = summarize_reference_repair_closure(
+            load_json(package_dir / "reference_repair_closure_audit.json")
+        )
     if package_dir and (package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json").exists():
         rhythm_recut_apply_summary = summarize_rhythm_recut_apply_package(
             load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json")
@@ -1784,6 +1831,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "rhythmRecutBlueprintSummary": rhythm_recut_summary,
         "transitionPolishBlueprintSummary": transition_polish_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
+        "referenceRepairClosureSummary": reference_repair_closure_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "resolveApplyContractSummary": resolve_apply_contract_summary,
         "resolveBlueprintPreflightSummary": resolve_blueprint_preflight_summary,
