@@ -51,6 +51,7 @@ SKILL_PATTERNS = {
     "transition_microstructure": "audit_transition_microstructure_contract.py",
     "transition_scene_arc": "audit_transition_scene_arc_contract.py",
     "transition_effect_palette": "audit_transition_effect_palette_contract.py",
+    "transition_visual_match": "audit_transition_visual_match_contract.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
@@ -117,6 +118,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_microstructure_contract.py",
     "audit_transition_scene_arc_contract.py",
     "audit_transition_effect_palette_contract.py",
+    "audit_transition_visual_match_contract.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
@@ -251,6 +253,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_microstructure = load_json(package_dir / "transition_microstructure_contract_audit.json") or {}
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
+    transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
@@ -1295,6 +1298,27 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "transitionEffectPaletteStatus": transition_effect_palette.get("status"),
             "transitionEffectPaletteSummary": transition_effect_palette_summary,
+        },
+    )
+    transition_visual_match_summary = get_summary(transition_visual_match)
+    add_check(
+        checks,
+        "Transition visual match contract proves every adjacent pair has concrete visual, bridge, motion, mood, title, local, or BGM continuity evidence",
+        transition_visual_match.get("status") == "passed"
+        and int(transition_visual_match_summary.get("visualBoundaryCount") or 0) >= 1
+        and int(transition_visual_match_summary.get("transitionRowCount") or 0) >= int(transition_visual_match_summary.get("visualBoundaryCount") or 0)
+        and int(transition_visual_match_summary.get("visualMatchReadyRowCount") or 0) == int(transition_visual_match_summary.get("transitionRowCount") or 0)
+        and int(transition_visual_match_summary.get("blockedRowCount") or 0) == 0
+        and int(transition_visual_match_summary.get("motionTransitionCount") or 0) <= int(transition_visual_match_summary.get("maxMotionAllowed") or 0)
+        and (
+            int(transition_visual_match_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_visual_match_summary.get("importantBridgeOrSceneHandoffCount") or 0) >= int(transition_visual_match_summary.get("importantBoundaryCount") or 0)
+        )
+        and int(transition_visual_match_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_visual_match.get("blockers"),
+        {
+            "transitionVisualMatchStatus": transition_visual_match.get("status"),
+            "transitionVisualMatchSummary": transition_visual_match_summary,
         },
     )
     reference_scene_grammar_summary = get_summary(reference_scene_grammar)
