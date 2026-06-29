@@ -47,6 +47,8 @@ REQUIRED_SCRIPTS = {
         "audit_transition_execution_readiness_contract.py",
         "audit_transition_polish_application_contract.py",
         "audit_resolve_transition_materialization_contract.py",
+        "prepare_resolve_transition_apply_plan.py",
+        "audit_resolve_transition_apply_contract.py",
         "audit_bridge_sequence_application_contract.py",
         "audit_final_blueprint_lineage_contract.py",
         "audit_final_source_usage_contract.py",
@@ -113,6 +115,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_execution_readiness_contract_rule": "audit_transition_execution_readiness_contract.py",
     "transition_polish_application_contract_rule": "audit_transition_polish_application_contract.py",
     "resolve_transition_materialization_contract_rule": "audit_resolve_transition_materialization_contract.py",
+    "resolve_transition_apply_contract_rule": "audit_resolve_transition_apply_contract.py",
     "bridge_sequence_application_contract_rule": "audit_bridge_sequence_application_contract.py",
     "final_blueprint_lineage_contract_rule": "audit_final_blueprint_lineage_contract.py",
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
@@ -170,6 +173,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bridge_sequence_application_contract_reference_rule": "bridge-sequence-application-contract.md",
     "transition_polish_application_contract_reference_rule": "transition-polish-application-contract.md",
     "resolve_transition_materialization_contract_reference_rule": "resolve-transition-materialization-contract.md",
+    "resolve_transition_apply_contract_reference_rule": "resolve-transition-apply-contract.md",
     "final_blueprint_lineage_contract_reference_rule": "final-blueprint-lineage-contract.md",
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
@@ -196,6 +200,7 @@ REQUIRED_STYLE_PATTERNS = {
     "bridge_sequence_application_contract": "bridge-sequence-application-contract.md",
     "transition_polish_application_contract": "transition-polish-application-contract.md",
     "resolve_transition_materialization_contract": "resolve-transition-materialization-contract.md",
+    "resolve_transition_apply_contract": "resolve-transition-apply-contract.md",
     "final_blueprint_lineage_contract": "final-blueprint-lineage-contract.md",
     "final_source_usage_contract": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
@@ -228,6 +233,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_execution_readiness_contract": "transition execution readiness contract",
     "transition_polish_application_contract": "transition polish application contract",
     "resolve_transition_materialization_contract": "Resolve transition materialization contract",
+    "resolve_transition_apply_contract": "Resolve transition apply contract",
     "transition_quality_contract": "transition quality contract",
     "shot_transition_boundary_contract": "shot transition boundary contract",
     "transition_motif_plan": "transition motif plan",
@@ -4249,6 +4255,64 @@ def reference_scene_grammar_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def resolve_transition_apply_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "resolve_transition_apply_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "applyPlanExists": inputs.get("applyPlanExists"),
+        "applyPlanStatus": inputs.get("applyPlanStatus"),
+        "materializationStatus": inputs.get("materializationStatus"),
+        "transitionApplyRowCount": summary.get("transitionApplyRowCount"),
+        "passedRowCount": summary.get("passedRowCount"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "visibleEffectRowCount": summary.get("visibleEffectRowCount"),
+        "visibleEffectRowsWithApplyPath": summary.get("visibleEffectRowsWithApplyPath"),
+        "manualResolveRowCount": summary.get("manualResolveRowCount"),
+        "fallbackBridgeRequiredRowCount": summary.get("fallbackBridgeRequiredRowCount"),
+        "readbackEvidenceRequiredRowCount": summary.get("readbackEvidenceRequiredRowCount"),
+        "decisionFieldRowCount": summary.get("decisionFieldRowCount"),
+        "markerOnlyBlockedRowCount": summary.get("markerOnlyBlockedRowCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def resolve_transition_apply_contract_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("transitionApplyRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("applyPlanExists") is True
+        and evidence.get("applyPlanStatus") == "ready_with_resolve_transition_apply_plan"
+        and evidence.get("materializationStatus") == "passed"
+        and row_count >= 1
+        and int(evidence.get("passedRowCount") or 0) == row_count
+        and int(evidence.get("blockedRowCount") or 0) == 0
+        and int(evidence.get("visibleEffectRowsWithApplyPath") or 0) == int(evidence.get("visibleEffectRowCount") or 0)
+        and int(evidence.get("readbackEvidenceRequiredRowCount") or 0) == row_count
+        and int(evidence.get("decisionFieldRowCount") or 0) == row_count
+        and int(evidence.get("markerOnlyBlockedRowCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def unattended_first_draft_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "unattended_first_draft_contract_audit.json"
     data = load_json(path) or {}
@@ -4756,6 +4820,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Resolve transition materialization contract proves transition recipes survive into Resolve marker payload/readback evidence",
         resolve_transition_materialization_contract_ready(resolve_transition_materialization_evidence),
         resolve_transition_materialization_evidence,
+    )
+    resolve_transition_apply_evidence = resolve_transition_apply_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Resolve transition apply contract proves visible transitions have an API, manual Resolve, or bridge-clip apply path instead of marker-only metadata",
+        resolve_transition_apply_contract_ready(resolve_transition_apply_evidence),
+        resolve_transition_apply_evidence,
     )
     reference_scene_grammar_evidence = reference_scene_grammar_contract_evidence(package_dir)
     add_check(

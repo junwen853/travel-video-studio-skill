@@ -42,6 +42,7 @@ SKILL_PATTERNS = {
     "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
     "transition_polish_application": "audit_transition_polish_application_contract.py",
     "resolve_transition_materialization": "audit_resolve_transition_materialization_contract.py",
+    "resolve_transition_apply": "audit_resolve_transition_apply_contract.py",
     "final_blueprint_lineage": "audit_final_blueprint_lineage_contract.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
@@ -98,6 +99,8 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_polish_blueprint.py",
     "audit_transition_polish_application_contract.py",
     "audit_resolve_transition_materialization_contract.py",
+    "prepare_resolve_transition_apply_plan.py",
+    "audit_resolve_transition_apply_contract.py",
     "audit_final_blueprint_lineage_contract.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
@@ -223,6 +226,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
     transition_polish_application = load_json(package_dir / "transition_polish_application_contract_audit.json") or {}
     resolve_transition_materialization = load_json(package_dir / "resolve_transition_materialization_contract_audit.json") or {}
+    resolve_transition_apply = load_json(package_dir / "resolve_transition_apply_contract_audit.json") or {}
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
@@ -919,6 +923,32 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "resolveReadbackChecked": resolve_transition_materialization_inputs.get("resolveReadbackChecked"),
         },
     )
+    resolve_transition_apply_summary = get_summary(resolve_transition_apply)
+    resolve_transition_apply_inputs = resolve_transition_apply.get("inputs") if isinstance(resolve_transition_apply.get("inputs"), dict) else {}
+    resolve_transition_apply_rows = int(resolve_transition_apply_summary.get("transitionApplyRowCount") or 0)
+    add_check(
+        checks,
+        "Resolve transition apply contract proves visible transitions have a real apply path instead of marker-only metadata",
+        resolve_transition_apply.get("status") == "passed"
+        and resolve_transition_apply_inputs.get("applyPlanExists") is True
+        and resolve_transition_apply_inputs.get("applyPlanStatus") == "ready_with_resolve_transition_apply_plan"
+        and resolve_transition_apply_inputs.get("materializationStatus") == "passed"
+        and resolve_transition_apply_rows >= 1
+        and int(resolve_transition_apply_summary.get("passedRowCount") or 0) == resolve_transition_apply_rows
+        and int(resolve_transition_apply_summary.get("blockedRowCount") or 0) == 0
+        and int(resolve_transition_apply_summary.get("visibleEffectRowsWithApplyPath") or 0) == int(resolve_transition_apply_summary.get("visibleEffectRowCount") or 0)
+        and int(resolve_transition_apply_summary.get("readbackEvidenceRequiredRowCount") or 0) == resolve_transition_apply_rows
+        and int(resolve_transition_apply_summary.get("decisionFieldRowCount") or 0) == resolve_transition_apply_rows
+        and int(resolve_transition_apply_summary.get("markerOnlyBlockedRowCount") or 0) == 0
+        and int(resolve_transition_apply_summary.get("blockerCount") or 0) == 0
+        and not resolve_transition_apply.get("blockers"),
+        {
+            "resolveTransitionApplyStatus": resolve_transition_apply.get("status"),
+            "resolveTransitionApplySummary": resolve_transition_apply_summary,
+            "applyPlanStatus": resolve_transition_apply_inputs.get("applyPlanStatus"),
+            "materializationStatus": resolve_transition_apply_inputs.get("materializationStatus"),
+        },
+    )
     final_blueprint_lineage_summary = get_summary(final_blueprint_lineage)
     final_blueprint_lineage_inputs = final_blueprint_lineage.get("inputs") if isinstance(final_blueprint_lineage.get("inputs"), dict) else {}
     final_blueprint_lineage_required = int(final_blueprint_lineage_summary.get("requiredMinimumReadyStages") or final_blueprint_lineage_inputs.get("minimumReadyStages") or 5)
@@ -1204,6 +1234,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_polish_blueprint.get("status") == "ready_with_transition_polish_blueprint"
         and transition_polish_application.get("status") == "passed"
         and resolve_transition_materialization.get("status") == "passed"
+        and resolve_transition_apply.get("status") == "passed"
         and final_blueprint_lineage.get("status") == "passed"
         and transition_quality.get("status") == "passed"
         and shot_transition_boundary.get("status") == "passed"
@@ -1266,6 +1297,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionPolishApplicationSummary": transition_polish_application_summary,
             "resolveTransitionMaterializationStatus": resolve_transition_materialization.get("status"),
             "resolveTransitionMaterializationSummary": resolve_transition_materialization_summary,
+            "resolveTransitionApplyStatus": resolve_transition_apply.get("status"),
+            "resolveTransitionApplySummary": resolve_transition_apply_summary,
             "finalBlueprintLineageStatus": final_blueprint_lineage.get("status"),
             "finalBlueprintLineageSummary": final_blueprint_lineage_summary,
             "transitionQualityStatus": transition_quality.get("status"),

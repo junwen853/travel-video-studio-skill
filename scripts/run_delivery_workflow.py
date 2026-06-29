@@ -892,6 +892,32 @@ def summarize_resolve_transition_materialization_contract(report: dict[str, Any]
     }
 
 
+def summarize_resolve_transition_apply_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "applyPlanStatus": inputs.get("applyPlanStatus"),
+        "materializationStatus": inputs.get("materializationStatus"),
+        "transitionApplyRowCount": summary.get("transitionApplyRowCount"),
+        "passedRowCount": summary.get("passedRowCount"),
+        "blockedRowCount": summary.get("blockedRowCount"),
+        "visibleEffectRowCount": summary.get("visibleEffectRowCount"),
+        "visibleEffectRowsWithApplyPath": summary.get("visibleEffectRowsWithApplyPath"),
+        "manualResolveRowCount": summary.get("manualResolveRowCount"),
+        "fallbackBridgeRequiredRowCount": summary.get("fallbackBridgeRequiredRowCount"),
+        "readbackEvidenceRequiredRowCount": summary.get("readbackEvidenceRequiredRowCount"),
+        "decisionFieldRowCount": summary.get("decisionFieldRowCount"),
+        "markerOnlyBlockedRowCount": summary.get("markerOnlyBlockedRowCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_creator_cut_application_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2028,6 +2054,12 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     resolve_transition_materialization_cmd = ["python3", str(SCRIPTS_DIR / "audit_resolve_transition_materialization_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_resolve_transition_materialization_contract", resolve_transition_materialization_cmd, ok_codes={0, 2}))
 
+    resolve_transition_apply_plan_cmd = ["python3", str(SCRIPTS_DIR / "prepare_resolve_transition_apply_plan.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("prepare_resolve_transition_apply_plan", resolve_transition_apply_plan_cmd, ok_codes={0, 2}))
+
+    resolve_transition_apply_contract_cmd = ["python3", str(SCRIPTS_DIR / "audit_resolve_transition_apply_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_resolve_transition_apply_contract", resolve_transition_apply_contract_cmd, ok_codes={0, 2}))
+
     bridge_sequence_application_cmd = ["python3", str(SCRIPTS_DIR / "audit_bridge_sequence_application_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_bridge_sequence_application_contract", bridge_sequence_application_cmd, ok_codes={0, 2}))
 
@@ -2146,6 +2178,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_execution_readiness_summary = None
     transition_polish_application_summary = None
     resolve_transition_materialization_summary = None
+    resolve_transition_apply_summary = None
     bridge_sequence_application_summary = None
     final_blueprint_lineage_summary = None
     final_source_usage_summary = None
@@ -2309,6 +2342,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Resolve transition materialization blocker: {item}" for item in resolve_transition_materialization_summary.get("blockers") or [])
             if resolve_transition_materialization_summary and resolve_transition_materialization_summary.get("warnings"):
                 warnings.extend(f"Resolve transition materialization warning: {item}" for item in resolve_transition_materialization_summary.get("warnings") or [])
+        if step["id"] in {"prepare_resolve_transition_apply_plan", "audit_resolve_transition_apply_contract"}:
+            resolve_transition_apply_summary = summarize_resolve_transition_apply_contract(payload)
+            if resolve_transition_apply_summary and str(resolve_transition_apply_summary.get("status") or "").startswith("blocked"):
+                blockers.extend(f"Resolve transition apply blocker: {item}" for item in resolve_transition_apply_summary.get("blockers") or [])
+            if resolve_transition_apply_summary and resolve_transition_apply_summary.get("warnings"):
+                warnings.extend(f"Resolve transition apply warning: {item}" for item in resolve_transition_apply_summary.get("warnings") or [])
         if step["id"] == "audit_bridge_sequence_application_contract":
             bridge_sequence_application_summary = summarize_bridge_sequence_application_contract(payload)
             if bridge_sequence_application_summary and bridge_sequence_application_summary.get("status") == "blocked":
@@ -2523,6 +2562,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         resolve_transition_materialization_summary = summarize_resolve_transition_materialization_contract(
             load_json(package_dir / "resolve_transition_materialization_contract_audit.json")
         )
+    if package_dir and (package_dir / "resolve_transition_apply_contract_audit.json").exists():
+        resolve_transition_apply_summary = summarize_resolve_transition_apply_contract(
+            load_json(package_dir / "resolve_transition_apply_contract_audit.json")
+        )
     if package_dir and (package_dir / "bridge_sequence_application_contract_audit.json").exists():
         bridge_sequence_application_summary = summarize_bridge_sequence_application_contract(
             load_json(package_dir / "bridge_sequence_application_contract_audit.json")
@@ -2631,6 +2674,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionExecutionReadinessSummary": transition_execution_readiness_summary,
         "transitionPolishApplicationSummary": transition_polish_application_summary,
         "resolveTransitionMaterializationSummary": resolve_transition_materialization_summary,
+        "resolveTransitionApplySummary": resolve_transition_apply_summary,
         "bridgeSequenceApplicationSummary": bridge_sequence_application_summary,
         "finalBlueprintLineageSummary": final_blueprint_lineage_summary,
         "finalSourceUsageSummary": final_source_usage_summary,
@@ -2685,6 +2729,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review transition_execution_readiness_contract_audit.json before Resolve apply so every transition has a package-local Resolve recipe, BGM hit, title-safe window, pair readiness, handles, and decision fields.",
             "Review transition_polish_application_contract_audit.json before Resolve apply so final/active blueprints do not drop transition-polish metadata after candidate generation.",
             "Review resolve_transition_materialization_contract_audit.json before Resolve apply so transition recipe/effect payloads survive into Resolve markers/readback instead of remaining only as planning text.",
+            "Review resolve_transition_apply_plan.json and resolve_transition_apply_contract_audit.json before Resolve apply so visible transitions are not marker-only and manual Resolve/Fusion or bridge-clip steps have readback/frame evidence.",
             "Review bridge_sequence_application_contract_audit.json before Resolve apply so planned 2-5 shot bridge sequences survive into the final candidate blueprint.",
             "Review final_blueprint_lineage_contract_audit.json before Resolve apply so the active final blueprint inherits the latest ready candidate chain instead of an old or partial blueprint.",
             "Review final_source_usage_contract_audit.json before Resolve apply so the final raw clips actually come from footage_select_plan hero/main/texture choices and do not reintroduce unmatched, repair, reject, or utility-dominant sources.",

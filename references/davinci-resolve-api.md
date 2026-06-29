@@ -104,6 +104,7 @@ The plugin can:
 - preserve source/camera audio on A1 for footage clips marked `includeSourceAudio` by omitting `mediaType` in Resolve's append call
 - enrich blueprints with subtitle cues, voiceover/BGM mix plans, stock/aerial placeholders, transition plans, and timeline markers
 - write chapter, voiceover, BGM, stock/aerial, and transition markers to Resolve timelines during approved `--apply`
+- preserve transition recipe payloads in marker customData and prepare/audit apply plans that separate API-supported cuts/bridge clips from manual Resolve/Fusion/effect steps
 - import transparent subtitle overlay videos as normal video clips on V3 when visible captions are required
 - save the project
 - report skipped/missing source files
@@ -120,9 +121,15 @@ Known subtitle boundary:
 - Resolve Studio 21 local smoke testing can create a subtitle track through the Python API, but `Timeline.ImportIntoTimeline(<srt>)` returned `False` and readback showed zero subtitle items. Do not claim native SRT import unless a fresh smoke test proves it on the user's installed Resolve version.
 - For visible subtitles, generate an alpha overlay movie with `scripts/prepare_subtitle_overlay_asset.py`, add it to the blueprint as a V3 `subtitle_overlay_video`, write the Resolve timeline, and verify V3 item count/readback. For sidecar-only delivery, record that choice in the final report and expect `audit_story_style_contract.py` to warn unless sidecar was explicitly requested.
 
+Known transition boundary:
+
+- The local Resolve scripting README documents timeline item `SetProperty`, markers/customData, Fusion comp import, and timeline import/export methods, but it does not document a stable direct API for applying arbitrary adjacent-clip transitions such as Cross Dissolve, whip, rotation, push, slide, or speed ramp between two timeline items.
+- Run `prepare_resolve_transition_apply_plan.py` and `audit_resolve_transition_apply_contract.py` before Resolve apply. Visible effects must have either an explicit manual Resolve/Fusion/effect instruction plus readback/frame evidence, or a real materialized bridge-clip fallback. Marker-only transition payloads are not enough.
+
 Still required for later passes:
 
 - exact Resolve-native subtitle item creation if a supported API path is later verified
+- verified Resolve-native adjacent-transition application if a stable official API path is later documented and smoke-tested
 - route/map graphics beyond static cards
 - color correction and stabilization
 - extended Resolve render status polling, retry handling, and post-render publish automation

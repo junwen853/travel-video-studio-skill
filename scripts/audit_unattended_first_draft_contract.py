@@ -413,6 +413,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_execution_readiness = load_json(package_dir / "transition_execution_readiness_contract_audit.json") or {}
     transition_polish_application = load_json(package_dir / "transition_polish_application_contract_audit.json") or {}
     resolve_transition_materialization = load_json(package_dir / "resolve_transition_materialization_contract_audit.json") or {}
+    resolve_transition_apply = load_json(package_dir / "resolve_transition_apply_contract_audit.json") or {}
     bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
@@ -423,6 +424,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     ter_summary = summary_of(transition_execution_readiness)
     tpa_summary = summary_of(transition_polish_application)
     rtm_summary = summary_of(resolve_transition_materialization)
+    rta_summary = summary_of(resolve_transition_apply)
     bsa_summary = summary_of(bridge_sequence_application)
     fbl_summary = summary_of(final_blueprint_lineage)
     rsg_summary = summary_of(reference_scene_grammar)
@@ -436,6 +438,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_execution_readiness.get("status") == "passed"
         and transition_polish_application.get("status") == "passed"
         and resolve_transition_materialization.get("status") == "passed"
+        and resolve_transition_apply.get("status") == "passed"
         and bridge_sequence_application.get("status") == "passed"
         and final_blueprint_lineage.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
@@ -459,6 +462,12 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(rtm_summary.get("transitionCandidateCount")) >= 1
         and as_int(rtm_summary.get("transitionRowsWithMarkerPayload")) == as_int(rtm_summary.get("transitionCandidateCount"))
         and as_int(rtm_summary.get("transitionRowsWithClipAnnotation")) == as_int(rtm_summary.get("transitionCandidateCount"))
+        and as_int(rta_summary.get("blockedRowCount")) == 0
+        and as_int(rta_summary.get("transitionApplyRowCount")) >= 1
+        and as_int(rta_summary.get("passedRowCount")) == as_int(rta_summary.get("transitionApplyRowCount"))
+        and as_int(rta_summary.get("visibleEffectRowsWithApplyPath")) == as_int(rta_summary.get("visibleEffectRowCount"))
+        and as_int(rta_summary.get("markerOnlyBlockedRowCount")) == 0
+        and as_int(rta_summary.get("decisionFieldRowCount")) == as_int(rta_summary.get("transitionApplyRowCount"))
         and as_int(bsa_summary.get("blockedSequenceRowCount")) == 0
         and as_int(bsa_summary.get("missingBeatClipCount")) == 0
         and as_int(bsa_summary.get("sourceAudioLeakClipCount")) == 0
@@ -476,6 +485,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_execution_readiness.get("blockers")
         and not transition_polish_application.get("blockers")
         and not resolve_transition_materialization.get("blockers")
+        and not resolve_transition_apply.get("blockers")
         and not bridge_sequence_application.get("blockers")
         and not final_blueprint_lineage.get("blockers")
         and not reference_scene_grammar.get("blockers"),
@@ -497,6 +507,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionPolishApplicationSummary": tpa_summary,
             "resolveTransitionMaterializationStatus": resolve_transition_materialization.get("status"),
             "resolveTransitionMaterializationSummary": rtm_summary,
+            "resolveTransitionApplyStatus": resolve_transition_apply.get("status"),
+            "resolveTransitionApplySummary": rta_summary,
             "bridgeSequenceApplicationStatus": bridge_sequence_application.get("status"),
             "bridgeSequenceApplicationSummary": bsa_summary,
             "finalBlueprintLineageStatus": final_blueprint_lineage.get("status"),

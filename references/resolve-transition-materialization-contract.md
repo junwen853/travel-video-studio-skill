@@ -22,6 +22,6 @@ The audit may pass only when:
 
 ## Failure Policy
 
-If this audit blocks, do not approve Resolve apply or call the edit V14-ready. Repair the candidate/final blueprint so transition markers carry row and recipe payloads, or repair the Resolve adapter if marker customData is being dropped. Then rerun this audit, unattended-first-draft, Skill maturity, V14 baseline, and the final QA suite.
+If this audit blocks, do not approve Resolve apply or call the edit V14-ready. Repair the candidate/final blueprint so transition markers carry row and recipe payloads, or repair the Resolve adapter if marker customData is being dropped. Then run `prepare_resolve_transition_apply_plan.py` and `audit_resolve_transition_apply_contract.py`, followed by unattended-first-draft, Skill maturity, V14 baseline, and the final QA suite.
 
 This contract is the guard against a common weak edit: the plan says "rotation/whip/dissolve on BGM hit", but the actual Resolve handoff only contains plain adjacent clips and generic markers.
