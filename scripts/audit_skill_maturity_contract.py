@@ -43,6 +43,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_quality_contract.py",
         "audit_shot_transition_boundary_contract.py",
         "audit_transition_motivation_contract.py",
+        "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
         "prepare_caption_story_plan.py",
         "audit_audience_caption_contract.py",
@@ -99,6 +100,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_quality_contract_rule": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract_rule": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract_rule": "audit_transition_motivation_contract.py",
+    "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
     "caption_story_plan_rule": "prepare_caption_story_plan.py",
     "audience_caption_contract_rule": "audience-facing travel-film text",
@@ -3607,6 +3609,47 @@ def transition_motivation_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def unattended_first_draft_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "unattended_first_draft_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "passedGateCount": summary.get("passedGateCount"),
+        "blockedGateCount": summary.get("blockedGateCount"),
+        "warningGateCount": summary.get("warningGateCount"),
+        "requiredGateCount": summary.get("requiredGateCount"),
+        "totalGateCount": summary.get("totalGateCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "warningCount": len(data.get("warnings") or []),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def unattended_first_draft_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") in {"passed", "passed_with_warnings"}
+        and int(evidence.get("requiredGateCount") or 0) >= 14
+        and int(evidence.get("totalGateCount") or 0) >= int(evidence.get("requiredGateCount") or 0)
+        and int(evidence.get("blockedGateCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and int(evidence.get("passedGateCount") or 0) >= int(evidence.get("requiredGateCount") or 0)
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def rhythm_recut_apply_package_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json"
     if not path.exists():
@@ -4017,6 +4060,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition motivation contract proves every transition has route, bridge, motion, title, or BGM reasoning",
         transition_motivation_contract_ready(transition_motivation_evidence),
         transition_motivation_evidence,
+    )
+    unattended_first_draft_evidence = unattended_first_draft_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Unattended first-draft contract proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected",
+        unattended_first_draft_contract_ready(unattended_first_draft_evidence),
+        unattended_first_draft_evidence,
     )
     rhythm_recut_apply_evidence = rhythm_recut_apply_package_evidence(package_dir)
     add_check(

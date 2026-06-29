@@ -716,6 +716,23 @@ def summarize_transition_motivation_contract(report: dict[str, Any] | None) -> d
     }
 
 
+def summarize_unattended_first_draft_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "passedGateCount": summary.get("passedGateCount"),
+        "blockedGateCount": summary.get("blockedGateCount"),
+        "warningGateCount": summary.get("warningGateCount"),
+        "requiredGateCount": summary.get("requiredGateCount"),
+        "totalGateCount": summary.get("totalGateCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_reference_style_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -794,6 +811,18 @@ def summarize_caption_story_plan(plan: dict[str, Any] | None) -> dict[str, Any] 
         "maxGapSeconds": summary.get("maxGapSeconds"),
         "titleZoneCount": summary.get("titleZoneCount"),
         "textOnlyNarrationExport": summary.get("textOnlyNarrationExport"),
+    }
+
+
+def summarize_audience_caption_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "checkedFileCount": report.get("checkedFileCount"),
+        "violationCount": report.get("violationCount"),
+        "checkedFiles": report.get("checkedFiles") or [],
     }
 
 
@@ -1104,6 +1133,18 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Text export: `{caption.get('textOnlyNarrationExport')}`",
             ]
         )
+    if report.get("audienceCaptionSummary"):
+        audience = report["audienceCaptionSummary"]
+        lines.extend(
+            [
+                "",
+                "## Audience Caption Contract",
+                f"- Exists: `{audience.get('exists')}`",
+                f"- Status: `{audience.get('status')}`",
+                f"- Checked files: {audience.get('checkedFileCount')}",
+                f"- Violations: {audience.get('violationCount')}",
+            ]
+        )
     if report.get("titleTypographySummary"):
         title = report["titleTypographySummary"]
         lines.extend(
@@ -1392,6 +1433,18 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Forbidden hits: {motivation.get('forbiddenHitCount')}",
             ]
         )
+    if report.get("unattendedFirstDraftSummary"):
+        first_draft = report["unattendedFirstDraftSummary"]
+        lines.extend(
+            [
+                "",
+                "## Unattended First Draft Contract",
+                f"- Exists: `{first_draft.get('exists')}`",
+                f"- Status: `{first_draft.get('status')}`",
+                f"- Passed/blocked/warning gates: {first_draft.get('passedGateCount')} / {first_draft.get('blockedGateCount')} / {first_draft.get('warningGateCount')}",
+                f"- Required/total gates: {first_draft.get('requiredGateCount')} / {first_draft.get('totalGateCount')}",
+            ]
+        )
     if report.get("referenceStyleRepairSummary"):
         repair = report["referenceStyleRepairSummary"]
         lines.extend(
@@ -1607,6 +1660,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     caption_story_cmd = ["python3", str(SCRIPTS_DIR / "prepare_caption_story_plan.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_caption_story_plan", caption_story_cmd))
 
+    audience_caption_cmd = ["python3", str(SCRIPTS_DIR / "audit_audience_caption_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_audience_caption_contract", audience_caption_cmd, ok_codes={0, 2}))
+
     title_typography_cmd = ["python3", str(SCRIPTS_DIR / "prepare_title_typography_plan.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_title_typography_plan", title_typography_cmd))
 
@@ -1708,6 +1764,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("resolve_blueprint_preflight", preflight_cmd, ok_codes={0, 2}))
 
+    unattended_first_draft_cmd = ["python3", str(SCRIPTS_DIR / "audit_unattended_first_draft_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_unattended_first_draft_contract", unattended_first_draft_cmd, ok_codes={0, 2}))
+
     audit_cmd = ["python3", str(SCRIPTS_DIR / "audit_delivery_package.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_delivery_package", audit_cmd, ok_codes={0, 2}))
 
@@ -1743,6 +1802,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     bgm_selection_summary = None
     transition_bridge_summary = None
     caption_story_summary = None
+    audience_caption_summary = None
     title_typography_summary = None
     cover_title_summary = None
     visual_establishing_summary = None
@@ -1765,6 +1825,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_quality_summary = None
     shot_transition_boundary_summary = None
     transition_motivation_summary = None
+    unattended_first_draft_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
     rhythm_recut_apply_summary = None
@@ -1834,6 +1895,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             transition_bridge_summary = summarize_transition_bridge_plan(payload)
         if step["id"] == "prepare_caption_story_plan":
             caption_story_summary = summarize_caption_story_plan(payload)
+        if step["id"] == "audit_audience_caption_contract":
+            audience_caption_summary = summarize_audience_caption_contract(payload)
+            if audience_caption_summary and audience_caption_summary.get("status") == "blocked":
+                blockers.append(
+                    f"Audience caption blocker: {audience_caption_summary.get('violationCount')} editor-facing caption/TXT violations"
+                )
         if step["id"] == "prepare_title_typography_plan":
             title_typography_summary = summarize_title_typography_plan(payload)
         if step["id"] == "audit_cover_title_contract":
@@ -1910,6 +1977,18 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Resolve blueprint preflight blocker: {item}" for item in payload.get("blockers") or [])
             elif payload and payload.get("warnings"):
                 warnings.extend(f"Resolve blueprint preflight warning: {item}" for item in payload.get("warnings") or [])
+        if step["id"] == "audit_unattended_first_draft_contract":
+            unattended_first_draft_summary = summarize_unattended_first_draft_contract(payload)
+            if unattended_first_draft_summary and unattended_first_draft_summary.get("status") == "blocked":
+                blockers.extend(
+                    f"Unattended first draft blocker: {item}"
+                    for item in unattended_first_draft_summary.get("blockers") or []
+                )
+            if unattended_first_draft_summary and unattended_first_draft_summary.get("warnings"):
+                warnings.extend(
+                    f"Unattended first draft warning: {item}"
+                    for item in unattended_first_draft_summary.get("warnings") or []
+                )
         if step["id"] == "resolve_timeline_dry_run":
             dry_run_summary = payload
         if not step["ok"]:
@@ -1955,6 +2034,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "caption_story_plan" / "caption_story_plan.json").exists():
         caption_story_summary = summarize_caption_story_plan(
             load_json(package_dir / "caption_story_plan" / "caption_story_plan.json")
+        )
+    if package_dir and (package_dir / "audience_caption_contract_audit.json").exists():
+        audience_caption_summary = summarize_audience_caption_contract(
+            load_json(package_dir / "audience_caption_contract_audit.json")
         )
     if package_dir and (package_dir / "title_typography_plan" / "title_typography_plan.json").exists():
         title_typography_summary = summarize_title_typography_plan(
@@ -2065,6 +2148,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         resolve_apply_contract_summary = summarize_resolve_apply_contract(load_json(package_dir / "resolve_apply_contract.json"))
     if not resolve_blueprint_preflight_summary and package_dir and (package_dir / "resolve_blueprint_preflight.json").exists():
         resolve_blueprint_preflight_summary = summarize_blueprint_preflight(load_json(package_dir / "resolve_blueprint_preflight.json"))
+    if package_dir and (package_dir / "unattended_first_draft_contract_audit.json").exists():
+        unattended_first_draft_summary = summarize_unattended_first_draft_contract(
+            load_json(package_dir / "unattended_first_draft_contract_audit.json")
+        )
 
     final_status = status
     if not final_status:
@@ -2072,6 +2159,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             final_status = "blocked"
         elif any(not step["ok"] for step in steps):
             final_status = "failed"
+        elif blockers:
+            final_status = "blocked"
         elif audit_summary and audit_summary.get("status"):
             final_status = str(audit_summary["status"])
         else:
@@ -2099,6 +2188,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "bgmSelectionSummary": bgm_selection_summary,
         "transitionBridgeSummary": transition_bridge_summary,
         "captionStorySummary": caption_story_summary,
+        "audienceCaptionSummary": audience_caption_summary,
         "titleTypographySummary": title_typography_summary,
         "coverTitleSummary": cover_title_summary,
         "visualEstablishingSummary": visual_establishing_summary,
@@ -2121,6 +2211,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionQualitySummary": transition_quality_summary,
         "shotTransitionBoundarySummary": shot_transition_boundary_summary,
         "transitionMotivationSummary": transition_motivation_summary,
+        "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
@@ -2149,6 +2240,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review chapter_arc_plan.json before rhythm/creator-cut/Resolve apply so every chapter has context, movement, lived-in texture, payoff, and aftertaste decisions.",
             "Fill transition_bridge_plan.json local bridge or stock/aerial fallback decisions before final claims.",
             "Review caption_story_plan/text_only_narration_export.txt and dense SRT before subtitle overlay generation.",
+            "Review audience_caption_contract_audit.json so final captions/TXT are viewer-facing travel-film text, not edit-status reports.",
             "Review title_typography_plan.json before generating or trusting title bridge media.",
             "Review visual_establishing_plan.json before trusting opening/chapter/ending aerial, landmark, or city establishing shots.",
             "Review effect_motion_plan.json before adding Resolve title, route, or transition effects.",
@@ -2166,6 +2258,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review transition_motivation_contract_audit.json before Resolve apply so each transition has a viewer-facing route, motion, title, bridge, or BGM motivation instead of a decorative effect.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
+            "Review unattended_first_draft_contract_audit.json before Resolve apply or handoff; it proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected.",
             "Review reference_style_repair_plan.json so blocked reference/director/QA gaps become executable repair rows before another Resolve write.",
             "When the rhythm recut candidate is approved, generate/review the rhythm recut apply package before any Resolve write.",
             "Approve local TTS, recorded voiceover, or imported narration audio.",

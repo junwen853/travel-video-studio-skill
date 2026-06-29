@@ -18,6 +18,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Converts transition decisions into Resolve-ready recipes and candidate blueprint metadata, audits the whole transition motif chain, plans 2-5 shot bridge sequences, materializes those beats, and adds final BGM-hit/title-safe/motion-proven transition polish metadata into non-destructive Resolve candidate blueprints.
 - Runs rhythm recut candidates from the latest BGM phrase blueprint so long-shot repairs preserve transition, effect, and music-cue metadata.
 - Converts blocked reference/director/QA style gaps into concrete repair rows with owner scripts, required artifacts, and acceptance evidence.
+- Audits the unattended first-draft chain before Resolve apply, connecting raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight into one gate.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
 - Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, route texture, export quality, and V14 baseline maturity.
 
@@ -71,9 +72,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.25.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.25/travel-video-studio-skill-v0.1.25.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.25.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.26.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.26/travel-video-studio-skill-v0.1.26.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.26.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -162,6 +163,8 @@ A delivery package usually contains:
 - `transition_quality_contract_audit.md`
 - `shot_transition_boundary_contract_audit.md`
 - `transition_motivation_contract_audit.md`
+- `audience_caption_contract_audit.md`
+- `unattended_first_draft_contract_audit.md`
 - `title_typography_plan/title_typography_plan.md`
 - `cover_title_contract_audit.md`
 - `raw_intake_completeness_audit.md`
