@@ -42,6 +42,7 @@ SKILL_PATTERNS = {
     "bridge_sequence_blueprint": "prepare_bridge_sequence_blueprint.py",
     "bridge_sequence_application": "audit_bridge_sequence_application_contract.py",
     "rhythm_recut_blueprint": "prepare_rhythm_recut_blueprint.py",
+    "rhythm_recut_application": "audit_rhythm_recut_application_contract.py",
     "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
     "transition_polish_application": "audit_transition_polish_application_contract.py",
     "resolve_transition_materialization": "audit_resolve_transition_materialization_contract.py",
@@ -108,6 +109,7 @@ REQUIRED_SCRIPTS = [
     "prepare_bridge_sequence_blueprint.py",
     "audit_bridge_sequence_application_contract.py",
     "prepare_rhythm_recut_blueprint.py",
+    "audit_rhythm_recut_application_contract.py",
     "prepare_transition_polish_blueprint.py",
     "audit_transition_polish_application_contract.py",
     "audit_resolve_transition_materialization_contract.py",
@@ -244,6 +246,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     bridge_sequence_blueprint = load_json(package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json") or {}
     bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
     rhythm_recut_blueprint = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
+    rhythm_recut_application = load_json(package_dir / "rhythm_recut_application_contract_audit.json") or {}
     transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
     transition_polish_application = load_json(package_dir / "transition_polish_application_contract_audit.json") or {}
     resolve_transition_materialization = load_json(package_dir / "resolve_transition_materialization_contract_audit.json") or {}
@@ -883,6 +886,24 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionCueCount": rhythm_recut_transition_cues,
         },
     )
+    rhythm_recut_application_summary = get_summary(rhythm_recut_application)
+    add_check(
+        checks,
+        "Rhythm recut application contract proves recut main segments and cutaways survive into the final candidate",
+        rhythm_recut_application.get("status") == "passed"
+        and int(rhythm_recut_application_summary.get("blockedRecutRowCount") or 0) == 0
+        and (
+            rhythm_recut_application_summary.get("recutStatus") == "ready_no_recut_needed"
+            or int(rhythm_recut_application_summary.get("finalRhythmRecutCutawayCount") or 0) >= 1
+        )
+        and int(rhythm_recut_application_summary.get("blockerCount") or 0) == 0
+        and not rhythm_recut_application.get("blockers"),
+        {
+            "rhythmRecutApplicationStatus": rhythm_recut_application.get("status"),
+            "rhythmRecutApplicationSummary": rhythm_recut_application_summary,
+            "blockers": rhythm_recut_application.get("blockers"),
+        },
+    )
     transition_polish_summary = get_summary(transition_polish_blueprint)
     transition_polish_outputs = transition_polish_blueprint.get("outputs") if isinstance(transition_polish_blueprint.get("outputs"), dict) else {}
     transition_polish_inputs = transition_polish_blueprint.get("inputs") if isinstance(transition_polish_blueprint.get("inputs"), dict) else {}
@@ -1452,6 +1473,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and effect_motion_blueprint.get("status") == "ready_with_effect_motion_blueprint"
         and bgm_phrase_blueprint.get("status") == "ready_with_bgm_phrase_blueprint"
         and rhythm_recut_blueprint.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}
+        and rhythm_recut_application.get("status") == "passed"
         and transition_polish_blueprint.get("status") == "ready_with_transition_polish_blueprint"
         and transition_polish_application.get("status") == "passed"
         and resolve_transition_materialization.get("status") == "passed"
@@ -1517,6 +1539,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "bgmPhraseBlueprintSummary": bgm_phrase_blueprint_summary,
             "rhythmRecutBlueprintStatus": rhythm_recut_blueprint.get("status"),
             "rhythmRecutBlueprintSummary": rhythm_recut_blueprint_summary,
+            "rhythmRecutApplicationStatus": rhythm_recut_application.get("status"),
+            "rhythmRecutApplicationSummary": rhythm_recut_application_summary,
             "transitionPolishBlueprintStatus": transition_polish_blueprint.get("status"),
             "transitionPolishBlueprintSummary": transition_polish_summary,
             "transitionPolishApplicationStatus": transition_polish_application.get("status"),

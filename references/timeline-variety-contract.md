@@ -9,6 +9,7 @@ Use it after these upstream reports exist:
 - `edit_rhythm_plan/edit_rhythm_plan.json`
 - `creator_cut_plan/creator_cut_plan.json`
 - `final_blueprint_lineage_contract_audit.json`
+- `rhythm_recut_application_contract_audit.json`
 - `transition_cadence_contract_audit.json`
 - `final_source_usage_contract_audit.json`
 - `creator_cut_application_contract_audit.json`
@@ -36,6 +37,7 @@ A passed report means:
 - creator-cut application matched every visual clip and no weak, rejected, or utility-heavy clip run remains;
 - the full film includes route movement, lived-in/street texture, destination/landmark payoff, and ending aftertaste;
 - edit-rhythm rows are decision-complete and no chapter still needs variety or retiming;
+- rhythm-recut application proves long raw holds were actually split or cut away in the final candidate when the rhythm plan required it;
 - transition cadence and final blueprint lineage passed, but they are not being used to hide weak shot choice;
 - reference scene grammar proved the opening, chapters, and ending carry the same function variety.
 
@@ -46,6 +48,7 @@ If this audit blocks, repair the named owner report instead of adding more decor
 - source repetition or reject/repair footage: repair `final_source_usage_contract_audit.json`;
 - same function or weak active clips: repair `creator_cut_application_contract_audit.json`;
 - missing movement/texture/payoff/aftertaste: repair `creator_cut_plan.json`, `edit_rhythm_plan.json`, or the final blueprint;
+- long raw holds or missing cutaways: repair `rhythm_recut_application_contract_audit.json` and rebuild the rhythm recut/transition-polish candidate chain;
 - chapter variety gaps: repair `edit_rhythm_plan.json` and `chapter_arc_plan.json`;
 - transition polish hiding weak material: repair `transition_cadence_contract_audit.json` and `final_blueprint_lineage_contract_audit.json`;
 - weak opening/chapter/ending structure: repair `reference_scene_grammar_contract_audit.json`.

@@ -87,6 +87,7 @@ REQUIRED_SCRIPTS = {
         "prepare_reference_style_repair_plan.py",
         "audit_reference_repair_closure.py",
         "prepare_rhythm_recut_blueprint.py",
+        "audit_rhythm_recut_application_contract.py",
         "prepare_rhythm_recut_apply_package.py",
         "audit_feedback_regressions.py",
         "audit_title_bridge_contract.py",
@@ -167,6 +168,7 @@ REQUIRED_SKILL_PATTERNS = {
     "reference_style_repair_plan_rule": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure_rule": "audit_reference_repair_closure.py",
     "rhythm_recut_blueprint_rule": "prepare_rhythm_recut_blueprint.py",
+    "rhythm_recut_application_contract_rule": "audit_rhythm_recut_application_contract.py",
     "rhythm_recut_apply_package_rule": "prepare_rhythm_recut_apply_package.py",
     "scenic_audio_overlap_rule": "no A1/A2 voice or source-audio clips overlapping scenic/title/transition windows",
     "strict_package_handoff": "strict portable",
@@ -202,6 +204,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_visual_match_contract_reference_rule": "transition-visual-match-contract.md",
     "timeline_variety_contract_reference_rule": "timeline-variety-contract.md",
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
+    "rhythm_recut_application_contract_reference_rule": "rhythm-recut-application-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine_rule": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine_rule": "transition-execution-readiness-engine.md",
@@ -4913,6 +4916,94 @@ def unattended_first_draft_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def rhythm_recut_application_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "rhythm_recut_application_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    upstream = inputs.get("upstreamReports") if isinstance(inputs.get("upstreamReports"), dict) else {}
+    rows = data.get("recutRows") if isinstance(data.get("recutRows"), list) else []
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprint": inputs.get("blueprint"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "upstreamReadyCount": sum(
+            1
+            for row in upstream.values()
+            if isinstance(row, dict) and row.get("exists") is True and row.get("status") in set(row.get("acceptedStatuses") or [])
+        ),
+        "upstreamReportCount": len(upstream),
+        "recutStatus": summary.get("recutStatus"),
+        "recutSourceRowCount": summary.get("recutSourceRowCount"),
+        "passedRecutRowCount": summary.get("passedRecutRowCount"),
+        "blockedRecutRowCount": summary.get("blockedRecutRowCount"),
+        "finalRhythmRecutClipCount": summary.get("finalRhythmRecutClipCount"),
+        "finalRhythmRecutMainSegmentCount": summary.get("finalRhythmRecutMainSegmentCount"),
+        "finalRhythmRecutCutawayCount": summary.get("finalRhythmRecutCutawayCount"),
+        "finalLongShotRiskCount": summary.get("finalLongShotRiskCount"),
+        "recutAverageBeforeSeconds": summary.get("recutAverageBeforeSeconds"),
+        "recutAverageAfterSeconds": summary.get("recutAverageAfterSeconds"),
+        "recutLongRiskBefore": summary.get("recutLongRiskBefore"),
+        "recutLongRiskAfter": summary.get("recutLongRiskAfter"),
+        "recutDurationDeltaSeconds": summary.get("recutDurationDeltaSeconds"),
+        "bgmPhrasePlanPreserved": summary.get("bgmPhrasePlanPreserved"),
+        "rowCount": len(rows),
+        "passedRowCount": sum(1 for row in rows if isinstance(row, dict) and row.get("status") == "passed"),
+        "blockerCount": summary.get("blockerCount"),
+        "warningCount": summary.get("warningCount"),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def rhythm_recut_application_contract_ready(evidence: dict[str, Any]) -> bool:
+    recut_status = evidence.get("recutStatus")
+    row_count = int(evidence.get("recutSourceRowCount") or 0)
+    no_recut_needed = (
+        recut_status == "ready_no_recut_needed"
+        and row_count == 0
+        and int(evidence.get("blockedRecutRowCount") or 0) == 0
+    )
+    recut_applied = (
+        recut_status == "ready_with_rhythm_recut_blueprint"
+        and row_count >= 1
+        and int(evidence.get("passedRecutRowCount") or 0) == row_count
+        and int(evidence.get("blockedRecutRowCount") or 0) == 0
+        and int(evidence.get("finalRhythmRecutMainSegmentCount") or 0) >= row_count
+        and int(evidence.get("finalRhythmRecutCutawayCount") or 0) >= row_count
+        and float(evidence.get("recutAverageAfterSeconds") or 0) < float(evidence.get("recutAverageBeforeSeconds") or 0)
+        and int(evidence.get("recutLongRiskAfter") or 0) < int(evidence.get("recutLongRiskBefore") or 0)
+    )
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and (
+            evidence.get("blueprintKind") in {"transition_polish_candidate", "rhythm_recut_candidate", "explicit_blueprint"}
+            or (no_recut_needed and evidence.get("blueprintKind") == "active_blueprint")
+        )
+        and int(evidence.get("upstreamReadyCount") or 0) == int(evidence.get("upstreamReportCount") or -1)
+        and (recut_applied or no_recut_needed)
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def rhythm_recut_apply_package_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json"
     if not path.exists():
@@ -5337,6 +5428,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Rhythm recut blueprint converts flat-pacing diagnosis into a safe candidate Resolve blueprint",
         rhythm_recut_blueprint_ready(rhythm_recut_evidence),
         rhythm_recut_evidence,
+    )
+    rhythm_recut_application_evidence = rhythm_recut_application_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Rhythm recut application contract proves the safe recut actually survives into the final candidate blueprint",
+        rhythm_recut_application_contract_ready(rhythm_recut_application_evidence),
+        rhythm_recut_application_evidence,
     )
     transition_polish_evidence = transition_polish_blueprint_evidence(package_dir)
     add_check(

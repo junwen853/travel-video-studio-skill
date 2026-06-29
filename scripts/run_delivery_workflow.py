@@ -802,6 +802,31 @@ def summarize_rhythm_recut_blueprint(plan: dict[str, Any] | None) -> dict[str, A
     }
 
 
+def summarize_rhythm_recut_application_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "recutStatus": summary.get("recutStatus"),
+        "recutSourceRowCount": summary.get("recutSourceRowCount"),
+        "passedRecutRowCount": summary.get("passedRecutRowCount"),
+        "blockedRecutRowCount": summary.get("blockedRecutRowCount"),
+        "finalRhythmRecutClipCount": summary.get("finalRhythmRecutClipCount"),
+        "finalRhythmRecutMainSegmentCount": summary.get("finalRhythmRecutMainSegmentCount"),
+        "finalRhythmRecutCutawayCount": summary.get("finalRhythmRecutCutawayCount"),
+        "finalLongShotRiskCount": summary.get("finalLongShotRiskCount"),
+        "bgmPhrasePlanPreserved": summary.get("bgmPhrasePlanPreserved"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_transition_polish_blueprint(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2363,6 +2388,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     creator_cut_application_cmd = ["python3", str(SCRIPTS_DIR / "audit_creator_cut_application_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_creator_cut_application_contract", creator_cut_application_cmd, ok_codes={0, 2}))
 
+    rhythm_recut_application_cmd = ["python3", str(SCRIPTS_DIR / "audit_rhythm_recut_application_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_rhythm_recut_application_contract", rhythm_recut_application_cmd, ok_codes={0, 2}))
+
     reference_scene_grammar_cmd = ["python3", str(SCRIPTS_DIR / "audit_reference_scene_grammar_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_reference_scene_grammar_contract", reference_scene_grammar_cmd, ok_codes={0, 2}))
 
@@ -2491,6 +2519,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_microstructure_summary = None
     final_source_usage_summary = None
     creator_cut_application_summary = None
+    rhythm_recut_application_summary = None
     reference_scene_grammar_summary = None
     timeline_variety_summary = None
     transition_scene_arc_summary = None
@@ -2730,6 +2759,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Creator cut application blocker: {item}" for item in creator_cut_application_summary.get("blockers") or [])
             if creator_cut_application_summary and creator_cut_application_summary.get("warnings"):
                 warnings.extend(f"Creator cut application warning: {item}" for item in creator_cut_application_summary.get("warnings") or [])
+        if step["id"] == "audit_rhythm_recut_application_contract":
+            rhythm_recut_application_summary = summarize_rhythm_recut_application_contract(payload)
+            if rhythm_recut_application_summary and rhythm_recut_application_summary.get("status") == "blocked":
+                blockers.extend(f"Rhythm recut application blocker: {item}" for item in rhythm_recut_application_summary.get("blockers") or [])
+            if rhythm_recut_application_summary and rhythm_recut_application_summary.get("warnings"):
+                warnings.extend(f"Rhythm recut application warning: {item}" for item in rhythm_recut_application_summary.get("warnings") or [])
         if step["id"] == "audit_reference_scene_grammar_contract":
             reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(payload)
             if reference_scene_grammar_summary and reference_scene_grammar_summary.get("status") == "blocked":
@@ -2984,6 +3019,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         creator_cut_application_summary = summarize_creator_cut_application_contract(
             load_json(package_dir / "creator_cut_application_contract_audit.json")
         )
+    if package_dir and (package_dir / "rhythm_recut_application_contract_audit.json").exists():
+        rhythm_recut_application_summary = summarize_rhythm_recut_application_contract(
+            load_json(package_dir / "rhythm_recut_application_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_scene_grammar_contract_audit.json").exists():
         reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(
             load_json(package_dir / "reference_scene_grammar_contract_audit.json")
@@ -3102,6 +3141,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionMicrostructureSummary": transition_microstructure_summary,
         "finalSourceUsageSummary": final_source_usage_summary,
         "creatorCutApplicationSummary": creator_cut_application_summary,
+        "rhythmRecutApplicationSummary": rhythm_recut_application_summary,
         "referenceSceneGrammarSummary": reference_scene_grammar_summary,
         "timelineVarietySummary": timeline_variety_summary,
         "transitionSceneArcSummary": transition_scene_arc_summary,
@@ -3149,6 +3189,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",
             "Review edit_rhythm_plan.json before Resolve apply so long raw clips, missing cutaways, and weak chapter variety are fixed before the edit feels AI-assembled.",
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",
+            "Review rhythm_recut_application_contract_audit.json before Resolve apply so rhythm-recut main segments and cutaways actually survived into the final candidate blueprint.",
             "Review transition_grammar_plan.json and transition_execution_plan.json before Resolve apply so every adjacent pair has an approved, source-backed execution recipe.",
             "Preflight transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json before approving transition effects for Resolve.",
             "Review transition_motif_plan.json before Resolve apply so the film does not rely on repeated dissolves, random motion, or effects hiding weak route jumps.",

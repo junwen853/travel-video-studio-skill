@@ -441,6 +441,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
     bgm_phrase = load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json") or {}
     rhythm_recut = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
+    rhythm_recut_application = load_json(package_dir / "rhythm_recut_application_contract_audit.json") or {}
     polish = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
     add_gate(
         gates,
@@ -460,6 +461,24 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "bgmPhraseStatus": bgm_phrase.get("status"),
             "rhythmRecutStatus": rhythm_recut.get("status"),
             "transitionPolishStatus": polish.get("status"),
+        },
+    )
+
+    rhythm_recut_application_summary = summary_of(rhythm_recut_application)
+    add_gate(
+        gates,
+        "Rhythm recut application proves long-shot repairs survived into the final candidate blueprint",
+        rhythm_recut_application.get("status") == "passed"
+        and as_int(rhythm_recut_application_summary.get("blockedRecutRowCount")) == 0
+        and (
+            rhythm_recut_application_summary.get("recutStatus") == "ready_no_recut_needed"
+            or as_int(rhythm_recut_application_summary.get("finalRhythmRecutCutawayCount")) >= 1
+        )
+        and as_int(rhythm_recut_application_summary.get("blockerCount")) == 0,
+        {
+            "status": rhythm_recut_application.get("status"),
+            "summary": rhythm_recut_application_summary,
+            "blockers": rhythm_recut_application.get("blockers") or [],
         },
     )
 
