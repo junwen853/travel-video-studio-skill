@@ -337,15 +337,24 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     rhythm_summary = summary_of(rhythm)
     creator = load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json") or {}
     creator_summary = summary_of(creator)
+    creator_application = load_json(package_dir / "creator_cut_application_contract_audit.json") or {}
+    creator_application_summary = summary_of(creator_application)
     add_gate(
         gates,
-        "Rhythm and creator-cut plans assign function before keeping footage",
+        "Rhythm and creator-cut plans assign function and the final candidate applies those decisions",
         rhythm.get("status") == "ready_with_edit_rhythm_plan"
         and as_int(rhythm_summary.get("primaryVisualShotCount")) >= 1
         and as_int(rhythm_summary.get("rowsWithDecisionFields")) == as_int(rhythm_summary.get("primaryVisualShotCount"))
         and creator.get("status") == "ready_with_creator_cut_plan"
         and as_int(creator_summary.get("creatorDecisionRowCount")) >= 1
-        and as_int(creator_summary.get("primaryVisualShotCount")) >= 1,
+        and as_int(creator_summary.get("primaryVisualShotCount")) >= 1
+        and creator_application.get("status") == "passed"
+        and as_int(creator_application_summary.get("visualClipCount")) >= 1
+        and as_int(creator_application_summary.get("matchedCreatorRowCount")) == as_int(creator_application_summary.get("visualClipCount"))
+        and as_int(creator_application_summary.get("blockedClipCount")) == 0
+        and as_int(creator_application_summary.get("chaptersBlocked")) == 0
+        and as_int(creator_application_summary.get("rejectActiveClipCount")) == 0
+        and as_int(creator_application_summary.get("weakActiveClipCount")) == 0,
         {
             "rhythmStatus": rhythm.get("status"),
             "primaryVisualShotCount": rhythm_summary.get("primaryVisualShotCount"),
@@ -353,6 +362,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "creatorStatus": creator.get("status"),
             "creatorDecisionRowCount": creator_summary.get("creatorDecisionRowCount"),
             "rejectOrUtilityCount": creator_summary.get("rejectOrUtilityCount"),
+            "creatorApplicationStatus": creator_application.get("status"),
+            "creatorApplicationSummary": creator_application_summary,
         },
     )
 

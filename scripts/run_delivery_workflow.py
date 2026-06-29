@@ -770,6 +770,31 @@ def summarize_transition_execution_readiness_contract(report: dict[str, Any] | N
     }
 
 
+def summarize_creator_cut_application_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "matchedCreatorRowCount": summary.get("matchedCreatorRowCount"),
+        "blockedClipCount": summary.get("blockedClipCount"),
+        "chaptersBlocked": summary.get("chaptersBlocked"),
+        "rejectActiveClipCount": summary.get("rejectActiveClipCount"),
+        "utilityActiveClipCount": summary.get("utilityActiveClipCount"),
+        "sameSourceRunMax": summary.get("sameSourceRunMax"),
+        "sameFunctionRunMax": summary.get("sameFunctionRunMax"),
+        "globalFunctionGroupCount": summary.get("globalFunctionGroupCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_reference_scene_grammar_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -1544,6 +1569,22 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Max transition duration: {readiness.get('maxTransitionDurationSeconds')}",
             ]
         )
+    if report.get("creatorCutApplicationSummary"):
+        application = report["creatorCutApplicationSummary"]
+        lines.extend(
+            [
+                "",
+                "## Creator Cut Application Contract",
+                f"- Exists: `{application.get('exists')}`",
+                f"- Status: `{application.get('status')}`",
+                f"- Blueprint kind/package-local: `{application.get('blueprintKind')}` / `{application.get('blueprintInsidePackage')}`",
+                f"- Visual clips / matched creator rows: {application.get('visualClipCount')} / {application.get('matchedCreatorRowCount')}",
+                f"- Blocked clips / chapters: {application.get('blockedClipCount')} / {application.get('chaptersBlocked')}",
+                f"- Reject/utility active clips: {application.get('rejectActiveClipCount')} / {application.get('utilityActiveClipCount')}",
+                f"- Same-source/function max run: {application.get('sameSourceRunMax')} / {application.get('sameFunctionRunMax')}",
+                f"- Function groups: {application.get('globalFunctionGroupCount')}",
+            ]
+        )
     if report.get("referenceSceneGrammarSummary"):
         grammar = report["referenceSceneGrammarSummary"]
         lines.extend(
@@ -1859,6 +1900,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_execution_readiness_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_execution_readiness_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_execution_readiness_contract", transition_execution_readiness_cmd, ok_codes={0, 2}))
 
+    creator_cut_application_cmd = ["python3", str(SCRIPTS_DIR / "audit_creator_cut_application_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_creator_cut_application_contract", creator_cut_application_cmd, ok_codes={0, 2}))
+
     reference_scene_grammar_cmd = ["python3", str(SCRIPTS_DIR / "audit_reference_scene_grammar_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_reference_scene_grammar_contract", reference_scene_grammar_cmd, ok_codes={0, 2}))
 
@@ -1963,6 +2007,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_motivation_summary = None
     transition_pair_continuity_summary = None
     transition_execution_readiness_summary = None
+    creator_cut_application_summary = None
     reference_scene_grammar_summary = None
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
@@ -2110,6 +2155,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition execution readiness blocker: {item}" for item in transition_execution_readiness_summary.get("blockers") or [])
             if transition_execution_readiness_summary and transition_execution_readiness_summary.get("warnings"):
                 warnings.extend(f"Transition execution readiness warning: {item}" for item in transition_execution_readiness_summary.get("warnings") or [])
+        if step["id"] == "audit_creator_cut_application_contract":
+            creator_cut_application_summary = summarize_creator_cut_application_contract(payload)
+            if creator_cut_application_summary and creator_cut_application_summary.get("status") == "blocked":
+                blockers.extend(f"Creator cut application blocker: {item}" for item in creator_cut_application_summary.get("blockers") or [])
+            if creator_cut_application_summary and creator_cut_application_summary.get("warnings"):
+                warnings.extend(f"Creator cut application warning: {item}" for item in creator_cut_application_summary.get("warnings") or [])
         if step["id"] == "audit_reference_scene_grammar_contract":
             reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(payload)
             if reference_scene_grammar_summary and reference_scene_grammar_summary.get("status") == "blocked":
@@ -2292,6 +2343,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_execution_readiness_summary = summarize_transition_execution_readiness_contract(
             load_json(package_dir / "transition_execution_readiness_contract_audit.json")
         )
+    if package_dir and (package_dir / "creator_cut_application_contract_audit.json").exists():
+        creator_cut_application_summary = summarize_creator_cut_application_contract(
+            load_json(package_dir / "creator_cut_application_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_scene_grammar_contract_audit.json").exists():
         reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(
             load_json(package_dir / "reference_scene_grammar_contract_audit.json")
@@ -2382,6 +2437,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionMotivationSummary": transition_motivation_summary,
         "transitionPairContinuitySummary": transition_pair_continuity_summary,
         "transitionExecutionReadinessSummary": transition_execution_readiness_summary,
+        "creatorCutApplicationSummary": creator_cut_application_summary,
         "referenceSceneGrammarSummary": reference_scene_grammar_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
@@ -2430,6 +2486,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review transition_motivation_contract_audit.json before Resolve apply so each transition has a viewer-facing route, motion, title, bridge, or BGM motivation instead of a decorative effect.",
             "Review transition_pair_continuity_contract_audit.json before Resolve apply so every adjacent from/to shot has concrete visual, route, motion, BGM, or title continuity evidence.",
             "Review transition_execution_readiness_contract_audit.json before Resolve apply so every transition has a package-local Resolve recipe, BGM hit, title-safe window, pair readiness, handles, and decision fields.",
+            "Review creator_cut_application_contract_audit.json before Resolve apply so rejected/utility/weak creator-cut rows cannot remain active in the final candidate blueprint.",
             "Review reference_scene_grammar_contract_audit.json before Resolve apply so opening, chapters, transitions, and ending follow the Parallel World/Malta scene-function grammar.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",

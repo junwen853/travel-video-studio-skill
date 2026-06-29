@@ -61,6 +61,7 @@ REQUIRED_SCRIPTS = {
         "prepare_chapter_arc_plan.py",
         "prepare_edit_rhythm_plan.py",
         "prepare_creator_cut_plan.py",
+        "audit_creator_cut_application_contract.py",
         "prepare_transition_grammar_plan.py",
         "prepare_transition_execution_plan.py",
         "prepare_transition_execution_blueprint.py",
@@ -125,6 +126,7 @@ REQUIRED_SKILL_PATTERNS = {
     "chapter_arc_engine_rule": "chapter-arc-engine.md",
     "edit_rhythm_plan_rule": "prepare_edit_rhythm_plan.py",
     "creator_cut_plan_rule": "prepare_creator_cut_plan.py",
+    "creator_cut_application_contract_rule": "audit_creator_cut_application_contract.py",
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
     "transition_execution_plan_rule": "prepare_transition_execution_plan.py",
     "transition_execution_blueprint_rule": "prepare_transition_execution_blueprint.py",
@@ -2182,6 +2184,68 @@ def creator_cut_plan_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def creator_cut_application_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "creator_cut_application_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "creatorCutPlanExists": inputs.get("creatorCutPlanExists"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "creatorPlanRowCount": summary.get("creatorPlanRowCount"),
+        "matchedCreatorRowCount": summary.get("matchedCreatorRowCount"),
+        "passedClipCount": summary.get("passedClipCount"),
+        "blockedClipCount": summary.get("blockedClipCount"),
+        "chapterCount": summary.get("chapterCount"),
+        "chaptersBlocked": summary.get("chaptersBlocked"),
+        "rejectActiveClipCount": summary.get("rejectActiveClipCount"),
+        "weakActiveClipCount": summary.get("weakActiveClipCount"),
+        "utilityActiveClipCount": summary.get("utilityActiveClipCount"),
+        "sameSourceRunMax": summary.get("sameSourceRunMax"),
+        "sameFunctionRunMax": summary.get("sameFunctionRunMax"),
+        "globalFunctionGroupCount": summary.get("globalFunctionGroupCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "warningCount": len(data.get("warnings") or []),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def creator_cut_application_contract_ready(evidence: dict[str, Any]) -> bool:
+    clip_count = int(evidence.get("visualClipCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and evidence.get("creatorCutPlanExists") is True
+        and clip_count >= 3
+        and int(evidence.get("matchedCreatorRowCount") or 0) == clip_count
+        and int(evidence.get("passedClipCount") or 0) == clip_count
+        and int(evidence.get("blockedClipCount") or 0) == 0
+        and int(evidence.get("chaptersBlocked") or 0) == 0
+        and int(evidence.get("rejectActiveClipCount") or 0) == 0
+        and int(evidence.get("weakActiveClipCount") or 0) == 0
+        and int(evidence.get("globalFunctionGroupCount") or 0) >= 3
+        and int(evidence.get("blockerCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_grammar_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_grammar_plan" / "transition_grammar_plan.json"
     data = load_json(path) or {}
@@ -4179,6 +4243,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Creator cut plan turns reference quality into selective shot choice, bridge use, and motivated transition decisions",
         creator_cut_plan_ready(creator_cut_evidence),
         creator_cut_evidence,
+    )
+    creator_cut_application_evidence = creator_cut_application_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Creator cut application contract proves the final candidate blueprint actually applies selective shot choice",
+        creator_cut_application_contract_ready(creator_cut_application_evidence),
+        creator_cut_application_evidence,
     )
     transition_grammar_evidence = transition_grammar_plan_evidence(package_dir)
     add_check(
