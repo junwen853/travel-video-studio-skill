@@ -15,12 +15,12 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
 - Learns from multiple local reference videos as an aggregate, non-copying batch profile.
 - Plans BGM, BGM phrase cues, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, visual bridge material, and restrained effect-motion candidates.
-- Converts transition decisions into Resolve-ready recipes and candidate blueprint metadata, audits the whole transition motif chain, plans 2-5 shot bridge sequences, materializes those beats, and adds final BGM-hit/title-safe/motion-proven transition polish metadata into non-destructive Resolve candidate blueprints.
+- Converts transition decisions into Resolve-ready recipes and candidate blueprint metadata, audits the whole transition motif chain, plans 2-5 shot bridge sequences, materializes those beats, and adds final BGM-hit/title-safe/motion-proven/pair-continuous transition polish metadata into non-destructive Resolve candidate blueprints.
 - Runs rhythm recut candidates from the latest BGM phrase blueprint so long-shot repairs preserve transition, effect, and music-cue metadata.
 - Converts blocked reference/director/QA style gaps into concrete repair rows with owner scripts, required artifacts, and acceptance evidence.
 - Audits the unattended first-draft chain before Resolve apply, connecting raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight into one gate.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
-- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, route texture, export quality, and V14 baseline maturity.
+- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, transition pair-continuity, route texture, export quality, and V14 baseline maturity.
 
 The default finishing path is DaVinci Resolve through the Resolve Python API. GUI automation is treated as a fallback, not the normal route.
 
@@ -72,9 +72,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.26.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.26/travel-video-studio-skill-v0.1.26.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.26.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.27.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.27/travel-video-studio-skill-v0.1.27.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.27.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -163,6 +163,7 @@ A delivery package usually contains:
 - `transition_quality_contract_audit.md`
 - `shot_transition_boundary_contract_audit.md`
 - `transition_motivation_contract_audit.md`
+- `transition_pair_continuity_contract_audit.md`
 - `audience_caption_contract_audit.md`
 - `unattended_first_draft_contract_audit.md`
 - `title_typography_plan/title_typography_plan.md`
@@ -173,7 +174,7 @@ A delivery package usually contains:
 - `resolve_timeline_blueprint.json`
 - `resolve_blueprint_preflight.md`
 - `render_plan.json`
-- final QA reports, including `final_qa_suite_report.json` and `v14_baseline_contract_audit.json`
+- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, and `v14_baseline_contract_audit.json`
 
 ## DaVinci Resolve Path
 
@@ -208,6 +209,7 @@ A package is not considered deliverable until the relevant audits pass:
 - feedback regression audit
 - package integrity audit
 - raw intake completeness audit
+- transition pair-continuity contract
 - skill maturity contract
 - V14 baseline contract
 - final QA suite

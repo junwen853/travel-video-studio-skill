@@ -40,6 +40,7 @@ SKILL_PATTERNS = {
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
+    "transition_pair_continuity_contract": "audit_transition_pair_continuity_contract.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure": "audit_reference_repair_closure.py",
@@ -87,6 +88,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
+    "audit_transition_pair_continuity_contract.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_repair_closure.py",
@@ -203,6 +205,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
+    transition_pair_continuity = load_json(package_dir / "transition_pair_continuity_contract_audit.json") or {}
     unattended_first_draft = load_json(package_dir / "unattended_first_draft_contract_audit.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
@@ -841,6 +844,34 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "blueprint": transition_motivation_inputs.get("blueprint"),
         },
     )
+    transition_pair_continuity_summary = get_summary(transition_pair_continuity)
+    transition_pair_continuity_inputs = transition_pair_continuity.get("inputs") if isinstance(transition_pair_continuity.get("inputs"), dict) else {}
+    transition_pair_continuity_count = int(transition_pair_continuity_summary.get("visualBoundaryCount") or 0)
+    add_check(
+        checks,
+        "Transition pair continuity contract proves each adjacent from/to shot has visual, route, motion, BGM, or title continuity evidence",
+        transition_pair_continuity.get("status") == "passed"
+        and transition_pair_continuity_inputs.get("blueprintKind") == "transition_polish_candidate"
+        and transition_pair_continuity_inputs.get("blueprintExists") is True
+        and transition_pair_continuity_count >= 1
+        and int(transition_pair_continuity_summary.get("transitionRowCount") or 0) >= transition_pair_continuity_count
+        and float(transition_pair_continuity_summary.get("transitionCoverageRatio") or 0) >= 1.0
+        and int(transition_pair_continuity_summary.get("auditedBoundaryCount") or 0) == transition_pair_continuity_count
+        and int(transition_pair_continuity_summary.get("passedBoundaryCount") or 0) == transition_pair_continuity_count
+        and int(transition_pair_continuity_summary.get("blockedBoundaryCount") or 0) == 0
+        and int(transition_pair_continuity_summary.get("pairContinuityPayloadCount") or 0) == transition_pair_continuity_count
+        and int(transition_pair_continuity_summary.get("pairMatchedBoundaryCount") or 0) == transition_pair_continuity_count
+        and int(transition_pair_continuity_summary.get("styleAllowedBoundaryCount") or 0) == transition_pair_continuity_count
+        and int(transition_pair_continuity_summary.get("weakPairFitCount") or 0) == 0
+        and int(transition_pair_continuity_summary.get("strongPairFitCount") or 0) + int(transition_pair_continuity_summary.get("acceptablePairFitCount") or 0) == transition_pair_continuity_count
+        and not transition_pair_continuity.get("blockers"),
+        {
+            "transitionPairContinuityStatus": transition_pair_continuity.get("status"),
+            "transitionPairContinuitySummary": transition_pair_continuity_summary,
+            "blueprintKind": transition_pair_continuity_inputs.get("blueprintKind"),
+            "blueprint": transition_pair_continuity_inputs.get("blueprint"),
+        },
+    )
     unattended_summary = get_summary(unattended_first_draft)
     add_check(
         checks,
@@ -919,6 +950,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_quality.get("status") == "passed"
         and shot_transition_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
+        and transition_pair_continuity.get("status") == "passed"
         and unattended_first_draft.get("status") in {"passed", "passed_with_warnings"}
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and reference_repair_closure.get("status") in {"passed", "passed_with_evidence_warnings"}
@@ -972,6 +1004,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "shotTransitionBoundarySummary": shot_boundary_summary,
             "transitionMotivationStatus": transition_motivation.get("status"),
             "transitionMotivationSummary": transition_motivation_summary,
+            "transitionPairContinuityStatus": transition_pair_continuity.get("status"),
+            "transitionPairContinuitySummary": transition_pair_continuity_summary,
             "unattendedFirstDraftStatus": unattended_first_draft.get("status"),
             "unattendedFirstDraftSummary": unattended_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),

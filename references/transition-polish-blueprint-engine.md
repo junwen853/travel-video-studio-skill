@@ -13,6 +13,7 @@ The earlier transition scripts decide what should happen: grammar, execution rec
 - Add `transitionPolishCandidates` at the blueprint level.
 - Add `transition.transitionPolishCandidate` to every candidate transition.
 - Add `transitionPolishCandidate.transitionMotivation` with route, bridge, motion, title, or BGM reasoning for the viewer.
+- Add `transitionPolishCandidate.pairContinuity` with concrete from/to continuity evidence, pair fit, allowed style, and reject-if conditions.
 - Add `transitionPolishOut` / `transitionPolishIn` annotations to adjacent clips.
 - Add timeline markers with `role: transition_polish_candidate_marker`.
 - Keep the active `resolve_timeline_blueprint.json` untouched unless `--update-blueprint` is explicitly approved.
@@ -50,6 +51,8 @@ Reject or mark repair-needed if:
 - `shot_transition_boundary_contract_audit.md`
 - `transition_motivation_contract_audit.json`
 - `transition_motivation_contract_audit.md`
+- `transition_pair_continuity_contract_audit.json`
+- `transition_pair_continuity_contract_audit.md`
 
 Before Resolve apply, run:
 
@@ -63,6 +66,9 @@ python3 <skill-dir>/scripts/audit_shot_transition_boundary_contract.py \
 python3 <skill-dir>/scripts/audit_transition_motivation_contract.py \
   --package-dir <package>
 
+python3 <skill-dir>/scripts/audit_transition_pair_continuity_contract.py \
+  --package-dir <package>
+
 python3 <skill-dir>/scripts/audit_resolve_blueprint.py \
   --blueprint <package>/transition_polish_blueprint/resolve_timeline_blueprint_transition_polish.json \
   --package-dir <package>
@@ -72,4 +78,4 @@ python3 <skill-dir>/scripts/audit_resolve_blueprint.py \
 
 The quality audit must pass before a final-quality claim. It checks that the best available transition-polish candidate covers every adjacent visual boundary, carries BGM-hit timing, suppresses title/subtitle collisions, keeps BGM-only audio policy, requires motion evidence for whip/rotation/speed-ramp effects, rejects template/glitch/flash/shake styles, and blocks repeated decorative-effect chains.
 
-The shot transition boundary audit must also pass before Resolve apply. It checks each adjacent from/to visual boundary, verifies the matched transition row points to the same source pair, and blocks generic hard cuts, random rotations, missing BGM hits, unsafe title overlaps, missing BGM-only audio policy, or motion effects without route/bridge evidence. The motivation audit must then prove every transition has a viewer-facing reason: route bridge, physical motion match, clean title handoff, or BGM phrase cut.
+The shot transition boundary audit must also pass before Resolve apply. It checks each adjacent from/to visual boundary, verifies the matched transition row points to the same source pair, and blocks generic hard cuts, random rotations, missing BGM hits, unsafe title overlaps, missing BGM-only audio policy, or motion effects without route/bridge evidence. The motivation audit must then prove every transition has a viewer-facing reason: route bridge, physical motion match, clean title handoff, or BGM phrase cut. The pair-continuity audit must additionally prove every adjacent from/to shot has visual, route, motion, BGM, or title continuity evidence; flashy rotations, whips, and speed ramps require strong pair fit with motion or bridge evidence.

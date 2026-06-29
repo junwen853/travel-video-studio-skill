@@ -205,6 +205,33 @@ def has_motion_style(transition: dict[str, Any]) -> bool:
     return bool(transition.get("motionStyle")) or any(term in text for term in ("whip", "rotation", "speed", "ramp", "push", "slide"))
 
 
+def normalize_style(transition: dict[str, Any], recipe: dict[str, Any] | None = None) -> str:
+    recipe = recipe or {}
+    text = " ".join(
+        str(value or "")
+        for value in (
+            style_text(transition),
+            recipe.get("recipeId"),
+            recipe.get("resolveEffectName"),
+        )
+    ).lower()
+    if "whip" in text:
+        return "whip_pan"
+    if "rotation" in text:
+        return "rotation"
+    if "speed" in text or "ramp" in text:
+        return "speed_ramp"
+    if "push" in text or "slide" in text:
+        return "push_slide"
+    if "dissolve" in text or "cross" in text:
+        return "dissolve"
+    if "match" in text:
+        return "match_cut"
+    if "bridge" in text:
+        return "bridge"
+    return "clean_cut"
+
+
 def motion_is_safe(transition: dict[str, Any]) -> bool:
     if not has_motion_style(transition):
         return True
@@ -245,6 +272,14 @@ def selected_recipe(transition: dict[str, Any], boundary: float, phrase: dict[st
             {"segment": "pre", "speedPercent": 100},
             {"segment": "hit", "speedPercent": "160_to_220_if_motion_supports"},
             {"segment": "post", "speedPercent": 100},
+        ]
+    elif "push" in text or "slide" in text:
+        recipe_id = "motivated_push_slide_on_bgm_hit"
+        effect = transition.get("resolveEffectName") or "Push Slide"
+        keyframes = [
+            {"frame": 0, "positionX": 0, "motionBlur": 0.0},
+            {"frame": max(1, duration_frames // 2), "positionX": "short_directional_push_matching_route_motion", "motionBlur": 0.18},
+            {"frame": duration_frames, "positionX": 0, "motionBlur": 0.0},
         ]
     elif "dissolve" in text or "cross" in text:
         recipe_id = "short_bgm_phrase_dissolve"
@@ -334,6 +369,142 @@ def transition_motivation(
     }
 
 
+def clip_label(clip: dict[str, Any] | None) -> str:
+    if not clip:
+        return ""
+    for key in ("sourcePath", "sourceName", "name", "titleText", "place", "chapter"):
+        if clip.get(key):
+            return str(clip[key])
+    return ""
+
+
+def clip_relation_text(clip: dict[str, Any] | None) -> str:
+    if not clip:
+        return ""
+    return " ".join(
+        str(clip.get(key) or "")
+        for key in (
+            "role",
+            "purpose",
+            "place",
+            "city",
+            "country",
+            "chapter",
+            "titleText",
+            "subtitle",
+            "sourcePath",
+            "sourceName",
+            "name",
+            "notes",
+        )
+    ).lower()
+
+
+def matching_value(left: dict[str, Any] | None, right: dict[str, Any] | None, keys: tuple[str, ...]) -> str | None:
+    if not left or not right:
+        return None
+    for key in keys:
+        left_value = str(left.get(key) or "").strip()
+        right_value = str(right.get(key) or "").strip()
+        if left_value and right_value and left_value == right_value:
+            return left_value
+    return None
+
+
+def has_any_term(text: str, terms: tuple[str, ...]) -> bool:
+    return any(term in text for term in terms)
+
+
+def pair_continuity(
+    transition: dict[str, Any],
+    from_clip: dict[str, Any] | None,
+    to_clip: dict[str, Any] | None,
+    phrase: dict[str, Any] | None,
+    recipe: dict[str, Any],
+    *,
+    motion_allowed: bool,
+) -> dict[str, Any]:
+    category = str(transition.get("boundaryCategory") or "adjacent_clip_boundary")
+    style = normalize_style(transition, recipe)
+    from_text = clip_relation_text(from_clip)
+    to_text = clip_relation_text(to_clip)
+    pair_text = f"{from_text} {to_text}"
+    tags: list[str] = []
+    reasons: list[str] = []
+
+    if from_clip and to_clip and from_clip.get("sourcePath") and from_clip.get("sourcePath") == to_clip.get("sourcePath"):
+        tags.append("same_source_trim")
+        reasons.append("both sides are ranges from the same source clip")
+    if matching_value(from_clip, to_clip, ("chapterIndex", "chapter", "place", "city")):
+        tags.append("place_or_chapter_continuity")
+        reasons.append("both sides share chapter/place metadata")
+    if from_clip and to_clip and from_clip.get("chapterIndex") is not None and to_clip.get("chapterIndex") is not None:
+        if str(from_clip.get("chapterIndex")) == str(to_clip.get("chapterIndex")):
+            tags.append("same_chapter_continuity")
+            reasons.append("cut remains inside the same chapter")
+        else:
+            tags.append("chapter_change")
+            reasons.append("cut crosses chapter boundary and must behave as a route handoff")
+    if has_any_term(pair_text, ("bridge", "station", "train", "metro", "subway", "airport", "street", "road", "taxi", "bus", "ferry", "walk", "hotel", "window", "sign", "luggage")):
+        tags.append("route_bridge_context")
+        reasons.append("nearby source roles/text imply route connective material")
+    if transition.get("bridgeSequenceSatisfied") is True:
+        tags.append("bridge_sequence")
+        reasons.append("transition is supported by a planned/materialized bridge sequence")
+    if phrase or recipe.get("bgmHitSeconds") is not None:
+        tags.append("bgm_phrase_hit")
+        reasons.append("transition lands on a BGM phrase or beat")
+    if has_motion_style(transition) and motion_allowed:
+        tags.append("motion_match")
+        reasons.append("motion/effect style is supported by source motion or bridge evidence")
+    if "title" in category or "ending" in category or has_any_term(pair_text, ("title", "opening_city", "ending_city", "chapter_title")):
+        tags.append("title_or_ending_handoff")
+        reasons.append("boundary is a title/ending handoff that must stay clean and title-safe")
+    if style in {"clean_cut", "dissolve", "match_cut"} and any(tag in tags for tag in ("same_chapter_continuity", "place_or_chapter_continuity", "bgm_phrase_hit")):
+        tags.append("invisible_continuity_cut")
+        reasons.append("restrained style fits the local continuity better than a decorative effect")
+
+    tags = list(dict.fromkeys(tags))
+    reasons = list(dict.fromkeys(reasons))
+    route_or_structure = any(tag in tags for tag in ("route_bridge_context", "bridge_sequence", "chapter_change", "title_or_ending_handoff"))
+    motion_required = style in {"whip_pan", "rotation", "speed_ramp", "push_slide"}
+    style_allowed = bool(tags) and (not motion_required or "motion_match" in tags or "bridge_sequence" in tags)
+    if category in {"chapter_boundary", "timeline_gap"}:
+        style_allowed = style_allowed and any(tag in tags for tag in ("route_bridge_context", "bridge_sequence", "motion_match", "title_or_ending_handoff"))
+    score = 0
+    score += 14 * len(tags)
+    score += 20 if route_or_structure else 0
+    score += 18 if "bgm_phrase_hit" in tags else 0
+    score += 18 if "motion_match" in tags else 0
+    score += 12 if style in {"clean_cut", "match_cut", "dissolve"} else 0
+    score = min(score, 100)
+    pair_fit = "strong" if score >= 72 and style_allowed else ("acceptable" if score >= 44 and style_allowed else "weak")
+    return {
+        "status": "ready" if pair_fit in {"strong", "acceptable"} else "needs_pair_continuity_repair",
+        "pairFit": pair_fit,
+        "continuityScore": score,
+        "style": style,
+        "styleAllowed": style_allowed,
+        "boundaryCategory": category,
+        "fromSourcePath": transition.get("fromSourcePath") or clip_label(from_clip),
+        "toSourcePath": transition.get("toSourcePath") or clip_label(to_clip),
+        "fromRole": from_clip.get("role") if from_clip else None,
+        "toRole": to_clip.get("role") if to_clip else None,
+        "fromChapterIndex": from_clip.get("chapterIndex") if from_clip else None,
+        "toChapterIndex": to_clip.get("chapterIndex") if to_clip else None,
+        "evidenceTags": tags,
+        "viewerContinuityReason": reasons,
+        "allowedBecause": tags,
+        "rejectIf": [
+            "only_bgm_hit_but_no_route_or_visual_relationship_on_chapter_jump",
+            "motion_style_without_source_motion_or_bridge_sequence",
+            "decorative_effect_used_to_hide_weak_adjacent_pair",
+            "title_or_subtitle_overlap_makes_the_pair_read_as_template",
+            "from_to_sources_do_not_match_the_actual_boundary",
+        ],
+    }
+
+
 def clip_indices_near_boundary(clips: list[dict[str, Any]], boundary: float) -> tuple[int | None, int | None]:
     from_scored: list[tuple[float, int]] = []
     to_scored: list[tuple[float, int]] = []
@@ -398,6 +569,10 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     blocked_rows = 0
     clip_annotation_count = 0
     marker_count = 0
+    continuity_rows_ready = 0
+    continuity_strong_rows = 0
+    continuity_acceptable_rows = 0
+    continuity_weak_rows = 0
 
     for index, transition in enumerate(transitions, start=1):
         if not isinstance(transition, dict):
@@ -429,12 +604,25 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         rows_with_title_avoid += 1
         hits = forbidden_hits(transition)
         blocked = bool(hits) or not bgm_present
-        if blocked:
-            blocked_rows += 1
         decision = dict(DECISION_FIELDS)
         if set(DECISION_FIELDS).issubset(set(decision)):
             rows_with_decisions += 1
         motivation = transition_motivation(transition, phrase, recipe, motion_allowed=motion_is_safe(transition))
+        from_index, to_index = clip_indices_near_boundary(clips, boundary)
+        from_clip = clips[from_index] if from_index is not None and 0 <= from_index < len(clips) and isinstance(clips[from_index], dict) else None
+        to_clip = clips[to_index] if to_index is not None and 0 <= to_index < len(clips) and isinstance(clips[to_index], dict) else None
+        continuity = pair_continuity(transition, from_clip, to_clip, phrase, recipe, motion_allowed=motion_is_safe(transition))
+        if continuity.get("status") == "ready":
+            continuity_rows_ready += 1
+        if continuity.get("pairFit") == "strong":
+            continuity_strong_rows += 1
+        elif continuity.get("pairFit") == "acceptable":
+            continuity_acceptable_rows += 1
+        else:
+            continuity_weak_rows += 1
+            blocked = True
+        if blocked:
+            blocked_rows += 1
         payload = {
             "role": "transition_polish_candidate",
             "rowIndex": transition.get("rowIndex") or index,
@@ -454,6 +642,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "audioTreatment": "bgm_only_no_camera_voice",
             },
             "transitionMotivation": motivation,
+            "pairContinuity": continuity,
             "titleSubtitleAvoidance": title_avoidance,
             "motionEvidenceSatisfied": motion_is_safe(transition),
             "motionStyle": motion_row,
@@ -463,7 +652,6 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "decision": decision,
         }
         transition["transitionPolishCandidate"] = payload
-        from_index, to_index = clip_indices_near_boundary([clip for clip in clips if isinstance(clip, dict)], boundary)
         if from_index is not None and 0 <= from_index < len(clips) and isinstance(clips[from_index], dict):
             clips[from_index].setdefault("transitionPolishOut", []).append(payload)
             clip_annotation_count += 1
@@ -529,6 +717,10 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "motionPolishRowCount": motion_rows,
             "motionPolishRowsWithEvidence": motion_rows_safe,
             "downgradedMotionRowCount": downgraded_motion_rows,
+            "pairContinuityReadyCount": continuity_rows_ready,
+            "pairContinuityStrongCount": continuity_strong_rows,
+            "pairContinuityAcceptableCount": continuity_acceptable_rows,
+            "pairContinuityWeakCount": continuity_weak_rows,
             "blockedRowCount": blocked_rows,
             "clipAnnotationCount": clip_annotation_count,
             "markerCount": marker_count,
@@ -589,6 +781,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
     for row in report.get("polishRows") or []:
         recipe = row.get("selectedRecipe") if isinstance(row.get("selectedRecipe"), dict) else {}
         bgm = row.get("bgmSync") if isinstance(row.get("bgmSync"), dict) else {}
+        continuity = row.get("pairContinuity") if isinstance(row.get("pairContinuity"), dict) else {}
         lines.extend(
             [
                 "",
@@ -598,6 +791,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- BGM hit: {bgm.get('hitSeconds')}s",
                 f"- Duration: {recipe.get('durationFrames')} frames",
                 f"- Motion safe: {row.get('motionEvidenceSatisfied')}",
+                f"- Pair continuity: `{continuity.get('pairFit')}` score `{continuity.get('continuityScore')}` tags `{', '.join(continuity.get('evidenceTags') or [])}`",
             ]
         )
         if row.get("forbiddenPolishHits"):

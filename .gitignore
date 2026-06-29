@@ -16,6 +16,7 @@ __pycache__/
 # Large/generated workflow artifacts.
 delivery_packages/
 outputs/
+dist/
 renders/
 frames/
 ocr_frames/

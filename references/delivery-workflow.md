@@ -48,6 +48,7 @@ Expected files:
 - `transition_quality_contract_audit.json` / `.md`: final transition quality gate proving visual-boundary coverage, BGM-hit timing, title/subtitle avoidance, motion evidence, and no repeated/template effects
 - `shot_transition_boundary_contract_audit.json` / `.md`: shot-to-shot boundary gate proving each adjacent from/to pair maps to transition metadata with BGM-hit, title-safe, BGM-only, and motion-evidence checks
 - `transition_motivation_contract_audit.json` / `.md`: transition motivation gate proving each boundary has route, bridge, motion, title, or BGM reasoning rather than decorative effects
+- `transition_pair_continuity_contract_audit.json` / `.md`: pair-continuity gate proving every adjacent from/to shot has concrete visual, route, motion, BGM, or title continuity evidence
 - `audience_caption_contract_audit.json` / `.md`: caption/TXT gate proving final viewer text is audience-facing and does not expose edit-status, tool, QA, or version language
 - `unattended_first_draft_contract_audit.json` / `.md`: no-write first-draft gate proving raw intake, footage select, opening/chapter story, title/cover, captions, BGM, audio policy, establishing/effects, rhythm/creator cut, transition QA, reference repair closure, and Resolve preflight are connected before handoff
 - `reference_style_repair_plan/reference_style_repair_plan.json` / `.md`: exact repair rows for blocked reference-style, director-intent, director-polish, or final-QA gaps
@@ -142,7 +143,7 @@ The package is not final until:
 - transition polish blueprint report exists before Resolve apply, proving final transitions carry BGM-hit timing, title/subtitle avoidance, motion-evidence checks, and restrained keyframes after rhythm recut
 - transition quality contract audit passes before Resolve apply, proving the transition-polish candidate covers every visual boundary and does not hide route gaps with random/repeated effects
 - shot transition boundary contract audit passes before Resolve apply, proving every adjacent visual boundary has the correct from/to transition row instead of generic hard cuts or random rotations
-- transition motivation contract audit passes before Resolve apply, proving every transition has route, bridge, motion, title, or BGM reasoning instead of a decorative effect
+- transition motivation and pair-continuity contract audits pass before Resolve apply, proving every transition has route, bridge, motion, title, or BGM reasoning and every adjacent from/to shot has concrete continuity evidence instead of a decorative effect
 - audience caption contract audit passes before subtitle overlay or handoff, proving captions/TXT read like travel-film text rather than user-facing edit notes
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
 - reference repair closure audit exists after the repair plan; P0 rows must be closed or Resolve/final-quality claims stay blocked

@@ -43,6 +43,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_quality_contract.py",
         "audit_shot_transition_boundary_contract.py",
         "audit_transition_motivation_contract.py",
+        "audit_transition_pair_continuity_contract.py",
         "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
         "prepare_caption_story_plan.py",
@@ -100,6 +101,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_quality_contract_rule": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract_rule": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract_rule": "audit_transition_motivation_contract.py",
+    "transition_pair_continuity_contract_rule": "audit_transition_pair_continuity_contract.py",
     "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
     "caption_story_plan_rule": "prepare_caption_story_plan.py",
@@ -3609,6 +3611,68 @@ def transition_motivation_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_pair_continuity_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_pair_continuity_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "transitionCoverageRatio": summary.get("transitionCoverageRatio"),
+        "auditedBoundaryCount": summary.get("auditedBoundaryCount"),
+        "passedBoundaryCount": summary.get("passedBoundaryCount"),
+        "blockedBoundaryCount": summary.get("blockedBoundaryCount"),
+        "pairContinuityPayloadCount": summary.get("pairContinuityPayloadCount"),
+        "strongPairFitCount": summary.get("strongPairFitCount"),
+        "acceptablePairFitCount": summary.get("acceptablePairFitCount"),
+        "weakPairFitCount": summary.get("weakPairFitCount"),
+        "styleAllowedBoundaryCount": summary.get("styleAllowedBoundaryCount"),
+        "pairMatchedBoundaryCount": summary.get("pairMatchedBoundaryCount"),
+        "motionBoundaryCount": summary.get("motionBoundaryCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "warningCount": len(data.get("warnings") or []),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_pair_continuity_contract_ready(evidence: dict[str, Any]) -> bool:
+    boundary_count = int(evidence.get("visualBoundaryCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintKind") == "transition_polish_candidate"
+        and evidence.get("blueprintExists") is True
+        and boundary_count > 0
+        and int(evidence.get("transitionRowCount") or 0) >= boundary_count
+        and float(evidence.get("transitionCoverageRatio") or 0) >= 1.0
+        and int(evidence.get("auditedBoundaryCount") or 0) == boundary_count
+        and int(evidence.get("passedBoundaryCount") or 0) == boundary_count
+        and int(evidence.get("blockedBoundaryCount") or 0) == 0
+        and int(evidence.get("pairContinuityPayloadCount") or 0) == boundary_count
+        and int(evidence.get("pairMatchedBoundaryCount") or 0) == boundary_count
+        and int(evidence.get("styleAllowedBoundaryCount") or 0) == boundary_count
+        and int(evidence.get("weakPairFitCount") or 0) == 0
+        and int(evidence.get("strongPairFitCount") or 0) + int(evidence.get("acceptablePairFitCount") or 0) == boundary_count
+        and int(evidence.get("blockerCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def unattended_first_draft_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "unattended_first_draft_contract_audit.json"
     data = load_json(path) or {}
@@ -4060,6 +4124,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition motivation contract proves every transition has route, bridge, motion, title, or BGM reasoning",
         transition_motivation_contract_ready(transition_motivation_evidence),
         transition_motivation_evidence,
+    )
+    transition_pair_continuity_evidence = transition_pair_continuity_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition pair continuity contract proves every adjacent from/to shot has visual, route, motion, BGM, or title continuity evidence",
+        transition_pair_continuity_contract_ready(transition_pair_continuity_evidence),
+        transition_pair_continuity_evidence,
     )
     unattended_first_draft_evidence = unattended_first_draft_contract_evidence(package_dir)
     add_check(

@@ -387,22 +387,29 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
+    transition_pair_continuity = load_json(package_dir / "transition_pair_continuity_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
+    tpc_summary = summary_of(transition_pair_continuity)
     add_gate(
         gates,
-        "Transition QA proves every boundary is matched, title-safe, BGM-hit, and motivated",
+        "Transition QA proves every boundary is matched, title-safe, BGM-hit, motivated, and pair-continuous",
         transition_quality.get("status") == "passed"
         and shot_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
+        and transition_pair_continuity.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
         and as_int(sb_summary.get("blockedBoundaryCount")) == 0
         and as_int(tm_summary.get("blockedBoundaryCount")) == 0
+        and as_int(tpc_summary.get("blockedBoundaryCount")) == 0
+        and as_int(tpc_summary.get("weakPairFitCount")) == 0
         and as_int(tm_summary.get("motivatedBoundaryCount")) == as_int(tm_summary.get("visualBoundaryCount"))
+        and as_int(tpc_summary.get("pairContinuityPayloadCount")) == as_int(tpc_summary.get("visualBoundaryCount"))
         and not transition_quality.get("blockers")
         and not shot_boundary.get("blockers")
-        and not transition_motivation.get("blockers"),
+        and not transition_motivation.get("blockers")
+        and not transition_pair_continuity.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
             "transitionQualityBoundaryCount": tq_summary.get("visualBoundaryCount"),
@@ -413,6 +420,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "motivatedBoundaryCount": tm_summary.get("motivatedBoundaryCount"),
             "visualBoundaryCount": tm_summary.get("visualBoundaryCount"),
             "motivationBlocked": tm_summary.get("blockedBoundaryCount"),
+            "pairContinuityStatus": transition_pair_continuity.get("status"),
+            "pairContinuitySummary": tpc_summary,
         },
     )
 
