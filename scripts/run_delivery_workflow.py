@@ -1329,6 +1329,27 @@ def summarize_transition_storyboard_contract(report: dict[str, Any] | None) -> d
     }
 
 
+def summarize_transition_preview_packet(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "previewRowCount": summary.get("previewRowCount"),
+        "importantPreviewRowCount": summary.get("importantPreviewRowCount"),
+        "readyPreviewRowCount": summary.get("readyPreviewRowCount"),
+        "needsFrameExtractionRowCount": summary.get("needsFrameExtractionRowCount"),
+        "blockedPreviewRowCount": summary.get("blockedPreviewRowCount"),
+        "generatedFrameCount": summary.get("generatedFrameCount"),
+        "ffmpegAvailable": summary.get("ffmpegAvailable"),
+        "extractedFrames": summary.get("extractedFrames"),
+        "updatedTransitionGrammar": summary.get("updatedTransitionGrammar"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_unattended_first_draft_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2526,6 +2547,17 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_visual_match_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_visual_match_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_visual_match_contract", transition_visual_match_cmd, ok_codes={0, 2}))
 
+    transition_preview_packet_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "prepare_transition_preview_packet.py"),
+        "--package-dir",
+        str(package_dir),
+        "--extract-frames",
+        "--update-transition-grammar",
+        "--json",
+    ]
+    steps.append(run_step("prepare_transition_preview_packet", transition_preview_packet_cmd, ok_codes={0, 2}))
+
     transition_storyboard_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_storyboard_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_storyboard_contract", transition_storyboard_cmd, ok_codes={0, 2}))
 
@@ -2651,6 +2683,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_scene_arc_summary = None
     transition_effect_palette_summary = None
     transition_visual_match_summary = None
+    transition_preview_packet_summary = None
     transition_storyboard_summary = None
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
@@ -2946,6 +2979,14 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition visual match blocker: {item}" for item in transition_visual_match_summary.get("blockers") or [])
             if transition_visual_match_summary and transition_visual_match_summary.get("warnings"):
                 warnings.extend(f"Transition visual match warning: {item}" for item in transition_visual_match_summary.get("warnings") or [])
+        if step["id"] == "prepare_transition_preview_packet":
+            transition_preview_packet_summary = summarize_transition_preview_packet(payload)
+            if transition_preview_packet_summary and str(transition_preview_packet_summary.get("status") or "").startswith("blocked"):
+                blockers.extend(f"Transition preview packet blocker: {item}" for item in transition_preview_packet_summary.get("blockers") or [])
+            if transition_preview_packet_summary and transition_preview_packet_summary.get("status") == "needs_frame_extraction":
+                blockers.append("Transition preview packet blocker: important transition rows still need frame extraction evidence")
+            if transition_preview_packet_summary and transition_preview_packet_summary.get("warnings"):
+                warnings.extend(f"Transition preview packet warning: {item}" for item in transition_preview_packet_summary.get("warnings") or [])
         if step["id"] == "audit_transition_storyboard_contract":
             transition_storyboard_summary = summarize_transition_storyboard_contract(payload)
             if transition_storyboard_summary and transition_storyboard_summary.get("status") == "blocked":
@@ -3212,6 +3253,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_visual_match_summary = summarize_transition_visual_match_contract(
             load_json(package_dir / "transition_visual_match_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_preview_packet" / "transition_preview_packet.json").exists():
+        transition_preview_packet_summary = summarize_transition_preview_packet(
+            load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json")
+        )
     if package_dir and (package_dir / "transition_storyboard_contract_audit.json").exists():
         transition_storyboard_summary = summarize_transition_storyboard_contract(
             load_json(package_dir / "transition_storyboard_contract_audit.json")
@@ -3323,6 +3368,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionSceneArcSummary": transition_scene_arc_summary,
         "transitionEffectPaletteSummary": transition_effect_palette_summary,
         "transitionVisualMatchSummary": transition_visual_match_summary,
+        "transitionPreviewPacketSummary": transition_preview_packet_summary,
         "transitionStoryboardSummary": transition_storyboard_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
@@ -3391,7 +3437,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review transition_scene_arc_contract_audit.json before Resolve apply so important boundaries become outgoing/bridge-or-motion/BGM-hit/title-safe/landing scene arcs, not isolated effects.",
             "Review transition_effect_palette_contract_audit.json before Resolve apply so the whole film balances clean cuts, match cuts, bridges, dissolves, title reveals, and rare motivated motion instead of effect spam.",
             "Review transition_visual_match_contract_audit.json before Resolve apply so every adjacent pair has concrete visual, bridge, motion, mood, title, local, or BGM continuity evidence instead of arbitrary effects.",
-            "Review transition_storyboard_contract_audit.json before Resolve apply so important route/title/day-change transitions have viewer purpose, outgoing/bridge/landing proof, and preview/frame evidence.",
+            "Review transition_preview_packet/transition_preview_packet.md and transition_storyboard_contract_audit.json before Resolve apply so important route/title/day-change transitions have generated frame evidence plus viewer purpose, outgoing/bridge/landing proof.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "Review unattended_first_draft_contract_audit.json before Resolve apply or handoff; it proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected.",

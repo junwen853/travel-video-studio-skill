@@ -130,6 +130,42 @@ def load_reports(package_dir: Path) -> dict[str, dict[str, Any]]:
     return reports
 
 
+def load_preview_packet(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_preview_packet" / "transition_preview_packet.json"
+    data = load_json(path) or {}
+    rows = data.get("previewRows") if isinstance(data.get("previewRows"), list) else []
+    lookup: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        index = as_int(row.get("rowIndex"), -1)
+        if index >= 0:
+            lookup[index] = row
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "summary": summary_of(data),
+        "lookup": lookup,
+        "blockers": data.get("blockers") if isinstance(data, dict) else [],
+        "warnings": data.get("warnings") if isinstance(data, dict) else [],
+    }
+
+
+def preview_packet_evidence(row: dict[str, Any], packet: dict[str, Any]) -> str:
+    lookup = packet.get("lookup") if isinstance(packet.get("lookup"), dict) else {}
+    preview = lookup.get(as_int(row.get("rowIndex"), -1))
+    if not isinstance(preview, dict):
+        return ""
+    if preview.get("status") != "ready_with_transition_preview_evidence":
+        return ""
+    evidence = clean(preview.get("previewStripEvidence"))
+    if evidence:
+        return evidence
+    frames = preview.get("frameSampleEvidence") if isinstance(preview.get("frameSampleEvidence"), list) else []
+    return ", ".join(clean(frame) for frame in frames if clean(frame))
+
+
 def transition_rows(grammar: dict[str, Any]) -> list[dict[str, Any]]:
     rows = grammar.get("transitionRows") if isinstance(grammar.get("transitionRows"), list) else []
     return [row for row in rows if isinstance(row, dict)]
@@ -186,7 +222,7 @@ def row_recommendation(row: dict[str, Any]) -> dict[str, Any]:
     return row.get("recommendation") if isinstance(row.get("recommendation"), dict) else {}
 
 
-def storyboard_row(row: dict[str, Any], *, require_frame_preview: bool) -> dict[str, Any]:
+def storyboard_row(row: dict[str, Any], *, require_frame_preview: bool, preview_packet: dict[str, Any]) -> dict[str, Any]:
     decision = row_decision(row)
     signals = row_signals(row)
     recommendation = row_recommendation(row)
@@ -209,6 +245,7 @@ def storyboard_row(row: dict[str, Any], *, require_frame_preview: bool) -> dict[
         or clean(decision.get("frameSampleEvidence"))
         or clean(row.get("previewStripEvidence"))
         or clean(row.get("frameSampleEvidence"))
+        or preview_packet_evidence(row, preview_packet)
     )
     motion_evidence = bool(from_motion and to_motion) or bool(bridge_terms) or present(recommendation.get("physicalBridgeEvidence"))
     has_bridge_or_motion = present(bridge_or_motion) or motion_evidence
@@ -260,9 +297,13 @@ def add_check(checks: list[dict[str, Any]], name: str, passed: bool, evidence: d
 def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     package_dir = package_dir.expanduser().resolve()
     reports = load_reports(package_dir)
+    preview_packet = load_preview_packet(package_dir)
     grammar_data = reports["transitionGrammar"]["data"]
     rows = transition_rows(grammar_data)
-    audited = [storyboard_row(row, require_frame_preview=not args.allow_missing_frame_preview) for row in rows]
+    audited = [
+        storyboard_row(row, require_frame_preview=not args.allow_missing_frame_preview, preview_packet=preview_packet)
+        for row in rows
+    ]
     blocked_rows = [row for row in audited if row["status"] == "blocked"]
     important_rows = [row for row in audited if row["importantBoundary"]]
     important_blocked = [row for row in important_rows if row["status"] == "blocked"]
@@ -411,6 +452,12 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "inputs": {
             "allowMissingFramePreview": args.allow_missing_frame_preview,
             "reports": {name: report["path"] for name, report in reports.items()},
+            "transitionPreviewPacket": {
+                "path": preview_packet["path"],
+                "exists": preview_packet["exists"],
+                "status": preview_packet["status"],
+                "summary": preview_packet["summary"],
+            },
         },
         "summary": {
             "visualBoundaryCount": visual_boundaries,
@@ -427,6 +474,9 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "rowsWithPreviewEvidence": rows_with_preview,
             "importantPreviewEvidenceCount": important_preview,
             "importantBridgeOrMotionBeatCount": important_bridge_or_motion,
+            "previewPacketStatus": preview_packet["status"],
+            "previewPacketReadyRowCount": (preview_packet["summary"] or {}).get("readyPreviewRowCount"),
+            "previewPacketBlockedRowCount": (preview_packet["summary"] or {}).get("blockedPreviewRowCount"),
             "motionTransitionCount": len(motion_rows),
             "motionReadyRowCount": motion_ready,
             "purposeCounts": purpose_counts,

@@ -21,7 +21,7 @@ For every adjacent pair of primary visual clips, identify:
 - whether the two clips share a visual match: motion direction, water, road, window, skyline, food, sign, color, shape, or camera movement
 - whether BGM phrasing should carry the transition
 - whether captions should be suppressed because the transition overlaps a title zone
-- the storyboard purpose, outgoing shot, bridge-or-motion beat, landing shot, and preview/frame evidence fields needed by `audit_transition_storyboard_contract.py`
+- the storyboard purpose, outgoing shot, bridge-or-motion beat, landing shot, and preview/frame evidence fields needed by `prepare_transition_preview_packet.py` and `audit_transition_storyboard_contract.py`
 
 ## Recommended Transition Types
 
@@ -51,5 +51,5 @@ Before Resolve apply:
 - every row has storyboard decision fields: `storyboardPurpose`, `outgoingShotEvidence`, `bridgeOrMotionBeatEvidence`, `landingShotEvidence`, `previewStripEvidence`, and `frameSampleEvidence`
 - whip/rotation rows cite route-motion evidence
 - rows lacking physical bridge evidence are marked `insert_bridge_first`, not effect-ready
-- important day/place/title/timeline-gap/ending transitions include preview or sampled-frame evidence before approval
+- important day/place/title/timeline-gap/ending transitions include a ready `transition_preview_packet` or sampled-frame evidence before approval
 - transition decisions align with creator cut tiers and route texture goals

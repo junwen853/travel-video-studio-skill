@@ -57,6 +57,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_scene_arc_contract.py",
         "audit_transition_effect_palette_contract.py",
         "audit_transition_visual_match_contract.py",
+        "prepare_transition_preview_packet.py",
         "audit_transition_storyboard_contract.py",
         "audit_final_source_usage_contract.py",
         "audit_reference_scene_grammar_contract.py",
@@ -137,6 +138,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_scene_arc_contract_rule": "audit_transition_scene_arc_contract.py",
     "transition_effect_palette_contract_rule": "audit_transition_effect_palette_contract.py",
     "transition_visual_match_contract_rule": "audit_transition_visual_match_contract.py",
+    "transition_preview_packet_rule": "prepare_transition_preview_packet.py",
     "transition_storyboard_contract_rule": "audit_transition_storyboard_contract.py",
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
@@ -211,6 +213,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_scene_arc_contract_reference_rule": "transition-scene-arc-contract.md",
     "transition_effect_palette_contract_reference_rule": "transition-effect-palette-contract.md",
     "transition_visual_match_contract_reference_rule": "transition-visual-match-contract.md",
+    "transition_preview_packet_reference_rule": "transition-preview-packet-engine.md",
     "transition_storyboard_contract_reference_rule": "transition-storyboard-contract.md",
     "timeline_variety_contract_reference_rule": "timeline-variety-contract.md",
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
@@ -246,6 +249,7 @@ REQUIRED_STYLE_PATTERNS = {
     "final_blueprint_lineage_contract": "final-blueprint-lineage-contract.md",
     "transition_cadence_contract": "transition-cadence-contract.md",
     "transition_storyboard_contract": "transition-storyboard-contract.md",
+    "transition_preview_packet_engine": "transition-preview-packet-engine.md",
     "final_source_usage_contract": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
@@ -284,6 +288,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_quality_contract": "transition quality contract",
     "shot_transition_boundary_contract": "shot transition boundary contract",
     "transition_storyboard_contract": "transition storyboard contract",
+    "transition_preview_packet": "transition preview packet",
     "transition_motif_plan": "transition motif plan",
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
@@ -5040,6 +5045,51 @@ def transition_storyboard_contract_evidence(package_dir: Path) -> dict[str, Any]
     }
 
 
+def transition_preview_packet_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_preview_packet" / "transition_preview_packet.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "previewRowCount": summary.get("previewRowCount"),
+        "importantPreviewRowCount": summary.get("importantPreviewRowCount"),
+        "readyPreviewRowCount": summary.get("readyPreviewRowCount"),
+        "needsFrameExtractionRowCount": summary.get("needsFrameExtractionRowCount"),
+        "blockedPreviewRowCount": summary.get("blockedPreviewRowCount"),
+        "generatedFrameCount": summary.get("generatedFrameCount"),
+        "ffmpegAvailable": summary.get("ffmpegAvailable"),
+        "extractedFrames": summary.get("extractedFrames"),
+        "updatedTransitionGrammar": summary.get("updatedTransitionGrammar"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_preview_packet_ready(evidence: dict[str, Any]) -> bool:
+    important_rows = int(evidence.get("importantPreviewRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") in {"ready_with_transition_preview_packet", "ready_no_important_transitions"}
+        and int(evidence.get("blockedPreviewRowCount") or 0) == 0
+        and int(evidence.get("needsFrameExtractionRowCount") or 0) == 0
+        and (important_rows == 0 or int(evidence.get("readyPreviewRowCount") or 0) >= important_rows)
+        and int(evidence.get("blockerCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_storyboard_contract_ready(evidence: dict[str, Any]) -> bool:
     important_boundaries = int(evidence.get("importantBoundaryCount") or 0)
     transition_rows = int(evidence.get("transitionRowCount") or 0)
@@ -5834,12 +5884,19 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         transition_visual_match_contract_ready(transition_visual_match_evidence),
         transition_visual_match_evidence,
     )
+    transition_preview_packet = transition_preview_packet_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition preview packet proves important boundaries have package-local frame evidence before storyboard approval",
+        transition_preview_packet_ready(transition_preview_packet),
+        transition_preview_packet,
+    )
     transition_storyboard_evidence = transition_storyboard_contract_evidence(package_dir)
     add_check(
         checks,
         "Transition storyboard contract proves important transitions have viewer purpose, outgoing/bridge/landing proof, and preview evidence",
-        transition_storyboard_contract_ready(transition_storyboard_evidence),
-        transition_storyboard_evidence,
+        transition_preview_packet_ready(transition_preview_packet) and transition_storyboard_contract_ready(transition_storyboard_evidence),
+        {"transitionPreviewPacket": transition_preview_packet, "transitionStoryboard": transition_storyboard_evidence},
     )
     reference_scene_grammar_evidence = reference_scene_grammar_contract_evidence(package_dir)
     add_check(

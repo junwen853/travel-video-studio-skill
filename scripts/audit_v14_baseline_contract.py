@@ -56,6 +56,7 @@ SKILL_PATTERNS = {
     "transition_scene_arc": "audit_transition_scene_arc_contract.py",
     "transition_effect_palette": "audit_transition_effect_palette_contract.py",
     "transition_visual_match": "audit_transition_visual_match_contract.py",
+    "transition_preview_packet": "prepare_transition_preview_packet.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
@@ -127,6 +128,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_scene_arc_contract.py",
     "audit_transition_effect_palette_contract.py",
     "audit_transition_visual_match_contract.py",
+    "prepare_transition_preview_packet.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
@@ -266,6 +268,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
+    transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
     transition_storyboard = load_json(package_dir / "transition_storyboard_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
@@ -1397,11 +1400,13 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionVisualMatchSummary": transition_visual_match_summary,
         },
     )
+    transition_preview_summary = get_summary(transition_preview_packet)
     transition_storyboard_summary = get_summary(transition_storyboard)
     add_check(
         checks,
-        "Transition storyboard contract proves important V14 transitions have viewer purpose, outgoing/bridge/landing proof, and preview evidence",
-        transition_storyboard.get("status") == "passed"
+        "Transition storyboard contract proves important V14 transitions have viewer purpose, outgoing/bridge/landing proof, and generated preview evidence",
+        transition_preview_packet.get("status") in {"ready_with_transition_preview_packet", "ready_no_important_transitions"}
+        and transition_storyboard.get("status") == "passed"
         and int(transition_storyboard_summary.get("visualBoundaryCount") or 0) >= 1
         and int(transition_storyboard_summary.get("transitionRowCount") or 0) >= int(transition_storyboard_summary.get("visualBoundaryCount") or 0)
         and int(transition_storyboard_summary.get("storyboardReadyRowCount") or 0) == int(transition_storyboard_summary.get("transitionRowCount") or 0)
@@ -1417,10 +1422,16 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_storyboard_summary.get("importantPreviewEvidenceCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
         )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_preview_summary.get("readyPreviewRowCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
         and int(transition_storyboard_summary.get("motionReadyRowCount") or 0) == int(transition_storyboard_summary.get("motionTransitionCount") or 0)
         and int(transition_storyboard_summary.get("blockedCheckCount") or 0) == 0
         and not transition_storyboard.get("blockers"),
         {
+            "transitionPreviewPacketStatus": transition_preview_packet.get("status"),
+            "transitionPreviewPacketSummary": transition_preview_summary,
             "transitionStoryboardStatus": transition_storyboard.get("status"),
             "transitionStoryboardSummary": transition_storyboard_summary,
         },
