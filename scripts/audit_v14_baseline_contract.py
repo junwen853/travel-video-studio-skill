@@ -40,6 +40,7 @@ SKILL_PATTERNS = {
     "rhythm_recut_blueprint": "prepare_rhythm_recut_blueprint.py",
     "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
     "transition_polish_application": "audit_transition_polish_application_contract.py",
+    "final_blueprint_lineage": "audit_final_blueprint_lineage_contract.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
@@ -93,6 +94,7 @@ REQUIRED_SCRIPTS = [
     "prepare_rhythm_recut_blueprint.py",
     "prepare_transition_polish_blueprint.py",
     "audit_transition_polish_application_contract.py",
+    "audit_final_blueprint_lineage_contract.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
@@ -215,6 +217,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     rhythm_recut_blueprint = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
     transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
     transition_polish_application = load_json(package_dir / "transition_polish_application_contract_audit.json") or {}
+    final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
@@ -861,6 +864,28 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "finalBlueprint": transition_polish_application_inputs.get("finalBlueprint"),
         },
     )
+    final_blueprint_lineage_summary = get_summary(final_blueprint_lineage)
+    final_blueprint_lineage_inputs = final_blueprint_lineage.get("inputs") if isinstance(final_blueprint_lineage.get("inputs"), dict) else {}
+    final_blueprint_lineage_required = int(final_blueprint_lineage_summary.get("requiredMinimumReadyStages") or final_blueprint_lineage_inputs.get("minimumReadyStages") or 5)
+    add_check(
+        checks,
+        "Final blueprint lineage contract proves the active blueprint inherited the latest ready candidate chain",
+        final_blueprint_lineage.get("status") == "passed"
+        and final_blueprint_lineage_inputs.get("finalBlueprintExists") is True
+        and final_blueprint_lineage_inputs.get("finalBlueprintInsidePackage") is True
+        and int(final_blueprint_lineage_summary.get("readyStageCount") or 0) >= final_blueprint_lineage_required
+        and int(final_blueprint_lineage_summary.get("passedStageCount") or 0) >= final_blueprint_lineage_required
+        and int(final_blueprint_lineage_summary.get("blockedReadyStageCount") or 0) == 0
+        and int(final_blueprint_lineage_summary.get("finalPlanKeyCount") or 0) >= final_blueprint_lineage_required
+        and int(final_blueprint_lineage_summary.get("blockerCount") or 0) == 0
+        and not final_blueprint_lineage.get("blockers"),
+        {
+            "finalBlueprintLineageStatus": final_blueprint_lineage.get("status"),
+            "finalBlueprintLineageSummary": final_blueprint_lineage_summary,
+            "finalBlueprintKind": final_blueprint_lineage_inputs.get("finalBlueprintKind"),
+            "finalBlueprint": final_blueprint_lineage_inputs.get("finalBlueprint"),
+        },
+    )
     transition_quality_summary = get_summary(transition_quality)
     transition_quality_inputs = transition_quality.get("inputs") if isinstance(transition_quality.get("inputs"), dict) else {}
     transition_quality_rows = int(transition_quality_summary.get("transitionRowCount") or 0)
@@ -1122,6 +1147,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and rhythm_recut_blueprint.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}
         and transition_polish_blueprint.get("status") == "ready_with_transition_polish_blueprint"
         and transition_polish_application.get("status") == "passed"
+        and final_blueprint_lineage.get("status") == "passed"
         and transition_quality.get("status") == "passed"
         and shot_transition_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
@@ -1179,6 +1205,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionPolishBlueprintSummary": transition_polish_summary,
             "transitionPolishApplicationStatus": transition_polish_application.get("status"),
             "transitionPolishApplicationSummary": transition_polish_application_summary,
+            "finalBlueprintLineageStatus": final_blueprint_lineage.get("status"),
+            "finalBlueprintLineageSummary": final_blueprint_lineage_summary,
             "transitionQualityStatus": transition_quality.get("status"),
             "transitionQualitySummary": transition_quality_summary,
             "shotTransitionBoundaryStatus": shot_transition_boundary.get("status"),

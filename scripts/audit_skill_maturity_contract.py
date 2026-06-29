@@ -47,6 +47,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_execution_readiness_contract.py",
         "audit_transition_polish_application_contract.py",
         "audit_bridge_sequence_application_contract.py",
+        "audit_final_blueprint_lineage_contract.py",
         "audit_reference_scene_grammar_contract.py",
         "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
@@ -110,6 +111,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_execution_readiness_contract_rule": "audit_transition_execution_readiness_contract.py",
     "transition_polish_application_contract_rule": "audit_transition_polish_application_contract.py",
     "bridge_sequence_application_contract_rule": "audit_bridge_sequence_application_contract.py",
+    "final_blueprint_lineage_contract_rule": "audit_final_blueprint_lineage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
     "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
@@ -163,6 +165,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract_reference_rule": "bridge-sequence-application-contract.md",
     "transition_polish_application_contract_reference_rule": "transition-polish-application-contract.md",
+    "final_blueprint_lineage_contract_reference_rule": "final-blueprint-lineage-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine_rule": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine_rule": "transition-execution-readiness-engine.md",
@@ -186,6 +189,7 @@ REQUIRED_STYLE_PATTERNS = {
     "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract": "bridge-sequence-application-contract.md",
     "transition_polish_application_contract": "transition-polish-application-contract.md",
+    "final_blueprint_lineage_contract": "final-blueprint-lineage-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine": "transition-execution-readiness-engine.md",
@@ -222,6 +226,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "bridge_sequence_blueprint": "bridge sequence blueprint",
     "bridge_sequence_application_contract": "bridge sequence application contract",
     "transition_polish_application_contract": "transition polish application contract",
+    "final_blueprint_lineage_contract": "final-blueprint lineage",
     "reference_style_repair_plan": "reference style repair plan",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
@@ -3103,6 +3108,87 @@ def bridge_sequence_application_contract_ready(evidence: dict[str, Any]) -> bool
     )
 
 
+def final_blueprint_lineage_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "final_blueprint_lineage_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    stages = data.get("stages") if isinstance(data.get("stages"), list) else []
+    passed_stages = [
+        row for row in stages
+        if isinstance(row, dict) and row.get("status") == "passed"
+    ]
+    stages_with_plan = [
+        row for row in stages
+        if isinstance(row, dict) and row.get("ready") and row.get("finalHasPlanKey") is True
+    ]
+    stages_inside_package = [
+        row for row in stages
+        if isinstance(row, dict) and row.get("ready") and row.get("candidateBlueprintInsidePackage") is True
+    ]
+    count_preserved = [
+        row for row in stages
+        if isinstance(row, dict)
+        and row.get("ready")
+        and int(row.get("finalCount") or 0) >= int(row.get("sourceCount") or 0)
+    ]
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "finalBlueprint": inputs.get("finalBlueprint"),
+        "finalBlueprintExists": inputs.get("finalBlueprintExists"),
+        "finalBlueprintKind": inputs.get("finalBlueprintKind"),
+        "finalBlueprintInsidePackage": inputs.get("finalBlueprintInsidePackage"),
+        "minimumReadyStages": inputs.get("minimumReadyStages"),
+        "configuredStageCount": summary.get("configuredStageCount"),
+        "readyStageCount": summary.get("readyStageCount"),
+        "passedStageCount": summary.get("passedStageCount"),
+        "blockedReadyStageCount": summary.get("blockedReadyStageCount"),
+        "finalPlanKeyCount": summary.get("finalPlanKeyCount"),
+        "requiredMinimumReadyStages": summary.get("requiredMinimumReadyStages"),
+        "blockerCount": summary.get("blockerCount"),
+        "stageCount": len(stages),
+        "passedStagesByRow": len(passed_stages),
+        "readyStagesWithPlanKey": len(stages_with_plan),
+        "readyStagesInsidePackage": len(stages_inside_package),
+        "readyStagesWithCountsPreserved": len(count_preserved),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def final_blueprint_lineage_contract_ready(evidence: dict[str, Any]) -> bool:
+    required = int(evidence.get("requiredMinimumReadyStages") or evidence.get("minimumReadyStages") or 5)
+    ready = int(evidence.get("readyStageCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("finalBlueprintExists") is True
+        and evidence.get("finalBlueprintInsidePackage") is True
+        and ready >= required
+        and int(evidence.get("passedStageCount") or 0) >= required
+        and int(evidence.get("blockedReadyStageCount") or 0) == 0
+        and int(evidence.get("finalPlanKeyCount") or 0) >= required
+        and int(evidence.get("passedStagesByRow") or 0) >= required
+        and int(evidence.get("readyStagesWithPlanKey") or 0) >= required
+        and int(evidence.get("readyStagesInsidePackage") or 0) >= required
+        and int(evidence.get("readyStagesWithCountsPreserved") or 0) >= required
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def reference_style_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json"
     data = load_json(path) or {}
@@ -4454,6 +4540,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Bridge sequence application contract proves planned 2-5 shot bridge beats survive into the final candidate blueprint",
         bridge_sequence_application_contract_ready(bridge_sequence_application),
         bridge_sequence_application,
+    )
+    final_blueprint_lineage = final_blueprint_lineage_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Final blueprint lineage contract proves the active blueprint inherits the latest ready candidate chain",
+        final_blueprint_lineage_contract_ready(final_blueprint_lineage),
+        final_blueprint_lineage,
     )
     reference_repair_evidence = reference_style_repair_plan_evidence(package_dir)
     add_check(
