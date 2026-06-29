@@ -44,6 +44,7 @@ REQUIRED_SCRIPTS = {
         "audit_shot_transition_boundary_contract.py",
         "audit_transition_motivation_contract.py",
         "audit_transition_pair_continuity_contract.py",
+        "audit_reference_scene_grammar_contract.py",
         "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
         "prepare_caption_story_plan.py",
@@ -102,6 +103,7 @@ REQUIRED_SKILL_PATTERNS = {
     "shot_transition_boundary_contract_rule": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract_rule": "audit_transition_motivation_contract.py",
     "transition_pair_continuity_contract_rule": "audit_transition_pair_continuity_contract.py",
+    "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
     "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
     "caption_story_plan_rule": "prepare_caption_story_plan.py",
@@ -3673,6 +3675,69 @@ def transition_pair_continuity_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def reference_scene_grammar_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "reference_scene_grammar_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "openingClipCount": summary.get("openingClipCount"),
+        "openingFunctionCount": summary.get("openingFunctionCount"),
+        "chapterCount": summary.get("chapterCount"),
+        "chaptersPassed": summary.get("chaptersPassed"),
+        "chaptersBlocked": summary.get("chaptersBlocked"),
+        "endingClipCount": summary.get("endingClipCount"),
+        "endingAftertasteFound": summary.get("endingAftertasteFound"),
+        "pairContinuityStatus": summary.get("pairContinuityStatus"),
+        "weakPairFitCount": summary.get("weakPairFitCount"),
+        "openingStoryPlanExists": summary.get("openingStoryPlanExists"),
+        "chapterArcPlanExists": summary.get("chapterArcPlanExists"),
+        "creatorCutPlanExists": summary.get("creatorCutPlanExists"),
+        "referenceProfileAvailable": summary.get("referenceProfileAvailable"),
+        "blockerCount": summary.get("blockerCount"),
+        "warningCount": len(data.get("warnings") or []),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def reference_scene_grammar_contract_ready(evidence: dict[str, Any]) -> bool:
+    chapter_count = int(evidence.get("chapterCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and int(evidence.get("visualClipCount") or 0) >= 3
+        and int(evidence.get("openingClipCount") or 0) >= 1
+        and int(evidence.get("openingFunctionCount") or 0) >= 2
+        and chapter_count >= 1
+        and int(evidence.get("chaptersPassed") or 0) == chapter_count
+        and int(evidence.get("chaptersBlocked") or 0) == 0
+        and int(evidence.get("endingClipCount") or 0) >= 1
+        and evidence.get("pairContinuityStatus") == "passed"
+        and int(evidence.get("weakPairFitCount") or 0) == 0
+        and evidence.get("openingStoryPlanExists") is True
+        and evidence.get("chapterArcPlanExists") is True
+        and evidence.get("creatorCutPlanExists") is True
+        and int(evidence.get("blockerCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def unattended_first_draft_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "unattended_first_draft_contract_audit.json"
     data = load_json(path) or {}
@@ -4131,6 +4196,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition pair continuity contract proves every adjacent from/to shot has visual, route, motion, BGM, or title continuity evidence",
         transition_pair_continuity_contract_ready(transition_pair_continuity_evidence),
         transition_pair_continuity_evidence,
+    )
+    reference_scene_grammar_evidence = reference_scene_grammar_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Reference scene grammar contract proves opening, chapters, transitions, and ending use Parallel World/Malta scene functions",
+        reference_scene_grammar_contract_ready(reference_scene_grammar_evidence),
+        reference_scene_grammar_evidence,
     )
     unattended_first_draft_evidence = unattended_first_draft_contract_evidence(package_dir)
     add_check(

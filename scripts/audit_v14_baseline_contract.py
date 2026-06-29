@@ -41,6 +41,7 @@ SKILL_PATTERNS = {
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
     "transition_pair_continuity_contract": "audit_transition_pair_continuity_contract.py",
+    "reference_scene_grammar_contract": "audit_reference_scene_grammar_contract.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure": "audit_reference_repair_closure.py",
@@ -89,6 +90,7 @@ REQUIRED_SCRIPTS = [
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
     "audit_transition_pair_continuity_contract.py",
+    "audit_reference_scene_grammar_contract.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_repair_closure.py",
@@ -206,6 +208,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
     transition_pair_continuity = load_json(package_dir / "transition_pair_continuity_contract_audit.json") or {}
+    reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
     unattended_first_draft = load_json(package_dir / "unattended_first_draft_contract_audit.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
@@ -872,6 +875,34 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "blueprint": transition_pair_continuity_inputs.get("blueprint"),
         },
     )
+    reference_scene_grammar_summary = get_summary(reference_scene_grammar)
+    reference_scene_grammar_inputs = reference_scene_grammar.get("inputs") if isinstance(reference_scene_grammar.get("inputs"), dict) else {}
+    reference_scene_chapter_count = int(reference_scene_grammar_summary.get("chapterCount") or 0)
+    add_check(
+        checks,
+        "Reference scene grammar contract proves opening, chapters, transitions, and ending follow Parallel World/Malta structure",
+        reference_scene_grammar.get("status") == "passed"
+        and reference_scene_grammar_inputs.get("blueprintExists") is True
+        and int(reference_scene_grammar_summary.get("visualClipCount") or 0) >= 3
+        and int(reference_scene_grammar_summary.get("openingFunctionCount") or 0) >= 2
+        and reference_scene_chapter_count >= 1
+        and int(reference_scene_grammar_summary.get("chaptersPassed") or 0) == reference_scene_chapter_count
+        and int(reference_scene_grammar_summary.get("chaptersBlocked") or 0) == 0
+        and int(reference_scene_grammar_summary.get("endingClipCount") or 0) >= 1
+        and reference_scene_grammar_summary.get("pairContinuityStatus") == "passed"
+        and int(reference_scene_grammar_summary.get("weakPairFitCount") or 0) == 0
+        and reference_scene_grammar_summary.get("openingStoryPlanExists") is True
+        and reference_scene_grammar_summary.get("chapterArcPlanExists") is True
+        and reference_scene_grammar_summary.get("creatorCutPlanExists") is True
+        and int(reference_scene_grammar_summary.get("blockerCount") or 0) == 0
+        and not reference_scene_grammar.get("blockers"),
+        {
+            "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
+            "referenceSceneGrammarSummary": reference_scene_grammar_summary,
+            "blueprintKind": reference_scene_grammar_inputs.get("blueprintKind"),
+            "blueprint": reference_scene_grammar_inputs.get("blueprint"),
+        },
+    )
     unattended_summary = get_summary(unattended_first_draft)
     add_check(
         checks,
@@ -951,6 +982,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and shot_transition_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
         and transition_pair_continuity.get("status") == "passed"
+        and reference_scene_grammar.get("status") == "passed"
         and unattended_first_draft.get("status") in {"passed", "passed_with_warnings"}
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and reference_repair_closure.get("status") in {"passed", "passed_with_evidence_warnings"}
@@ -1006,6 +1038,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionMotivationSummary": transition_motivation_summary,
             "transitionPairContinuityStatus": transition_pair_continuity.get("status"),
             "transitionPairContinuitySummary": transition_pair_continuity_summary,
+            "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
+            "referenceSceneGrammarSummary": reference_scene_grammar_summary,
             "unattendedFirstDraftStatus": unattended_first_draft.get("status"),
             "unattendedFirstDraftSummary": unattended_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),

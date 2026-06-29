@@ -741,6 +741,31 @@ def summarize_transition_pair_continuity_contract(report: dict[str, Any] | None)
     }
 
 
+def summarize_reference_scene_grammar_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "referenceProfileAvailable": summary.get("referenceProfileAvailable"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "openingFunctionCount": summary.get("openingFunctionCount"),
+        "openingFunctions": summary.get("openingFunctions"),
+        "chapterCount": summary.get("chapterCount"),
+        "chaptersPassed": summary.get("chaptersPassed"),
+        "chaptersBlocked": summary.get("chaptersBlocked"),
+        "endingFunctions": summary.get("endingFunctions"),
+        "endingAftertasteFound": summary.get("endingAftertasteFound"),
+        "pairContinuityStatus": summary.get("pairContinuityStatus"),
+        "weakPairFitCount": summary.get("weakPairFitCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_unattended_first_draft_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -1474,6 +1499,22 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Motion boundaries: {continuity.get('motionBoundaryCount')}",
             ]
         )
+    if report.get("referenceSceneGrammarSummary"):
+        grammar = report["referenceSceneGrammarSummary"]
+        lines.extend(
+            [
+                "",
+                "## Reference Scene Grammar Contract",
+                f"- Exists: `{grammar.get('exists')}`",
+                f"- Status: `{grammar.get('status')}`",
+                f"- Blueprint kind: `{grammar.get('blueprintKind')}`",
+                f"- Visual clips: {grammar.get('visualClipCount')}",
+                f"- Opening functions: {grammar.get('openingFunctionCount')} `{', '.join(grammar.get('openingFunctions') or [])}`",
+                f"- Chapters passed/blocked: {grammar.get('chaptersPassed')} / {grammar.get('chaptersBlocked')}",
+                f"- Ending functions: `{', '.join(grammar.get('endingFunctions') or [])}`",
+                f"- Pair-continuity status / weak: {grammar.get('pairContinuityStatus')} / {grammar.get('weakPairFitCount')}",
+            ]
+        )
     if report.get("unattendedFirstDraftSummary"):
         first_draft = report["unattendedFirstDraftSummary"]
         lines.extend(
@@ -1770,6 +1811,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_pair_continuity_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_pair_continuity_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_pair_continuity_contract", transition_pair_continuity_cmd, ok_codes={0, 2}))
 
+    reference_scene_grammar_cmd = ["python3", str(SCRIPTS_DIR / "audit_reference_scene_grammar_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_reference_scene_grammar_contract", reference_scene_grammar_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -1870,6 +1914,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     shot_transition_boundary_summary = None
     transition_motivation_summary = None
     transition_pair_continuity_summary = None
+    reference_scene_grammar_summary = None
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
@@ -2010,6 +2055,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition pair continuity blocker: {item}" for item in transition_pair_continuity_summary.get("blockers") or [])
             if transition_pair_continuity_summary and transition_pair_continuity_summary.get("warnings"):
                 warnings.extend(f"Transition pair continuity warning: {item}" for item in transition_pair_continuity_summary.get("warnings") or [])
+        if step["id"] == "audit_reference_scene_grammar_contract":
+            reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(payload)
+            if reference_scene_grammar_summary and reference_scene_grammar_summary.get("status") == "blocked":
+                blockers.extend(f"Reference scene grammar blocker: {item}" for item in reference_scene_grammar_summary.get("blockers") or [])
+            if reference_scene_grammar_summary and reference_scene_grammar_summary.get("warnings"):
+                warnings.extend(f"Reference scene grammar warning: {item}" for item in reference_scene_grammar_summary.get("warnings") or [])
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -2182,6 +2233,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_pair_continuity_summary = summarize_transition_pair_continuity_contract(
             load_json(package_dir / "transition_pair_continuity_contract_audit.json")
         )
+    if package_dir and (package_dir / "reference_scene_grammar_contract_audit.json").exists():
+        reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(
+            load_json(package_dir / "reference_scene_grammar_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -2267,6 +2322,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "shotTransitionBoundarySummary": shot_transition_boundary_summary,
         "transitionMotivationSummary": transition_motivation_summary,
         "transitionPairContinuitySummary": transition_pair_continuity_summary,
+        "referenceSceneGrammarSummary": reference_scene_grammar_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
@@ -2313,6 +2369,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review bridge_sequence_plan.json before rhythm recut or Resolve apply so important route/title/timeline-gap transitions become 2-5 shot bridge sequences instead of single effects.",
             "Review transition_motivation_contract_audit.json before Resolve apply so each transition has a viewer-facing route, motion, title, bridge, or BGM motivation instead of a decorative effect.",
             "Review transition_pair_continuity_contract_audit.json before Resolve apply so every adjacent from/to shot has concrete visual, route, motion, BGM, or title continuity evidence.",
+            "Review reference_scene_grammar_contract_audit.json before Resolve apply so opening, chapters, transitions, and ending follow the Parallel World/Malta scene-function grammar.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "Review unattended_first_draft_contract_audit.json before Resolve apply or handoff; it proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected.",
