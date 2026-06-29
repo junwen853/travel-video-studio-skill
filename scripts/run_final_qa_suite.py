@@ -46,6 +46,7 @@ ACCEPTED_STATUSES = {
     "reference_scene_grammar_contract_audit": {"passed"},
     "timeline_variety_contract_audit": {"passed"},
     "transition_scene_arc_contract_audit": {"passed"},
+    "transition_effect_palette_contract_audit": {"passed"},
     "unattended_first_draft_contract_audit": {"passed", "passed_with_warnings"},
     "skill_maturity_contract_audit": {"passed", "passed_with_warnings"},
     "v14_baseline_contract_audit": {"passed"},
@@ -539,6 +540,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "audit_transition_scene_arc_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_effect_palette_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_transition_effect_palette_contract.py"),
                     "--package-dir",
                     str(package_dir),
                 ],
