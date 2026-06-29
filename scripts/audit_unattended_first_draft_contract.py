@@ -496,6 +496,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_cadence = load_json(package_dir / "transition_cadence_contract_audit.json") or {}
     transition_microstructure = load_json(package_dir / "transition_microstructure_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
+    reference_profile_application = load_json(package_dir / "reference_profile_application_contract_audit.json") or {}
     timeline_variety = load_json(package_dir / "timeline_variety_contract_audit.json") or {}
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
@@ -514,13 +515,14 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tc_summary = summary_of(transition_cadence)
     tms_summary = summary_of(transition_microstructure)
     rsg_summary = summary_of(reference_scene_grammar)
+    rpa_summary = summary_of(reference_profile_application)
     tv_summary = summary_of(timeline_variety)
     tsa_summary = summary_of(transition_scene_arc)
     tep_summary = summary_of(transition_effect_palette)
     tvm_summary = summary_of(transition_visual_match)
     add_gate(
         gates,
-        "Transition cadence, execution, scene arcs, effect palette, visual match, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, and reference-like",
+        "Transition cadence, execution, scene arcs, effect palette, visual match, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, and reference-like",
         transition_quality.get("status") == "passed"
         and shot_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
@@ -535,6 +537,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_cadence.get("status") == "passed"
         and transition_microstructure.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
+        and reference_profile_application.get("status") == "passed"
         and timeline_variety.get("status") == "passed"
         and transition_scene_arc.get("status") == "passed"
         and transition_effect_palette.get("status") == "passed"
@@ -657,6 +660,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_cadence.get("blockers")
         and not transition_microstructure.get("blockers")
         and not reference_scene_grammar.get("blockers")
+        and not reference_profile_application.get("blockers")
         and not timeline_variety.get("blockers")
         and not transition_scene_arc.get("blockers")
         and not transition_effect_palette.get("blockers")
@@ -693,6 +697,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionMicrostructureSummary": tms_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": rsg_summary,
+            "referenceProfileApplicationStatus": reference_profile_application.get("status"),
+            "referenceProfileApplicationSummary": rpa_summary,
             "timelineVarietyStatus": timeline_variety.get("status"),
             "timelineVarietySummary": tv_summary,
             "transitionSceneArcStatus": transition_scene_arc.get("status"),

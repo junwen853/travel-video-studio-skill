@@ -1142,6 +1142,29 @@ def summarize_reference_scene_grammar_contract(report: dict[str, Any] | None) ->
     }
 
 
+def summarize_reference_profile_application_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "referenceProfileStatus": summary.get("referenceProfileStatus"),
+        "referenceVideoCount": summary.get("referenceVideoCount"),
+        "pacingStatus": summary.get("pacingStatus"),
+        "audioStatus": summary.get("audioStatus"),
+        "styleTargetKeyCount": summary.get("styleTargetKeyCount"),
+        "requiredArtifactCount": summary.get("requiredArtifactCount"),
+        "passedArtifactCount": summary.get("passedArtifactCount"),
+        "blockedArtifactCount": summary.get("blockedArtifactCount"),
+        "directReferenceArtifactCount": summary.get("directReferenceArtifactCount"),
+        "passedDirectReferenceArtifactCount": summary.get("passedDirectReferenceArtifactCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_timeline_variety_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2425,6 +2448,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     reference_scene_grammar_cmd = ["python3", str(SCRIPTS_DIR / "audit_reference_scene_grammar_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_reference_scene_grammar_contract", reference_scene_grammar_cmd, ok_codes={0, 2}))
 
+    reference_profile_application_cmd = ["python3", str(SCRIPTS_DIR / "audit_reference_profile_application_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_reference_profile_application_contract", reference_profile_application_cmd, ok_codes={0, 2}))
+
     timeline_variety_cmd = ["python3", str(SCRIPTS_DIR / "audit_timeline_variety_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_timeline_variety_contract", timeline_variety_cmd, ok_codes={0, 2}))
 
@@ -2553,6 +2579,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     creator_cut_application_summary = None
     rhythm_recut_application_summary = None
     reference_scene_grammar_summary = None
+    reference_profile_application_summary = None
     timeline_variety_summary = None
     transition_scene_arc_summary = None
     transition_effect_palette_summary = None
@@ -2809,6 +2836,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Reference scene grammar blocker: {item}" for item in reference_scene_grammar_summary.get("blockers") or [])
             if reference_scene_grammar_summary and reference_scene_grammar_summary.get("warnings"):
                 warnings.extend(f"Reference scene grammar warning: {item}" for item in reference_scene_grammar_summary.get("warnings") or [])
+        if step["id"] == "audit_reference_profile_application_contract":
+            reference_profile_application_summary = summarize_reference_profile_application_contract(payload)
+            if reference_profile_application_summary and reference_profile_application_summary.get("status") == "blocked":
+                blockers.extend(f"Reference profile application blocker: {item}" for item in reference_profile_application_summary.get("blockers") or [])
+            if reference_profile_application_summary and reference_profile_application_summary.get("warnings"):
+                warnings.extend(f"Reference profile application warning: {item}" for item in reference_profile_application_summary.get("warnings") or [])
         if step["id"] == "audit_timeline_variety_contract":
             timeline_variety_summary = summarize_timeline_variety_contract(payload)
             if timeline_variety_summary and timeline_variety_summary.get("status") == "blocked":
@@ -3069,6 +3102,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(
             load_json(package_dir / "reference_scene_grammar_contract_audit.json")
         )
+    if package_dir and (package_dir / "reference_profile_application_contract_audit.json").exists():
+        reference_profile_application_summary = summarize_reference_profile_application_contract(
+            load_json(package_dir / "reference_profile_application_contract_audit.json")
+        )
     if package_dir and (package_dir / "timeline_variety_contract_audit.json").exists():
         timeline_variety_summary = summarize_timeline_variety_contract(
             load_json(package_dir / "timeline_variety_contract_audit.json")
@@ -3186,6 +3223,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "creatorCutApplicationSummary": creator_cut_application_summary,
         "rhythmRecutApplicationSummary": rhythm_recut_application_summary,
         "referenceSceneGrammarSummary": reference_scene_grammar_summary,
+        "referenceProfileApplicationSummary": reference_profile_application_summary,
         "timelineVarietySummary": timeline_variety_summary,
         "transitionSceneArcSummary": transition_scene_arc_summary,
         "transitionEffectPaletteSummary": transition_effect_palette_summary,
@@ -3251,6 +3289,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review final_source_usage_contract_audit.json before Resolve apply so the final raw clips actually come from footage_select_plan hero/main/texture choices and do not reintroduce unmatched, repair, reject, or utility-dominant sources.",
             "Review creator_cut_application_contract_audit.json before Resolve apply so rejected/utility/weak creator-cut rows cannot remain active in the final candidate blueprint.",
             "Review reference_scene_grammar_contract_audit.json before Resolve apply so opening, chapters, transitions, and ending follow the Parallel World/Malta scene-function grammar.",
+            "Review reference_profile_application_contract_audit.json before Resolve apply so the reference batch profile reaches opening, chapter, rhythm, creator, transition, caption, audio, and style gates instead of staying as unused analysis.",
             "Review timeline_variety_contract_audit.json before Resolve apply so movement, lived-in texture, destination payoff, and ending aftertaste vary across the whole film instead of hiding weak shot choice behind transitions.",
             "Review transition_scene_arc_contract_audit.json before Resolve apply so important boundaries become outgoing/bridge-or-motion/BGM-hit/title-safe/landing scene arcs, not isolated effects.",
             "Review transition_effect_palette_contract_audit.json before Resolve apply so the whole film balances clean cuts, match cuts, bridges, dissolves, title reveals, and rare motivated motion instead of effect spam.",

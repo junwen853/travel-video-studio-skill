@@ -25,10 +25,11 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Audits final source usage so final raw clips must come from footage-select hero/main/texture choices instead of unmatched, repair, reject, or utility-dominant source material.
 - Audits creator-cut application so rejected, weak, utility, or unmatched clips cannot remain active in the final candidate blueprint.
 - Audits reference scene grammar so opening, chapters, transitions, and ending use context/movement/texture/payoff/aftertaste structure instead of flat montage.
+- Audits reference profile application so multi-video reference learning reaches opening, chapter, rhythm, creator-cut, transition, caption, audio, scene-grammar, and style gates instead of remaining unused analysis.
 - Audits timeline variety so the final film has movement, lived-in texture, destination payoff, and ending aftertaste instead of hiding weak shot choice behind transitions.
-- Audits the unattended first-draft chain before Resolve apply, connecting raw intake, first-assembly source order, story, BGM, captions, titles, rhythm, rhythm-recut application, final-source usage, creator-cut application, timeline-variety, effect-motion application, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition microstructure, transition scene-arc/effect-palette/visual-match, execution readiness, scene grammar, repair closure, and blueprint preflight into one gate.
+- Audits the unattended first-draft chain before Resolve apply, connecting raw intake, first-assembly source order, story, BGM, captions, titles, rhythm, rhythm-recut application, final-source usage, creator-cut application, reference-profile application, timeline-variety, effect-motion application, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition microstructure, transition scene-arc/effect-palette/visual-match, execution readiness, scene grammar, repair closure, and blueprint preflight into one gate.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
-- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, full-source first-assembly order, final-source usage, creator-cut application, rhythm-recut application, timeline-variety, effect-motion application, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition microstructure, transition effect palette, transition visual match, transition pair-continuity/execution readiness, reference scene grammar, route texture, export quality, and V14 baseline maturity.
+- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, full-source first-assembly order, final-source usage, creator-cut application, rhythm-recut application, reference-profile application, timeline-variety, effect-motion application, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition microstructure, transition effect palette, transition visual match, transition pair-continuity/execution readiness, reference scene grammar, route texture, export quality, and V14 baseline maturity.
 
 The default finishing path is DaVinci Resolve through the Resolve Python API. GUI automation is treated as a fallback, not the normal route.
 
@@ -156,6 +157,7 @@ A delivery package usually contains:
 - `opening_story_plan/opening_story_plan.md`
 - `chapter_arc_plan/chapter_arc_plan.md`
 - `reference/reference_batch_profile.md`
+- `reference_profile_application_contract_audit.md`
 - `bgm_sourcing/bgm_sourcing_brief.md`
 - `transition_bridge_plan/transition_bridge_plan.md`
 - `transition_execution_plan/transition_execution_plan.md`
@@ -199,7 +201,7 @@ A delivery package usually contains:
 - `resolve_timeline_blueprint.json`
 - `resolve_blueprint_preflight.md`
 - `render_plan.json`
-- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `effect_motion_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `source_selection_coverage_contract_audit.json`, `first_assembly_source_order_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `transition_cadence_contract_audit.json`, `transition_microstructure_contract_audit.json`, `transition_scene_arc_contract_audit.json`, `transition_effect_palette_contract_audit.json`, `transition_visual_match_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `rhythm_recut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, and `v14_baseline_contract_audit.json`
+- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `effect_motion_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `source_selection_coverage_contract_audit.json`, `first_assembly_source_order_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `transition_cadence_contract_audit.json`, `transition_microstructure_contract_audit.json`, `transition_scene_arc_contract_audit.json`, `transition_effect_palette_contract_audit.json`, `transition_visual_match_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `rhythm_recut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, `reference_profile_application_contract_audit.json`, and `v14_baseline_contract_audit.json`
 
 ## DaVinci Resolve Path
 
@@ -249,6 +251,7 @@ A package is not considered deliverable until the relevant audits pass:
 - transition visual match contract
 - creator-cut application contract
 - reference scene grammar contract
+- reference profile application contract
 - skill maturity contract
 - V14 baseline contract
 - final QA suite

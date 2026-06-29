@@ -36,6 +36,7 @@ REQUIRED_SCRIPTS = {
     "user_regression_gates": [
         "analyze_reference_video.py",
         "prepare_reference_batch_profile.py",
+        "audit_reference_profile_application_contract.py",
         "prepare_bgm_sourcing_brief.py",
         "prepare_bgm_selection_package.py",
         "prepare_bgm_phrase_blueprint.py",
@@ -136,6 +137,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_visual_match_contract_rule": "audit_transition_visual_match_contract.py",
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
+    "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
     "timeline_variety_contract_rule": "audit_timeline_variety_contract.py",
     "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
@@ -220,6 +222,7 @@ REQUIRED_STYLE_PATTERNS = {
     "parallel_world_anchor": "space.bilibili.com/405004967",
     "parallel_world_profile": "parallel-world-vlog-style.md",
     "reference_batch_profile": "reference-batch-profile-engine.md",
+    "reference_profile_application_contract": "reference-profile-application-contract.md",
     "footage_select_engine": "footage-select-engine.md",
     "source_selection_repair_contract": "source-selection-repair-contract.md",
     "creator_cut_engine": "creator-cut-engine.md",
@@ -4448,6 +4451,60 @@ def reference_scene_grammar_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def reference_profile_application_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "reference_profile_application_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    profile = data.get("referenceProfile") if isinstance(data.get("referenceProfile"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "referenceProfileStatus": summary.get("referenceProfileStatus"),
+        "referenceVideoCount": summary.get("referenceVideoCount"),
+        "pacingStatus": summary.get("pacingStatus"),
+        "audioStatus": summary.get("audioStatus"),
+        "styleTargetKeyCount": summary.get("styleTargetKeyCount"),
+        "requiredArtifactCount": summary.get("requiredArtifactCount"),
+        "passedArtifactCount": summary.get("passedArtifactCount"),
+        "blockedArtifactCount": summary.get("blockedArtifactCount"),
+        "directReferenceArtifactCount": summary.get("directReferenceArtifactCount"),
+        "passedDirectReferenceArtifactCount": summary.get("passedDirectReferenceArtifactCount"),
+        "minimumReferenceVideos": profile.get("minimumReferenceVideos"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def reference_profile_application_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("referenceVideoCount") or 0) >= int(evidence.get("minimumReferenceVideos") or 2)
+        and evidence.get("pacingStatus") == "analyzed"
+        and evidence.get("audioStatus") == "analyzed"
+        and int(evidence.get("styleTargetKeyCount") or 0) >= 4
+        and int(evidence.get("requiredArtifactCount") or 0) >= 10
+        and int(evidence.get("passedArtifactCount") or 0) == int(evidence.get("requiredArtifactCount") or 0)
+        and int(evidence.get("blockedArtifactCount") or 0) == 0
+        and int(evidence.get("passedDirectReferenceArtifactCount") or 0) == int(evidence.get("directReferenceArtifactCount") or 0)
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def timeline_variety_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "timeline_variety_contract_audit.json"
     data = load_json(path) or {}
@@ -5286,6 +5343,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Reference batch profile learns from multiple supplied creator/reference videos without copying assets",
         reference_batch_profile_ready(reference_batch_evidence),
         reference_batch_evidence,
+    )
+    reference_profile_application_evidence = reference_profile_application_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Reference profile application contract proves the reference batch reaches opening, chapter, rhythm, creator, transition, caption, audio, and style gates",
+        reference_profile_application_contract_ready(reference_profile_application_evidence),
+        reference_profile_application_evidence,
     )
     bgm_evidence = bgm_sourcing_evidence(package_dir)
     add_check(

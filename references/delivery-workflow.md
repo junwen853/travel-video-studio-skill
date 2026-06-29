@@ -67,6 +67,7 @@ Expected files:
 - `transition_execution_readiness_contract_audit.json` / `.md`: execution-readiness gate proving every final transition has a package-local Resolve recipe, keyframes, BGM hit, title-safe window, pair readiness, and handle evidence
 - `creator_cut_application_contract_audit.json` / `.md`: final-candidate gate proving creator-cut hero/main/texture/reject decisions are applied instead of only planned
 - `reference_scene_grammar_contract_audit.json` / `.md`: scene-grammar gate proving opening, chapters, transitions, and ending use reference-like context/movement/texture/payoff/aftertaste functions
+- `reference_profile_application_contract_audit.json` / `.md`: reference-profile application gate proving the batch reference profile reaches opening, chapter, rhythm, creator-cut, transition, caption, audio, scene-grammar, and style gates
 - `timeline_variety_contract_audit.json` / `.md`: film-level gate proving the final timeline varies movement, lived-in texture, destination payoff, and ending aftertaste instead of hiding weak shot choice behind transitions
 - `audience_caption_contract_audit.json` / `.md`: caption/TXT gate proving final viewer text is audience-facing and does not expose edit-status, tool, QA, or version language
 - `unattended_first_draft_contract_audit.json` / `.md`: no-write first-draft gate proving raw intake, footage select, opening/chapter story, title/cover, captions, BGM, audio policy, establishing/effects, rhythm/creator cut, timeline variety, transition QA, reference repair closure, and Resolve preflight are connected before handoff
@@ -136,7 +137,7 @@ The package is not final until:
 - footage select plan exists before first assembly, proves active source videos were tiered, and blocks derived/portrait/weak footage from leading the cut
 - raw intake completeness audit passes after first package build, proving the media index covers the mounted source tree and every active source video is recognized, routed exactly once, scored, non-derived, and fresh
 - first assembly source-order contract passes after source-selection coverage, proving every delivery chapter was sorted by safe scored source candidates rather than filename order or fallback samples
-- reference batch profile exists before rhythm/style claims when multiple reference videos were supplied
+- reference batch profile exists before rhythm/style claims when multiple reference videos were supplied, then `reference_profile_application_contract_audit.json` proves it was consumed by downstream story/rhythm/style gates
 - opening story plan exists after first package build and proves all six first-three-minute beats before title, BGM, rhythm, creator-cut, director-intent, or Resolve apply claims
 - chapter arc plan exists after opening-story planning and before rhythm/creator-cut/Resolve trust, proving each chapter has beat decisions or assigned repair owners
 - cloud/API stages have either completed or the user accepted dry-run limitations

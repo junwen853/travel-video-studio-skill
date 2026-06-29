@@ -165,6 +165,8 @@ Before saying a package has learned this reference style, verify:
 
 - The cover/hero title uses a high-recognition establishing background, oversized destination title, secondary English/place line, and no cluttered internal labels, proven by `cover_title_contract_audit.json`.
 - The reference batch profile exists when multiple local references were supplied, with aggregate pacing/audio/sample-frame targets and a non-copying usage contract.
+- `reference_profile_application_contract_audit.json` passes, proving the reference profile reaches opening, chapter, rhythm, creator-cut, transition, caption, audio, scene-grammar, and style gates.
+- Source selection, final candidate lineage, transition cadence, Resolve transition payloads/apply paths, and final raw-source usage are checked through the source selection repair plan, Resolve transition materialization contract, Resolve transition apply contract, transition cadence contract, final-blueprint lineage, and final source usage gates.
 - The opening has human/context plus real establishing footage within the first minute.
 - The opening story plan proves the first 3 minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff.
 - The chapter plan includes person/context, movement, texture, payoff, and aftertaste roles.

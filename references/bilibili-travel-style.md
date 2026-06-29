@@ -204,6 +204,8 @@ Use those observations as pacing targets, not as assets to copy.
 
 When multiple local reference videos are available, generate a batch profile before rhythm/style judgments:
 
+After the downstream story, rhythm, creator-cut, transition, caption, audio, and style artifacts exist, run `audit_reference_profile_application_contract.py` and read `reference-profile-application-contract.md` so the reference batch profile is proven applied instead of left as unused analysis. Keep `source-selection-repair-contract.md`, `final-blueprint-lineage-contract.md`, `transition-cadence-contract.md`, and `final-source-usage-contract.md` in the style handoff so source repair, candidate lineage, cadence, and final raw-source usage remain explicit.
+
 ```bash
 python3 <skill-dir>/scripts/prepare_reference_batch_profile.py --reference-dir <reference-folder> --package-dir <package>
 ```
@@ -225,7 +227,7 @@ Observed reusable traits from the V14 training reference pass:
 - A 20-minute Japan cut should keep enough breathing room for station/platform/train/street/food/weather details instead of rushing from landmark to landmark.
 - If the user rejects voiceover, the reference-like feeling should come from subtitles, BGM, scene ordering, and natural ambient texture rather than generated narration.
 - When reference-style, director-intent, director-polish, or final QA audits are blocked, generate `reference_style_repair_plan/reference_style_repair_plan.json`, run `reference_repair_closure_audit.json`, and fix/close P0 rows before another Resolve write.
-- Before Resolve apply or final QA handoff, run `audit_final_blueprint_lineage_contract.py`, `audit_effect_motion_application_contract.py`, and `audit_final_source_usage_contract.py` so BGM phrase, effect motion, bridge sequence, transition execution, rhythm recut, and transition polish candidate work is present in the active/final blueprint, restrained effects are not dropped or overused, and the final raw clips still come from footage-select hero/main/texture choices rather than unmatched or utility-dominant source material.
+- Before Resolve apply or final QA handoff, run `audit_final_blueprint_lineage_contract.py`, `audit_effect_motion_application_contract.py`, `audit_reference_profile_application_contract.py`, and `audit_final_source_usage_contract.py` so BGM phrase, effect motion, bridge sequence, transition execution, rhythm recut, transition polish, and reference-profile application work is present in the active/final blueprint and downstream plans, restrained effects are not dropped or overused, and the final raw clips still come from footage-select hero/main/texture choices rather than unmatched or utility-dominant source material.
 
 Expected generated evidence inside each delivery package:
 

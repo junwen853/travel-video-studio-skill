@@ -25,6 +25,7 @@ SKILL_PATTERNS = {
     "bgm_phrase_blueprint": "prepare_bgm_phrase_blueprint.py",
     "bilibili_malta": "bilibili-travel-style.md",
     "reference_batch_profile": "prepare_reference_batch_profile.py",
+    "reference_profile_application": "audit_reference_profile_application_contract.py",
     "footage_select": "prepare_footage_select_plan.py",
     "source_selection_repair": "prepare_source_selection_repair_plan.py",
     "source_selection_coverage": "audit_source_selection_coverage_contract.py",
@@ -92,6 +93,7 @@ REQUIRED_SCRIPTS = [
     "prepare_effect_motion_blueprint.py",
     "audit_effect_motion_application_contract.py",
     "prepare_reference_batch_profile.py",
+    "audit_reference_profile_application_contract.py",
     "prepare_footage_select_plan.py",
     "prepare_source_selection_repair_plan.py",
     "audit_source_selection_coverage_contract.py",
@@ -230,6 +232,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     effect_motion_application = load_json(package_dir / "effect_motion_application_contract_audit.json") or {}
     bgm_phrase_blueprint = load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json") or {}
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
+    reference_profile_application = load_json(package_dir / "reference_profile_application_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -1471,17 +1474,19 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         },
     )
     reference_batch_summary = get_summary(reference_batch)
+    reference_profile_application_summary = get_summary(reference_profile_application)
     route_summary = get_summary(route_texture)
     director_summary = get_summary(director_intent)
     add_check(
         checks,
-        "Bilibili/Malta style, raw footage selection, creator cut, route texture, rhythm, and director polish gates pass",
+        "Bilibili/Malta style, reference-profile application, raw footage selection, creator cut, route texture, rhythm, and director polish gates pass",
         passed_status(reference)
         and passed_status(route_texture)
         and director_intent.get("status") in {"passed", "passed_with_warnings"}
         and passed_status(director_polish)
         and cover_title.get("status") == "passed"
         and reference_batch.get("status") in {"ready_with_reference_batch_profile", "ready_with_single_reference_profile"}
+        and reference_profile_application.get("status") == "passed"
         and raw_intake.get("status") == "passed"
         and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
         and source_selection_repair.get("status") == "ready_no_source_selection_repairs_needed"
@@ -1531,6 +1536,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "coverTitleSummary": cover_title_summary,
             "referenceBatchStatus": reference_batch.get("status"),
             "referenceBatchSummary": reference_batch_summary,
+            "referenceProfileApplicationStatus": reference_profile_application.get("status"),
+            "referenceProfileApplicationSummary": reference_profile_application_summary,
             "rawIntakeStatus": raw_intake.get("status"),
             "rawIntakeSummary": raw_intake_summary,
             "footageSelectStatus": footage_select.get("status"),
