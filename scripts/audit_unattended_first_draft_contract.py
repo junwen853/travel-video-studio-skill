@@ -518,6 +518,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     reference_transition_profile = load_json(package_dir / "reference_transition_profile_contract_audit.json") or {}
     chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
     shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
+    transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
@@ -548,6 +549,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     rtp_summary = summary_of(reference_transition_profile)
     css_summary = summary_of(chapter_story_spine)
     sfc_summary = summary_of(shot_flow_continuity)
+    tbr_summary = summary_of(transition_breathing_room)
     add_gate(
         gates,
         "Transition cadence, execution, scene arcs, effect palette, visual match, preview packet quality, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",
@@ -870,6 +872,27 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": shot_flow_continuity.get("status"),
             "summary": sfc_summary,
             "blockers": shot_flow_continuity.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Transition breathing-room proves important boundaries land before the next idea",
+        transition_breathing_room.get("status") == "passed"
+        and as_int(tbr_summary.get("visualBoundaryCount")) >= 1
+        and as_int(tbr_summary.get("landingDurationViolationCount")) == 0
+        and as_int(tbr_summary.get("motionSpacingViolationCount")) == 0
+        and as_int(tbr_summary.get("highIntensityRunMax")) <= 1
+        and as_int(tbr_summary.get("subtitleCollisionRiskCount")) == 0
+        and as_int(tbr_summary.get("titleCollisionRiskCount")) == 0
+        and as_int(tbr_summary.get("breathAfterImportantReadyCount")) >= as_int(tbr_summary.get("importantBoundaryCount"))
+        and as_int(tbr_summary.get("blockedCheckCount")) == 0
+        and as_int(tbr_summary.get("blockerCount")) == 0
+        and not transition_breathing_room.get("blockers"),
+        {
+            "status": transition_breathing_room.get("status"),
+            "summary": tbr_summary,
+            "blockers": transition_breathing_room.get("blockers") or [],
         },
     )
 

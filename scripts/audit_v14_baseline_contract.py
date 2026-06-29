@@ -72,6 +72,7 @@ SKILL_PATTERNS = {
     "reference_scene_grammar_contract": "audit_reference_scene_grammar_contract.py",
     "chapter_story_spine_contract": "audit_chapter_story_spine_contract.py",
     "shot_flow_continuity_contract": "audit_shot_flow_continuity_contract.py",
+    "transition_breathing_room_contract": "audit_transition_breathing_room_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
@@ -153,6 +154,7 @@ REQUIRED_SCRIPTS = [
     "audit_reference_scene_grammar_contract.py",
     "audit_chapter_story_spine_contract.py",
     "audit_shot_flow_continuity_contract.py",
+    "audit_transition_breathing_room_contract.py",
     "audit_timeline_variety_contract.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
@@ -258,6 +260,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     reference_transition_profile = load_json(package_dir / "reference_transition_profile_contract_audit.json") or {}
     chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
     shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
+    transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -1600,6 +1603,27 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionAuditionQualitySummary": transition_audition_quality_summary,
             "transitionStoryboardStatus": transition_storyboard.get("status"),
             "transitionStoryboardSummary": transition_storyboard_summary,
+        },
+    )
+    transition_breathing_room_summary = get_summary(transition_breathing_room)
+    add_check(
+        checks,
+        "Transition breathing-room contract proves V14 transitions land on stable footage and do not become motion-effect spam",
+        transition_breathing_room.get("status") == "passed"
+        and int(transition_breathing_room_summary.get("visualBoundaryCount") or 0) >= 1
+        and int(transition_breathing_room_summary.get("landingDurationViolationCount") or 0) == 0
+        and int(transition_breathing_room_summary.get("motionSpacingViolationCount") or 0) == 0
+        and int(transition_breathing_room_summary.get("highIntensityRunMax") or 0) <= 1
+        and int(transition_breathing_room_summary.get("subtitleCollisionRiskCount") or 0) == 0
+        and int(transition_breathing_room_summary.get("titleCollisionRiskCount") or 0) == 0
+        and int(transition_breathing_room_summary.get("breathAfterImportantReadyCount") or 0) >= int(transition_breathing_room_summary.get("importantBoundaryCount") or 0)
+        and float(transition_breathing_room_summary.get("cleanBreathShare") or 0.0) >= 0.45
+        and int(transition_breathing_room_summary.get("blockedCheckCount") or 0) == 0
+        and int(transition_breathing_room_summary.get("blockerCount") or 0) == 0
+        and not transition_breathing_room.get("blockers"),
+        {
+            "transitionBreathingRoomStatus": transition_breathing_room.get("status"),
+            "transitionBreathingRoomSummary": transition_breathing_room_summary,
         },
     )
     reference_transition_profile_summary = get_summary(reference_transition_profile)

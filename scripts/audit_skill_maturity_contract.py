@@ -70,6 +70,7 @@ REQUIRED_SCRIPTS = {
         "audit_reference_scene_grammar_contract.py",
         "audit_chapter_story_spine_contract.py",
         "audit_shot_flow_continuity_contract.py",
+        "audit_transition_breathing_room_contract.py",
         "audit_timeline_variety_contract.py",
         "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
@@ -159,6 +160,7 @@ REQUIRED_SKILL_PATTERNS = {
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
     "chapter_story_spine_contract_rule": "audit_chapter_story_spine_contract.py",
     "shot_flow_continuity_contract_rule": "audit_shot_flow_continuity_contract.py",
+    "transition_breathing_room_contract_rule": "audit_transition_breathing_room_contract.py",
     "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
     "reference_transition_profile_contract_rule": "audit_reference_transition_profile_contract.py",
     "timeline_variety_contract_rule": "audit_timeline_variety_contract.py",
@@ -213,6 +215,7 @@ REQUIRED_SKILL_PATTERNS = {
     "reference_transition_profile_contract_reference_rule": "reference-transition-profile-contract.md",
     "chapter_story_spine_contract_reference_rule": "chapter-story-spine-contract.md",
     "shot_flow_continuity_contract_reference_rule": "shot-flow-continuity-contract.md",
+    "transition_breathing_room_contract_reference_rule": "transition-breathing-room-contract.md",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
@@ -278,6 +281,7 @@ REQUIRED_STYLE_PATTERNS = {
     "final_blueprint_lineage_contract": "final-blueprint-lineage-contract.md",
     "transition_cadence_contract": "transition-cadence-contract.md",
     "transition_storyboard_contract": "transition-storyboard-contract.md",
+    "transition_breathing_room_contract": "transition-breathing-room-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_preview_packet_engine": "transition-preview-packet-engine.md",
@@ -323,6 +327,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "reference_transition_profile_contract": "reference transition profile contract",
     "shot_transition_boundary_contract": "shot transition boundary contract",
     "transition_storyboard_contract": "transition storyboard contract",
+    "transition_breathing_room_contract": "transition breathing-room contract",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -5402,6 +5407,85 @@ def transition_choreography_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_breathing_room_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_breathing_room_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "motionAccentBoundaryCount": summary.get("motionAccentBoundaryCount"),
+        "highIntensityBoundaryCount": summary.get("highIntensityBoundaryCount"),
+        "highIntensityRunMax": summary.get("highIntensityRunMax"),
+        "motionSpacingViolationCount": summary.get("motionSpacingViolationCount"),
+        "landingDurationViolationCount": summary.get("landingDurationViolationCount"),
+        "quietLandingReadyCount": summary.get("quietLandingReadyCount"),
+        "breathAfterImportantReadyCount": summary.get("breathAfterImportantReadyCount"),
+        "subtitleCollisionRiskCount": summary.get("subtitleCollisionRiskCount"),
+        "titleCollisionRiskCount": summary.get("titleCollisionRiskCount"),
+        "bridgeLandingEvidenceCount": summary.get("bridgeLandingEvidenceCount"),
+        "cleanBreathShare": summary.get("cleanBreathShare"),
+        "transitionMicrostructureStatus": summary.get("transitionMicrostructureStatus"),
+        "transitionChoreographyStatus": summary.get("transitionChoreographyStatus"),
+        "transitionPreviewQualityStatus": summary.get("transitionPreviewQualityStatus"),
+        "transitionAuditionQualityStatus": summary.get("transitionAuditionQualityStatus"),
+        "transitionStoryboardStatus": summary.get("transitionStoryboardStatus"),
+        "referenceTransitionProfileStatus": summary.get("referenceTransitionProfileStatus"),
+        "shotFlowContinuityStatus": summary.get("shotFlowContinuityStatus"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_breathing_room_contract_ready(evidence: dict[str, Any]) -> bool:
+    important = int(evidence.get("importantBoundaryCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and int(evidence.get("visualBoundaryCount") or 0) >= 1
+        and int(evidence.get("landingDurationViolationCount") or 0) == 0
+        and int(evidence.get("motionSpacingViolationCount") or 0) == 0
+        and int(evidence.get("highIntensityRunMax") or 0) <= 1
+        and int(evidence.get("subtitleCollisionRiskCount") or 0) == 0
+        and int(evidence.get("titleCollisionRiskCount") or 0) == 0
+        and (important == 0 or int(evidence.get("breathAfterImportantReadyCount") or 0) >= important)
+        and float(evidence.get("cleanBreathShare") or 0.0) >= 0.45
+        and evidence.get("transitionMicrostructureStatus") == "passed"
+        and evidence.get("transitionChoreographyStatus") == "passed"
+        and evidence.get("transitionPreviewQualityStatus") == "passed"
+        and evidence.get("transitionAuditionQualityStatus") == "passed"
+        and evidence.get("transitionStoryboardStatus") == "passed"
+        and evidence.get("referenceTransitionProfileStatus") == "passed"
+        and evidence.get("shotFlowContinuityStatus") == "passed"
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_storyboard_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_storyboard_contract_audit.json"
     data = load_json(path) or {}
@@ -6521,6 +6605,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Shot flow continuity contract proves each chapter orders final shots into readable travel-film progression",
         shot_flow_continuity_contract_ready(shot_flow_continuity_evidence),
         shot_flow_continuity_evidence,
+    )
+    transition_breathing_room_evidence = transition_breathing_room_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition breathing-room contract proves motion accents are rare and every important transition lands cleanly",
+        transition_breathing_room_contract_ready(transition_breathing_room_evidence),
+        transition_breathing_room_evidence,
     )
     timeline_variety_evidence = timeline_variety_contract_evidence(package_dir)
     add_check(
