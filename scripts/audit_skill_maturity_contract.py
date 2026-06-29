@@ -60,6 +60,8 @@ REQUIRED_SCRIPTS = {
         "audit_transition_visual_match_contract.py",
         "prepare_transition_preview_packet.py",
         "audit_transition_preview_quality_contract.py",
+        "prepare_transition_audition_packet.py",
+        "audit_transition_audition_quality_contract.py",
         "audit_transition_storyboard_contract.py",
         "audit_final_source_usage_contract.py",
         "audit_reference_scene_grammar_contract.py",
@@ -143,6 +145,8 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_visual_match_contract_rule": "audit_transition_visual_match_contract.py",
     "transition_preview_packet_rule": "prepare_transition_preview_packet.py",
     "transition_preview_quality_contract_rule": "audit_transition_preview_quality_contract.py",
+    "transition_audition_packet_rule": "prepare_transition_audition_packet.py",
+    "transition_audition_quality_contract_rule": "audit_transition_audition_quality_contract.py",
     "transition_storyboard_contract_rule": "audit_transition_storyboard_contract.py",
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
@@ -220,6 +224,8 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_visual_match_contract_reference_rule": "transition-visual-match-contract.md",
     "transition_preview_packet_reference_rule": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract_reference_rule": "transition-preview-quality-contract.md",
+    "transition_audition_packet_reference_rule": "transition-audition-packet-engine.md",
+    "transition_audition_quality_contract_reference_rule": "transition-audition-quality-contract.md",
     "transition_storyboard_contract_reference_rule": "transition-storyboard-contract.md",
     "timeline_variety_contract_reference_rule": "timeline-variety-contract.md",
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
@@ -258,6 +264,8 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_storyboard_contract": "transition-storyboard-contract.md",
     "transition_preview_packet_engine": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract": "transition-preview-quality-contract.md",
+    "transition_audition_packet_engine": "transition-audition-packet-engine.md",
+    "transition_audition_quality_contract": "transition-audition-quality-contract.md",
     "final_source_usage_contract": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
@@ -298,6 +306,8 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_storyboard_contract": "transition storyboard contract",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
+    "transition_audition_packet": "transition audition packet",
+    "transition_audition_quality_contract": "transition audition quality contract",
     "transition_motif_plan": "transition motif plan",
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
@@ -5220,6 +5230,96 @@ def transition_preview_quality_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_audition_packet_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_audition_packet" / "transition_audition_packet.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "auditionRowCount": summary.get("auditionRowCount"),
+        "importantAuditionRowCount": summary.get("importantAuditionRowCount"),
+        "readyAuditionRowCount": summary.get("readyAuditionRowCount"),
+        "blockedAuditionRowCount": summary.get("blockedAuditionRowCount"),
+        "auditionClipCount": summary.get("auditionClipCount"),
+        "ffmpegAvailable": summary.get("ffmpegAvailable"),
+        "builtClips": summary.get("builtClips"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_audition_packet_ready(evidence: dict[str, Any]) -> bool:
+    important_rows = int(evidence.get("importantAuditionRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}
+        and int(evidence.get("blockedAuditionRowCount") or 0) == 0
+        and (important_rows == 0 or int(evidence.get("readyAuditionRowCount") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("auditionClipCount") or 0) >= important_rows)
+        and int(evidence.get("blockerCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
+def transition_audition_quality_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_audition_quality_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "auditionRowCount": summary.get("auditionRowCount"),
+        "importantAuditionRowCount": summary.get("importantAuditionRowCount"),
+        "auditionQualityReadyRowCount": summary.get("auditionQualityReadyRowCount"),
+        "blockedAuditionQualityRowCount": summary.get("blockedAuditionQualityRowCount"),
+        "auditionClipCount": summary.get("auditionClipCount"),
+        "probeReadyClipCount": summary.get("probeReadyClipCount"),
+        "noAudioClipCount": summary.get("noAudioClipCount"),
+        "warningCount": summary.get("warningCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_audition_quality_contract_ready(evidence: dict[str, Any]) -> bool:
+    important_rows = int(evidence.get("importantAuditionRowCount") or 0)
+    clip_count = int(evidence.get("auditionClipCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("blockedAuditionQualityRowCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and (important_rows == 0 or int(evidence.get("auditionQualityReadyRowCount") or 0) >= important_rows)
+        and int(evidence.get("probeReadyClipCount") or 0) >= clip_count
+        and int(evidence.get("noAudioClipCount") or 0) >= clip_count
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_storyboard_contract_ready(evidence: dict[str, Any]) -> bool:
     important_boundaries = int(evidence.get("importantBoundaryCount") or 0)
     transition_rows = int(evidence.get("transitionRowCount") or 0)
@@ -6036,16 +6136,46 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         and transition_preview_quality_contract_ready(transition_preview_quality_evidence),
         {"transitionPreviewPacket": transition_preview_packet, "transitionPreviewQuality": transition_preview_quality_evidence},
     )
+    transition_audition_packet = transition_audition_packet_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition audition packet proves important transitions are watchable muted local MP4 previews before storyboard or Resolve apply",
+        transition_preview_packet_ready(transition_preview_packet)
+        and transition_preview_quality_contract_ready(transition_preview_quality_evidence)
+        and transition_audition_packet_ready(transition_audition_packet),
+        {
+            "transitionPreviewPacket": transition_preview_packet,
+            "transitionPreviewQuality": transition_preview_quality_evidence,
+            "transitionAuditionPacket": transition_audition_packet,
+        },
+    )
+    transition_audition_quality_evidence = transition_audition_quality_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition audition quality contract proves transition audition MP4s are playable, local, long enough, and muted",
+        transition_preview_packet_ready(transition_preview_packet)
+        and transition_preview_quality_contract_ready(transition_preview_quality_evidence)
+        and transition_audition_packet_ready(transition_audition_packet)
+        and transition_audition_quality_contract_ready(transition_audition_quality_evidence),
+        {
+            "transitionAuditionPacket": transition_audition_packet,
+            "transitionAuditionQuality": transition_audition_quality_evidence,
+        },
+    )
     transition_storyboard_evidence = transition_storyboard_contract_evidence(package_dir)
     add_check(
         checks,
         "Transition storyboard contract proves important transitions have viewer purpose, outgoing/bridge/landing proof, and preview evidence",
         transition_preview_packet_ready(transition_preview_packet)
         and transition_preview_quality_contract_ready(transition_preview_quality_evidence)
+        and transition_audition_packet_ready(transition_audition_packet)
+        and transition_audition_quality_contract_ready(transition_audition_quality_evidence)
         and transition_storyboard_contract_ready(transition_storyboard_evidence),
         {
             "transitionPreviewPacket": transition_preview_packet,
             "transitionPreviewQuality": transition_preview_quality_evidence,
+            "transitionAuditionPacket": transition_audition_packet,
+            "transitionAuditionQuality": transition_audition_quality_evidence,
             "transitionStoryboard": transition_storyboard_evidence,
         },
     )

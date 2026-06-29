@@ -17,6 +17,7 @@ REPORT_SPECS = {
     "transitionVisualMatch": ("transition_visual_match_contract_audit.json", {"passed"}),
     "transitionMicrostructure": ("transition_microstructure_contract_audit.json", {"passed"}),
     "transitionPreviewQuality": ("transition_preview_quality_contract_audit.json", {"passed"}),
+    "transitionAuditionQuality": ("transition_audition_quality_contract_audit.json", {"passed"}),
     "transitionBridgeVisualEvidence": ("transition_bridge_visual_evidence_contract_audit.json", {"passed"}),
     "transitionPairContinuity": ("transition_pair_continuity_contract_audit.json", {"passed"}),
     "transitionExecutionReadiness": ("transition_execution_readiness_contract_audit.json", {"passed"}),
@@ -154,6 +155,28 @@ def load_preview_packet(package_dir: Path) -> dict[str, Any]:
     }
 
 
+def load_audition_packet(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_audition_packet" / "transition_audition_packet.json"
+    data = load_json(path) or {}
+    rows = data.get("auditionRows") if isinstance(data.get("auditionRows"), list) else []
+    lookup: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        index = as_int(row.get("rowIndex"), -1)
+        if index >= 0:
+            lookup[index] = row
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "summary": summary_of(data),
+        "lookup": lookup,
+        "blockers": data.get("blockers") if isinstance(data, dict) else [],
+        "warnings": data.get("warnings") if isinstance(data, dict) else [],
+    }
+
+
 def preview_packet_evidence(row: dict[str, Any], packet: dict[str, Any]) -> str:
     lookup = packet.get("lookup") if isinstance(packet.get("lookup"), dict) else {}
     preview = lookup.get(as_int(row.get("rowIndex"), -1))
@@ -166,6 +189,16 @@ def preview_packet_evidence(row: dict[str, Any], packet: dict[str, Any]) -> str:
         return evidence
     frames = preview.get("frameSampleEvidence") if isinstance(preview.get("frameSampleEvidence"), list) else []
     return ", ".join(clean(frame) for frame in frames if clean(frame))
+
+
+def audition_packet_evidence(row: dict[str, Any], packet: dict[str, Any]) -> str:
+    lookup = packet.get("lookup") if isinstance(packet.get("lookup"), dict) else {}
+    audition = lookup.get(as_int(row.get("rowIndex"), -1))
+    if not isinstance(audition, dict):
+        return ""
+    if audition.get("status") != "ready_with_transition_audition":
+        return ""
+    return clean(audition.get("auditionClip"))
 
 
 def transition_rows(grammar: dict[str, Any]) -> list[dict[str, Any]]:
@@ -224,7 +257,13 @@ def row_recommendation(row: dict[str, Any]) -> dict[str, Any]:
     return row.get("recommendation") if isinstance(row.get("recommendation"), dict) else {}
 
 
-def storyboard_row(row: dict[str, Any], *, require_frame_preview: bool, preview_packet: dict[str, Any]) -> dict[str, Any]:
+def storyboard_row(
+    row: dict[str, Any],
+    *,
+    require_frame_preview: bool,
+    preview_packet: dict[str, Any],
+    audition_packet: dict[str, Any],
+) -> dict[str, Any]:
     decision = row_decision(row)
     signals = row_signals(row)
     recommendation = row_recommendation(row)
@@ -249,6 +288,11 @@ def storyboard_row(row: dict[str, Any], *, require_frame_preview: bool, preview_
         or clean(row.get("frameSampleEvidence"))
         or preview_packet_evidence(row, preview_packet)
     )
+    audition = (
+        clean(decision.get("transitionAuditionEvidence"))
+        or clean(row.get("transitionAuditionEvidence"))
+        or audition_packet_evidence(row, audition_packet)
+    )
     motion_evidence = bool(from_motion and to_motion) or bool(bridge_terms) or present(recommendation.get("physicalBridgeEvidence"))
     has_bridge_or_motion = present(bridge_or_motion) or motion_evidence
     decision_keys_present = STORYBOARD_DECISION_FIELDS.issubset(set(decision))
@@ -266,6 +310,8 @@ def storyboard_row(row: dict[str, Any], *, require_frame_preview: bool, preview_
         issues.append("important_boundary_missing_bridge_or_motion_beat")
     if important and require_frame_preview and not present(preview):
         issues.append("important_boundary_missing_preview_or_frame_sample_evidence")
+    if important and not present(audition):
+        issues.append("important_boundary_missing_watchable_transition_audition")
     if style in MOTION_STYLES and not motion_evidence:
         issues.append("motion_transition_without_two_sided_motion_or_bridge_evidence")
     if row.get("status") == "needs_bridge_insert":
@@ -282,6 +328,7 @@ def storyboard_row(row: dict[str, Any], *, require_frame_preview: bool, preview_
         "bridgeOrMotionBeatEvidence": bridge_or_motion,
         "landingShotEvidence": landing,
         "previewStripEvidence": preview,
+        "transitionAuditionEvidence": audition,
         "decisionFieldsPresent": decision_keys_present,
         "motionEvidence": motion_evidence,
         "bridgeTerms": bridge_terms,
@@ -300,10 +347,16 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     package_dir = package_dir.expanduser().resolve()
     reports = load_reports(package_dir)
     preview_packet = load_preview_packet(package_dir)
+    audition_packet = load_audition_packet(package_dir)
     grammar_data = reports["transitionGrammar"]["data"]
     rows = transition_rows(grammar_data)
     audited = [
-        storyboard_row(row, require_frame_preview=not args.allow_missing_frame_preview, preview_packet=preview_packet)
+        storyboard_row(
+            row,
+            require_frame_preview=not args.allow_missing_frame_preview,
+            preview_packet=preview_packet,
+            audition_packet=audition_packet,
+        )
         for row in rows
     ]
     blocked_rows = [row for row in audited if row["status"] == "blocked"]
@@ -337,6 +390,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
 
     rows_with_preview = sum(1 for row in audited if present(row.get("previewStripEvidence")))
     important_preview = sum(1 for row in important_rows if present(row.get("previewStripEvidence")))
+    rows_with_audition = sum(1 for row in audited if present(row.get("transitionAuditionEvidence")))
+    important_audition = sum(1 for row in important_rows if present(row.get("transitionAuditionEvidence")))
     rows_with_bridge_or_motion = sum(1 for row in audited if present(row.get("bridgeOrMotionBeatEvidence")) or row.get("motionEvidence"))
     important_bridge_or_motion = sum(1 for row in important_rows if present(row.get("bridgeOrMotionBeatEvidence")) or row.get("motionEvidence"))
     rows_with_decision_fields = sum(1 for row in audited if row.get("decisionFieldsPresent"))
@@ -381,17 +436,19 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     )
     add_check(
         checks,
-        "Important route, title, timeline-gap, and ending transitions have bridge or motion beats plus preview evidence",
+        "Important route, title, timeline-gap, and ending transitions have bridge or motion beats plus preview and playable audition evidence",
         not important_rows
         or (
             important_bridge_or_motion == len(important_rows)
             and (args.allow_missing_frame_preview or important_preview == len(important_rows))
+            and important_audition == len(important_rows)
             and not important_blocked
         ),
         {
             "importantBoundaryCount": len(important_rows),
             "importantBridgeOrMotionBeatCount": important_bridge_or_motion,
             "importantPreviewEvidenceCount": important_preview,
+            "importantAuditionEvidenceCount": important_audition,
             "requiresFramePreviewEvidence": not args.allow_missing_frame_preview,
             "importantBlockedRows": important_blocked[: args.max_blocked_rows_in_report],
         },
@@ -466,6 +523,12 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
                 "status": preview_packet["status"],
                 "summary": preview_packet["summary"],
             },
+            "transitionAuditionPacket": {
+                "path": audition_packet["path"],
+                "exists": audition_packet["exists"],
+                "status": audition_packet["status"],
+                "summary": audition_packet["summary"],
+            },
         },
         "summary": {
             "visualBoundaryCount": visual_boundaries,
@@ -480,11 +543,16 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "rowsWithBridgeOrMotionBeat": rows_with_bridge_or_motion,
             "rowsWithLandingEvidence": rows_with_landing,
             "rowsWithPreviewEvidence": rows_with_preview,
+            "rowsWithAuditionEvidence": rows_with_audition,
             "importantPreviewEvidenceCount": important_preview,
+            "importantAuditionEvidenceCount": important_audition,
             "importantBridgeOrMotionBeatCount": important_bridge_or_motion,
             "previewPacketStatus": preview_packet["status"],
             "previewPacketReadyRowCount": (preview_packet["summary"] or {}).get("readyPreviewRowCount"),
             "previewPacketBlockedRowCount": (preview_packet["summary"] or {}).get("blockedPreviewRowCount"),
+            "auditionPacketStatus": audition_packet["status"],
+            "auditionPacketReadyRowCount": (audition_packet["summary"] or {}).get("readyAuditionRowCount"),
+            "auditionPacketBlockedRowCount": (audition_packet["summary"] or {}).get("blockedAuditionRowCount"),
             "motionTransitionCount": len(motion_rows),
             "motionReadyRowCount": motion_ready,
             "purposeCounts": purpose_counts,
@@ -501,6 +569,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "viewerFacingPurposeRequired": True,
             "outgoingBridgeLandingRequired": True,
             "framePreviewEvidenceRequiredForImportantBoundaries": not args.allow_missing_frame_preview,
+            "watchableAuditionRequiredForImportantBoundaries": True,
             "motionRequiresRouteMotionEvidence": True,
             "writesResolve": False,
             "downloadsExternalAssets": False,
@@ -538,6 +607,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Bridge or motion: `{row.get('bridgeOrMotionBeatEvidence')}`",
                 f"- Landing: `{row.get('landingShotEvidence')}`",
                 f"- Preview: `{row.get('previewStripEvidence')}`",
+                f"- Audition: `{row.get('transitionAuditionEvidence')}`",
             ]
         )
         if row.get("issues"):
@@ -547,6 +617,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
             "",
             "## Contract",
             "- Treat a travel transition as a short storyboard: viewer purpose, outgoing shot, bridge or motion beat, landing shot, and preview evidence for important boundaries.",
+            "- Important boundaries also need a muted package-local transition audition MP4 so the outgoing/bridge/landing flow can be watched before Resolve apply.",
             "- Use rotation, whip, speed-ramp, or push only when real route motion or bridge evidence supports it.",
             "- Do not approve important day/place/title/ending transitions from metadata alone; inspect or generate frame/contact-sheet evidence first.",
         ]

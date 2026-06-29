@@ -55,6 +55,8 @@ ACCEPTED_STATUSES = {
     "transition_visual_match_contract_audit": {"passed"},
     "transition_preview_packet": {"ready_with_transition_preview_packet", "ready_no_important_transitions"},
     "transition_preview_quality_contract_audit": {"passed"},
+    "transition_audition_packet": {"ready_with_transition_audition_packet", "ready_no_important_transitions"},
+    "transition_audition_quality_contract_audit": {"passed"},
     "transition_storyboard_contract_audit": {"passed"},
     "unattended_first_draft_contract_audit": {"passed", "passed_with_warnings"},
     "skill_maturity_contract_audit": {"passed", "passed_with_warnings"},
@@ -179,6 +181,8 @@ def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) ->
         return package_dir / "package_integrity_audit_strict_portable.json"
     if stage == "transition_preview_packet":
         return package_dir / "transition_preview_packet" / "transition_preview_packet.json"
+    if stage == "transition_audition_packet":
+        return package_dir / "transition_audition_packet" / "transition_audition_packet.json"
     return package_dir / f"{stage}.json"
 
 
@@ -644,6 +648,27 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "audit_transition_preview_quality_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_audition_packet",
+                [
+                    sys.executable,
+                    str(scripts / "prepare_transition_audition_packet.py"),
+                    "--package-dir",
+                    str(package_dir),
+                    "--build-clips",
+                ],
+                False,
+            ),
+            (
+                "transition_audition_quality_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_transition_audition_quality_contract.py"),
                     "--package-dir",
                     str(package_dir),
                 ],

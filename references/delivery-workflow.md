@@ -62,7 +62,10 @@ Expected files:
 - `transition_effect_palette_contract_audit.json` / `.md`: film-level gate proving the transition palette balances clean cuts, match cuts, bridge scenes, mood dissolves, clean title reveals, and rare motivated motion instead of relying on one repeated effect style
 - `transition_visual_match_contract_audit.json` / `.md`: pair-level gate proving every adjacent transition has concrete visual, bridge, two-sided motion, mood/title, same-chapter, or BGM continuity evidence
 - `transition_preview_packet/transition_preview_packet.json` / `.md`: package-local frame evidence packet for important transition boundaries, generated before storyboard approval
-- `transition_storyboard_contract_audit.json` / `.md`: storyboard gate proving important day/place/title/timeline/ending transitions have viewer purpose, outgoing shot, bridge-or-motion beat, landing shot, and preview/frame evidence
+- `transition_preview_quality_contract_audit.json` / `.md`: preview-quality gate proving generated outgoing/landing transition frames decode, are nonblank, and are not identical
+- `transition_audition_packet/transition_audition_packet.json` / `.md`: package-local muted MP4 audition packet proving important outgoing/bridge/landing transition flow can be watched before Resolve apply
+- `transition_audition_quality_contract_audit.json` / `.md`: audition-quality gate proving audition MP4s are local, playable, long enough, and audio-free
+- `transition_storyboard_contract_audit.json` / `.md`: storyboard gate proving important day/place/title/timeline/ending transitions have viewer purpose, outgoing shot, bridge-or-motion beat, landing shot, preview/frame evidence, and transition audition evidence
 - `final_source_usage_contract_audit.json` / `.md`: active/final-blueprint gate proving final raw clips actually match footage-select hero/main/texture choices and do not reintroduce unmatched, repair, reject, or utility-dominant source material
 - `transition_quality_contract_audit.json` / `.md`: final transition quality gate proving visual-boundary coverage, BGM-hit timing, title/subtitle avoidance, motion evidence, and no repeated/template effects
 - `shot_transition_boundary_contract_audit.json` / `.md`: shot-to-shot boundary gate proving each adjacent from/to pair maps to transition metadata with BGM-hit, title-safe, BGM-only, and motion-evidence checks

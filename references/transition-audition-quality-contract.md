@@ -1,0 +1,27 @@
+# Transition Audition Quality Contract
+
+Use this contract immediately after `prepare_transition_audition_packet.py --build-clips` and before storyboard approval, Resolve apply, final QA, maturity, or V14 baseline claims.
+
+## Command
+
+```bash
+python3 <skill-dir>/scripts/audit_transition_audition_quality_contract.py \
+  --package-dir <package>
+```
+
+The audit reads `transition_audition_packet/transition_audition_packet.json` and writes:
+
+- `transition_audition_quality_contract_audit.json`
+- `transition_audition_quality_contract_audit.md`
+
+## Pass Standard
+
+- The audition packet status is `ready_with_transition_audition_packet` or `ready_no_important_transitions`.
+- Every important audition row has a package-local MP4 file.
+- `ffprobe` can read each MP4 and find a video stream.
+- Each clip meets the minimum duration and resolution.
+- Audio streams are blocked by default; auditions are visual transition proof, not BGM or source-audio approval.
+
+## Repair
+
+If a clip is missing, too short, unreadable, outside the package, or contains audio, rebuild the audition packet. If the packet cannot build because source clips are missing, repair the transition preview packet and bridge visual evidence first.

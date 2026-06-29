@@ -504,6 +504,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
     transition_preview_quality = load_json(package_dir / "transition_preview_quality_contract_audit.json") or {}
+    transition_audition_packet = load_json(package_dir / "transition_audition_packet" / "transition_audition_packet.json") or {}
+    transition_audition_quality = load_json(package_dir / "transition_audition_quality_contract_audit.json") or {}
     transition_storyboard = load_json(package_dir / "transition_storyboard_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
@@ -527,6 +529,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tvm_summary = summary_of(transition_visual_match)
     tpp_summary = summary_of(transition_preview_packet)
     tpq_summary = summary_of(transition_preview_quality)
+    tap_summary = summary_of(transition_audition_packet)
+    taq_summary = summary_of(transition_audition_quality)
     tsb_summary = summary_of(transition_storyboard)
     add_gate(
         gates,
@@ -553,6 +557,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_visual_match.get("status") == "passed"
         and transition_preview_packet.get("status") in {"ready_with_transition_preview_packet", "ready_no_important_transitions"}
         and transition_preview_quality.get("status") == "passed"
+        and transition_audition_packet.get("status") in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}
+        and transition_audition_quality.get("status") == "passed"
         and transition_storyboard.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
         and as_int(sb_summary.get("blockedBoundaryCount")) == 0
@@ -682,6 +688,17 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             or as_int(tpq_summary.get("previewQualityReadyRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
         )
         and as_int(tpq_summary.get("blockedPreviewQualityRowCount")) == 0
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(tap_summary.get("readyAuditionRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(taq_summary.get("auditionQualityReadyRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and as_int(taq_summary.get("blockedAuditionQualityRowCount")) == 0
+        and as_int(taq_summary.get("probeReadyClipCount")) >= as_int(taq_summary.get("auditionClipCount"))
+        and as_int(taq_summary.get("noAudioClipCount")) >= as_int(taq_summary.get("auditionClipCount"))
         and as_int(tsb_summary.get("motionReadyRowCount")) == as_int(tsb_summary.get("motionTransitionCount"))
         and as_int(tm_summary.get("motivatedBoundaryCount")) == as_int(tm_summary.get("visualBoundaryCount"))
         and as_int(tpc_summary.get("pairContinuityPayloadCount")) == as_int(tpc_summary.get("visualBoundaryCount"))
@@ -707,6 +724,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_visual_match.get("blockers")
         and not transition_preview_packet.get("blockers")
         and not transition_preview_quality.get("blockers")
+        and not transition_audition_packet.get("blockers")
+        and not transition_audition_quality.get("blockers")
         and not transition_storyboard.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
@@ -756,6 +775,10 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionPreviewPacketSummary": tpp_summary,
             "transitionPreviewQualityStatus": transition_preview_quality.get("status"),
             "transitionPreviewQualitySummary": tpq_summary,
+            "transitionAuditionPacketStatus": transition_audition_packet.get("status"),
+            "transitionAuditionPacketSummary": tap_summary,
+            "transitionAuditionQualityStatus": transition_audition_quality.get("status"),
+            "transitionAuditionQualitySummary": taq_summary,
             "transitionStoryboardStatus": transition_storyboard.get("status"),
             "transitionStoryboardSummary": tsb_summary,
         },

@@ -59,6 +59,8 @@ SKILL_PATTERNS = {
     "transition_visual_match": "audit_transition_visual_match_contract.py",
     "transition_preview_packet": "prepare_transition_preview_packet.py",
     "transition_preview_quality": "audit_transition_preview_quality_contract.py",
+    "transition_audition_packet": "prepare_transition_audition_packet.py",
+    "transition_audition_quality": "audit_transition_audition_quality_contract.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
@@ -133,6 +135,8 @@ REQUIRED_SCRIPTS = [
     "audit_transition_visual_match_contract.py",
     "prepare_transition_preview_packet.py",
     "audit_transition_preview_quality_contract.py",
+    "prepare_transition_audition_packet.py",
+    "audit_transition_audition_quality_contract.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
@@ -275,6 +279,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
     transition_preview_quality = load_json(package_dir / "transition_preview_quality_contract_audit.json") or {}
+    transition_audition_packet = load_json(package_dir / "transition_audition_packet" / "transition_audition_packet.json") or {}
+    transition_audition_quality = load_json(package_dir / "transition_audition_quality_contract_audit.json") or {}
     transition_storyboard = load_json(package_dir / "transition_storyboard_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
@@ -1436,12 +1442,16 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     )
     transition_preview_summary = get_summary(transition_preview_packet)
     transition_preview_quality_summary = get_summary(transition_preview_quality)
+    transition_audition_summary = get_summary(transition_audition_packet)
+    transition_audition_quality_summary = get_summary(transition_audition_quality)
     transition_storyboard_summary = get_summary(transition_storyboard)
     add_check(
         checks,
-        "Transition storyboard contract proves important V14 transitions have viewer purpose, outgoing/bridge/landing proof, and nonblank generated preview evidence",
+        "Transition storyboard contract proves important V14 transitions have viewer purpose, outgoing/bridge/landing proof, nonblank preview frames, and playable muted audition MP4s",
         transition_preview_packet.get("status") in {"ready_with_transition_preview_packet", "ready_no_important_transitions"}
         and transition_preview_quality.get("status") == "passed"
+        and transition_audition_packet.get("status") in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}
+        and transition_audition_quality.get("status") == "passed"
         and transition_storyboard.get("status") == "passed"
         and int(transition_storyboard_summary.get("visualBoundaryCount") or 0) >= 1
         and int(transition_storyboard_summary.get("transitionRowCount") or 0) >= int(transition_storyboard_summary.get("visualBoundaryCount") or 0)
@@ -1467,16 +1477,33 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             or int(transition_preview_quality_summary.get("previewQualityReadyRowCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
         )
         and int(transition_preview_quality_summary.get("blockedPreviewQualityRowCount") or 0) == 0
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("readyAuditionRowCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("auditionQualityReadyRowCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and int(transition_audition_quality_summary.get("blockedAuditionQualityRowCount") or 0) == 0
+        and int(transition_audition_quality_summary.get("probeReadyClipCount") or 0) >= int(transition_audition_quality_summary.get("auditionClipCount") or 0)
+        and int(transition_audition_quality_summary.get("noAudioClipCount") or 0) >= int(transition_audition_quality_summary.get("auditionClipCount") or 0)
         and int(transition_storyboard_summary.get("motionReadyRowCount") or 0) == int(transition_storyboard_summary.get("motionTransitionCount") or 0)
         and int(transition_storyboard_summary.get("blockedCheckCount") or 0) == 0
         and not transition_preview_packet.get("blockers")
         and not transition_preview_quality.get("blockers")
+        and not transition_audition_packet.get("blockers")
+        and not transition_audition_quality.get("blockers")
         and not transition_storyboard.get("blockers"),
         {
             "transitionPreviewPacketStatus": transition_preview_packet.get("status"),
             "transitionPreviewPacketSummary": transition_preview_summary,
             "transitionPreviewQualityStatus": transition_preview_quality.get("status"),
             "transitionPreviewQualitySummary": transition_preview_quality_summary,
+            "transitionAuditionPacketStatus": transition_audition_packet.get("status"),
+            "transitionAuditionPacketSummary": transition_audition_summary,
+            "transitionAuditionQualityStatus": transition_audition_quality.get("status"),
+            "transitionAuditionQualitySummary": transition_audition_quality_summary,
             "transitionStoryboardStatus": transition_storyboard.get("status"),
             "transitionStoryboardSummary": transition_storyboard_summary,
         },
@@ -1628,6 +1655,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_motivation.get("status") == "passed"
         and transition_pair_continuity.get("status") == "passed"
         and transition_execution_readiness.get("status") == "passed"
+        and transition_audition_packet.get("status") in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}
+        and transition_audition_quality.get("status") == "passed"
         and transition_storyboard.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
         and unattended_first_draft.get("status") in {"passed", "passed_with_warnings"}
@@ -1713,6 +1742,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionPairContinuitySummary": transition_pair_continuity_summary,
             "transitionExecutionReadinessStatus": transition_execution_readiness.get("status"),
             "transitionExecutionReadinessSummary": transition_execution_readiness_summary,
+            "transitionAuditionPacketStatus": transition_audition_packet.get("status"),
+            "transitionAuditionPacketSummary": transition_audition_summary,
+            "transitionAuditionQualityStatus": transition_audition_quality.get("status"),
+            "transitionAuditionQualitySummary": transition_audition_quality_summary,
             "transitionStoryboardStatus": transition_storyboard.get("status"),
             "transitionStoryboardSummary": transition_storyboard_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),

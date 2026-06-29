@@ -1,6 +1,6 @@
 # Transition Preview Quality Contract
 
-Use this contract immediately after `prepare_transition_preview_packet.py` and before `audit_transition_storyboard_contract.py`, Resolve apply, final QA, maturity, or V14 baseline claims.
+Use this contract immediately after `prepare_transition_preview_packet.py` and before `prepare_transition_audition_packet.py`, `audit_transition_audition_quality_contract.py`, `audit_transition_storyboard_contract.py`, Resolve apply, final QA, maturity, or V14 baseline claims.
 
 This contract checks outgoing and landing preview frames. When an important transition also uses materialized bridge sequence inserts, pair it with `audit_transition_bridge_visual_evidence_contract.py --package-dir <package> --extract-frames` so the middle bridge beats are also proven as real local video clips with probe/frame evidence and BGM-only audio.
 
@@ -43,3 +43,5 @@ Block storyboard approval when the audit reports:
 - outgoing and landing frames are identical
 
 Do not work around this with a prose note. Repair the transition preview packet by regenerating frames from the real source clips, replacing weak source selections, or choosing a different bridge/landing shot, then rerun this audit and storyboard.
+
+After this passes, build `transition_audition_packet/transition_audition_packet.json` with `prepare_transition_audition_packet.py --build-clips` and pass `audit_transition_audition_quality_contract.py` before storyboard approval. Preview frames prove still-image evidence; audition MP4s prove the transition flow is watchable.
