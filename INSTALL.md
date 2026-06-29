@@ -106,10 +106,12 @@ test -f ~/.codex/skills/travel-video-studio/scripts/prepare_transition_audition_
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_audition_quality_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_storyboard_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_chapter_story_spine_contract.py
+test -f ~/.codex/skills/travel-video-studio/scripts/audit_shot_flow_continuity_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_bridge_visual_evidence_contract.py
 test -f ~/.codex/skills/travel-video-studio/references/reference-profile-application-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/reference-transition-profile-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/chapter-story-spine-contract.md
+test -f ~/.codex/skills/travel-video-studio/references/shot-flow-continuity-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/large-source-unattended-readiness-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-preview-packet-engine.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-preview-quality-contract.md

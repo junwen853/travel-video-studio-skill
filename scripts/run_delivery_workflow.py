@@ -1269,6 +1269,38 @@ def summarize_chapter_story_spine_contract(report: dict[str, Any] | None) -> dic
     }
 
 
+def summarize_shot_flow_continuity_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "chapterCount": summary.get("chapterCount"),
+        "chaptersPassed": summary.get("chaptersPassed"),
+        "chaptersBlocked": summary.get("chaptersBlocked"),
+        "weakClipCount": summary.get("weakClipCount"),
+        "weakFlowPairCount": summary.get("weakFlowPairCount"),
+        "sameBeatRunMax": summary.get("sameBeatRunMax"),
+        "sameSourceRunMax": summary.get("sameSourceRunMax"),
+        "utilityRunMax": summary.get("utilityRunMax"),
+        "chapterStorySpineStatus": summary.get("chapterStorySpineStatus"),
+        "timelineVarietyStatus": summary.get("timelineVarietyStatus"),
+        "transitionPairContinuityStatus": summary.get("transitionPairContinuityStatus"),
+        "transitionMicrostructureStatus": summary.get("transitionMicrostructureStatus"),
+        "referenceSceneGrammarStatus": summary.get("referenceSceneGrammarStatus"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_timeline_variety_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2814,6 +2846,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_chapter_story_spine_contract", chapter_story_spine_cmd, ok_codes={0, 2}))
 
+    shot_flow_continuity_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_shot_flow_continuity_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_shot_flow_continuity_contract", shot_flow_continuity_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -2946,6 +2987,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_storyboard_summary = None
     reference_transition_profile_summary = None
     chapter_story_spine_summary = None
+    shot_flow_continuity_summary = None
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
@@ -3304,6 +3346,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Chapter story spine blocker: {item}" for item in chapter_story_spine_summary.get("blockers") or [])
             if chapter_story_spine_summary and chapter_story_spine_summary.get("warnings"):
                 warnings.extend(f"Chapter story spine warning: {item}" for item in chapter_story_spine_summary.get("warnings") or [])
+        if step["id"] == "audit_shot_flow_continuity_contract":
+            shot_flow_continuity_summary = summarize_shot_flow_continuity_contract(payload)
+            if shot_flow_continuity_summary and shot_flow_continuity_summary.get("status") == "blocked":
+                blockers.extend(f"Shot flow continuity blocker: {item}" for item in shot_flow_continuity_summary.get("blockers") or [])
+            if shot_flow_continuity_summary and shot_flow_continuity_summary.get("warnings"):
+                warnings.extend(f"Shot flow continuity warning: {item}" for item in shot_flow_continuity_summary.get("warnings") or [])
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -3604,6 +3652,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         chapter_story_spine_summary = summarize_chapter_story_spine_contract(
             load_json(package_dir / "chapter_story_spine_contract_audit.json")
         )
+    if package_dir and (package_dir / "shot_flow_continuity_contract_audit.json").exists():
+        shot_flow_continuity_summary = summarize_shot_flow_continuity_contract(
+            load_json(package_dir / "shot_flow_continuity_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -3721,6 +3773,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionStoryboardSummary": transition_storyboard_summary,
         "referenceTransitionProfileSummary": reference_transition_profile_summary,
         "chapterStorySpineSummary": chapter_story_spine_summary,
+        "shotFlowContinuitySummary": shot_flow_continuity_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,

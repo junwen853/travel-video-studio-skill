@@ -83,7 +83,7 @@ When building an edit rhythm plan, require every primary clip to carry one of th
 
 When person/context footage runs for more than a short beat, intercut B-roll or visual evidence. Long talking segments should be supported by the place, food, object, road, map, sign, or activity being discussed.
 
-Before rhythm or Resolve trust, generate `chapter_arc_plan/chapter_arc_plan.json` with `prepare_chapter_arc_plan.py`. Use `references/chapter-arc-engine.md` so every chapter has explicit context, movement, texture, payoff, and aftertaste/handoff rows, with owner scripts for any missing beat. After rhythm/creator/source/transition audits, run `audit_chapter_story_spine_contract.py` and read `references/chapter-story-spine-contract.md` so those beats survive into the actual candidate instead of only appearing in a plan.
+Before rhythm or Resolve trust, generate `chapter_arc_plan/chapter_arc_plan.json` with `prepare_chapter_arc_plan.py`. Use `references/chapter-arc-engine.md` so every chapter has explicit context, movement, texture, payoff, and aftertaste/handoff rows, with owner scripts for any missing beat. After rhythm/creator/source/transition audits, run `audit_chapter_story_spine_contract.py` and `audit_shot_flow_continuity_contract.py`, then read `references/chapter-story-spine-contract.md` and `references/shot-flow-continuity-contract.md` so those beats survive into the actual candidate in a readable order instead of only appearing in a plan.
 
 ## Transition And Bridge Rules
 
@@ -171,7 +171,7 @@ Before saying a package has learned this reference style, verify:
 - The opening has human/context plus real establishing footage within the first minute.
 - The opening story plan proves the first 3 minutes contain viewer promise, destination proof, clean hero title, practical route/arrival material, lived-in texture, and first handoff.
 - The chapter plan includes person/context, movement, texture, payoff, and aftertaste roles.
-- The chapter arc plan exists at `chapter_arc_plan/chapter_arc_plan.json`, `chapter_story_spine_contract_audit.json` passes, and missing beats are repaired before effects are chosen.
+- The chapter arc plan exists at `chapter_arc_plan/chapter_arc_plan.json`, `chapter_story_spine_contract_audit.json` and `shot_flow_continuity_contract_audit.json` pass, and missing or badly ordered beats are repaired before effects are chosen.
 - Every day/place boundary has physical bridge footage or an explicit local-footage search row.
 - The edit rhythm plan targets about 3-second median rhythm with some longer breathing shots, not a flat sequence of long raw clips.
 - The footage select plan plus large-source unattended-readiness audit proves the source pool was scored before first assembly, with hero/main/texture candidates and repair/reject rows, and that the first draft chain is not relying on filename order or a small sample of the folder.

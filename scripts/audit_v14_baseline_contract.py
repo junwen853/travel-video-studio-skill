@@ -71,6 +71,7 @@ SKILL_PATTERNS = {
     "transition_execution_readiness_contract": "audit_transition_execution_readiness_contract.py",
     "reference_scene_grammar_contract": "audit_reference_scene_grammar_contract.py",
     "chapter_story_spine_contract": "audit_chapter_story_spine_contract.py",
+    "shot_flow_continuity_contract": "audit_shot_flow_continuity_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
@@ -151,6 +152,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_execution_readiness_contract.py",
     "audit_reference_scene_grammar_contract.py",
     "audit_chapter_story_spine_contract.py",
+    "audit_shot_flow_continuity_contract.py",
     "audit_timeline_variety_contract.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
@@ -255,6 +257,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     reference_profile_application = load_json(package_dir / "reference_profile_application_contract_audit.json") or {}
     reference_transition_profile = load_json(package_dir / "reference_transition_profile_contract_audit.json") or {}
     chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
+    shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -526,6 +529,35 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "chapterStorySpineStatus": chapter_story_spine.get("status"),
             "chapterStorySpineSummary": chapter_story_spine_summary,
             "blockers": chapter_story_spine.get("blockers"),
+        },
+    )
+
+    shot_flow_summary = get_summary(shot_flow_continuity)
+    add_check(
+        checks,
+        "Shot flow continuity contract proves V14 chapter clips are ordered like a watchable travel film",
+        shot_flow_continuity.get("status") == "passed"
+        and int(shot_flow_summary.get("visualClipCount") or 0) >= 3
+        and int(shot_flow_summary.get("chapterCount") or 0) >= 1
+        and int(shot_flow_summary.get("chaptersPassed") or 0) == int(shot_flow_summary.get("chapterCount") or -1)
+        and int(shot_flow_summary.get("chaptersBlocked") or 0) == 0
+        and int(shot_flow_summary.get("weakClipCount") or 0) == 0
+        and int(shot_flow_summary.get("weakFlowPairCount") or 0) == 0
+        and int(shot_flow_summary.get("sameBeatRunMax") or 0) <= 3
+        and int(shot_flow_summary.get("sameSourceRunMax") or 0) <= 3
+        and int(shot_flow_summary.get("utilityRunMax") or 0) <= 2
+        and shot_flow_summary.get("chapterStorySpineStatus") == "passed"
+        and shot_flow_summary.get("timelineVarietyStatus") == "passed"
+        and shot_flow_summary.get("transitionPairContinuityStatus") == "passed"
+        and shot_flow_summary.get("transitionMicrostructureStatus") == "passed"
+        and shot_flow_summary.get("referenceSceneGrammarStatus") == "passed"
+        and int(shot_flow_summary.get("blockedCheckCount") or 0) == 0
+        and int(shot_flow_summary.get("blockerCount") or 0) == 0
+        and not shot_flow_continuity.get("blockers"),
+        {
+            "shotFlowContinuityStatus": shot_flow_continuity.get("status"),
+            "shotFlowContinuitySummary": shot_flow_summary,
+            "blockers": shot_flow_continuity.get("blockers"),
         },
     )
 

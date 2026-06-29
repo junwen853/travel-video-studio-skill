@@ -517,6 +517,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_storyboard = load_json(package_dir / "transition_storyboard_contract_audit.json") or {}
     reference_transition_profile = load_json(package_dir / "reference_transition_profile_contract_audit.json") or {}
     chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
+    shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
@@ -546,6 +547,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tsb_summary = summary_of(transition_storyboard)
     rtp_summary = summary_of(reference_transition_profile)
     css_summary = summary_of(chapter_story_spine)
+    sfc_summary = summary_of(shot_flow_continuity)
     add_gate(
         gates,
         "Transition cadence, execution, scene arcs, effect palette, visual match, preview packet quality, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",
@@ -840,6 +842,34 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": chapter_story_spine.get("status"),
             "summary": css_summary,
             "blockers": chapter_story_spine.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Shot flow continuity proves each chapter's final clip order is readable before handoff",
+        shot_flow_continuity.get("status") == "passed"
+        and as_int(sfc_summary.get("visualClipCount")) >= 3
+        and as_int(sfc_summary.get("chapterCount")) >= 1
+        and as_int(sfc_summary.get("chaptersPassed")) == as_int(sfc_summary.get("chapterCount"))
+        and as_int(sfc_summary.get("chaptersBlocked")) == 0
+        and as_int(sfc_summary.get("weakClipCount")) == 0
+        and as_int(sfc_summary.get("weakFlowPairCount")) == 0
+        and as_int(sfc_summary.get("sameBeatRunMax")) <= 3
+        and as_int(sfc_summary.get("sameSourceRunMax")) <= 3
+        and as_int(sfc_summary.get("utilityRunMax")) <= 2
+        and sfc_summary.get("chapterStorySpineStatus") == "passed"
+        and sfc_summary.get("timelineVarietyStatus") == "passed"
+        and sfc_summary.get("transitionPairContinuityStatus") == "passed"
+        and sfc_summary.get("transitionMicrostructureStatus") == "passed"
+        and sfc_summary.get("referenceSceneGrammarStatus") == "passed"
+        and as_int(sfc_summary.get("blockedCheckCount")) == 0
+        and as_int(sfc_summary.get("blockerCount")) == 0
+        and not shot_flow_continuity.get("blockers"),
+        {
+            "status": shot_flow_continuity.get("status"),
+            "summary": sfc_summary,
+            "blockers": shot_flow_continuity.get("blockers") or [],
         },
     )
 

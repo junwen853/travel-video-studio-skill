@@ -69,6 +69,7 @@ REQUIRED_SCRIPTS = {
         "audit_final_source_usage_contract.py",
         "audit_reference_scene_grammar_contract.py",
         "audit_chapter_story_spine_contract.py",
+        "audit_shot_flow_continuity_contract.py",
         "audit_timeline_variety_contract.py",
         "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
@@ -157,6 +158,7 @@ REQUIRED_SKILL_PATTERNS = {
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
     "chapter_story_spine_contract_rule": "audit_chapter_story_spine_contract.py",
+    "shot_flow_continuity_contract_rule": "audit_shot_flow_continuity_contract.py",
     "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
     "reference_transition_profile_contract_rule": "audit_reference_transition_profile_contract.py",
     "timeline_variety_contract_rule": "audit_timeline_variety_contract.py",
@@ -210,6 +212,7 @@ REQUIRED_SKILL_PATTERNS = {
     "reference_batch_profile_rule": "prepare_reference_batch_profile.py",
     "reference_transition_profile_contract_reference_rule": "reference-transition-profile-contract.md",
     "chapter_story_spine_contract_reference_rule": "chapter-story-spine-contract.md",
+    "shot_flow_continuity_contract_reference_rule": "shot-flow-continuity-contract.md",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
@@ -4693,6 +4696,78 @@ def chapter_story_spine_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def shot_flow_continuity_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "shot_flow_continuity_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "chapterCount": summary.get("chapterCount"),
+        "chaptersPassed": summary.get("chaptersPassed"),
+        "chaptersBlocked": summary.get("chaptersBlocked"),
+        "weakClipCount": summary.get("weakClipCount"),
+        "weakFlowPairCount": summary.get("weakFlowPairCount"),
+        "sameBeatRunMax": summary.get("sameBeatRunMax"),
+        "sameSourceRunMax": summary.get("sameSourceRunMax"),
+        "utilityRunMax": summary.get("utilityRunMax"),
+        "chapterStorySpineStatus": summary.get("chapterStorySpineStatus"),
+        "timelineVarietyStatus": summary.get("timelineVarietyStatus"),
+        "transitionPairContinuityStatus": summary.get("transitionPairContinuityStatus"),
+        "transitionMicrostructureStatus": summary.get("transitionMicrostructureStatus"),
+        "referenceSceneGrammarStatus": summary.get("referenceSceneGrammarStatus"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def shot_flow_continuity_contract_ready(evidence: dict[str, Any]) -> bool:
+    chapter_count = int(evidence.get("chapterCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and int(evidence.get("visualClipCount") or 0) >= 3
+        and chapter_count >= 1
+        and int(evidence.get("chaptersPassed") or 0) == chapter_count
+        and int(evidence.get("chaptersBlocked") or 0) == 0
+        and int(evidence.get("weakClipCount") or 0) == 0
+        and int(evidence.get("weakFlowPairCount") or 0) == 0
+        and int(evidence.get("sameBeatRunMax") or 0) <= 3
+        and int(evidence.get("sameSourceRunMax") or 0) <= 3
+        and int(evidence.get("utilityRunMax") or 0) <= 2
+        and evidence.get("chapterStorySpineStatus") == "passed"
+        and evidence.get("timelineVarietyStatus") == "passed"
+        and evidence.get("transitionPairContinuityStatus") == "passed"
+        and evidence.get("transitionMicrostructureStatus") == "passed"
+        and evidence.get("referenceSceneGrammarStatus") == "passed"
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def reference_profile_application_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "reference_profile_application_contract_audit.json"
     data = load_json(path) or {}
@@ -6439,6 +6514,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Chapter story spine contract proves every chapter executes context, movement, lived-in texture, payoff, and aftertaste through final candidate evidence",
         chapter_story_spine_contract_ready(chapter_story_spine_evidence),
         chapter_story_spine_evidence,
+    )
+    shot_flow_continuity_evidence = shot_flow_continuity_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Shot flow continuity contract proves each chapter orders final shots into readable travel-film progression",
+        shot_flow_continuity_contract_ready(shot_flow_continuity_evidence),
+        shot_flow_continuity_evidence,
     )
     timeline_variety_evidence = timeline_variety_contract_evidence(package_dir)
     add_check(
