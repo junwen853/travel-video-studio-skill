@@ -1116,6 +1116,36 @@ def summarize_timeline_variety_contract(report: dict[str, Any] | None) -> dict[s
     }
 
 
+def summarize_transition_scene_arc_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "sceneArcStrategyCount": summary.get("sceneArcStrategyCount"),
+        "requiredBridgeSequenceRowCount": summary.get("requiredBridgeSequenceRowCount"),
+        "expectedBridgeBeatClipCount": summary.get("expectedBridgeBeatClipCount"),
+        "appliedBridgeBeatClipCount": summary.get("appliedBridgeBeatClipCount"),
+        "motionTransitionCount": summary.get("motionTransitionCount"),
+        "maxMotionAllowed": summary.get("maxMotionAllowed"),
+        "decorativeRepeatedRunMax": summary.get("decorativeRepeatedRunMax"),
+        "dominantStyle": summary.get("dominantStyle"),
+        "dominantStyleShare": summary.get("dominantStyleShare"),
+        "maxTransitionDurationSeconds": summary.get("maxTransitionDurationSeconds"),
+        "movementReady": summary.get("movementReady"),
+        "textureReady": summary.get("textureReady"),
+        "payoffReady": summary.get("payoffReady"),
+        "aftertasteReady": summary.get("aftertasteReady"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_unattended_first_draft_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2286,6 +2316,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     timeline_variety_cmd = ["python3", str(SCRIPTS_DIR / "audit_timeline_variety_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_timeline_variety_contract", timeline_variety_cmd, ok_codes={0, 2}))
 
+    transition_scene_arc_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_scene_arc_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_transition_scene_arc_contract", transition_scene_arc_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -2401,6 +2434,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     creator_cut_application_summary = None
     reference_scene_grammar_summary = None
     timeline_variety_summary = None
+    transition_scene_arc_summary = None
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
@@ -2647,6 +2681,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Timeline variety blocker: {item}" for item in timeline_variety_summary.get("blockers") or [])
             if timeline_variety_summary and timeline_variety_summary.get("warnings"):
                 warnings.extend(f"Timeline variety warning: {item}" for item in timeline_variety_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_scene_arc_contract":
+            transition_scene_arc_summary = summarize_transition_scene_arc_contract(payload)
+            if transition_scene_arc_summary and transition_scene_arc_summary.get("status") == "blocked":
+                blockers.extend(f"Transition scene arc blocker: {item}" for item in transition_scene_arc_summary.get("blockers") or [])
+            if transition_scene_arc_summary and transition_scene_arc_summary.get("warnings"):
+                warnings.extend(f"Transition scene arc warning: {item}" for item in transition_scene_arc_summary.get("warnings") or [])
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -2879,6 +2919,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         timeline_variety_summary = summarize_timeline_variety_contract(
             load_json(package_dir / "timeline_variety_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_scene_arc_contract_audit.json").exists():
+        transition_scene_arc_summary = summarize_transition_scene_arc_contract(
+            load_json(package_dir / "transition_scene_arc_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -2979,6 +3023,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "creatorCutApplicationSummary": creator_cut_application_summary,
         "referenceSceneGrammarSummary": reference_scene_grammar_summary,
         "timelineVarietySummary": timeline_variety_summary,
+        "transitionSceneArcSummary": transition_scene_arc_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
@@ -3039,6 +3084,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review creator_cut_application_contract_audit.json before Resolve apply so rejected/utility/weak creator-cut rows cannot remain active in the final candidate blueprint.",
             "Review reference_scene_grammar_contract_audit.json before Resolve apply so opening, chapters, transitions, and ending follow the Parallel World/Malta scene-function grammar.",
             "Review timeline_variety_contract_audit.json before Resolve apply so movement, lived-in texture, destination payoff, and ending aftertaste vary across the whole film instead of hiding weak shot choice behind transitions.",
+            "Review transition_scene_arc_contract_audit.json before Resolve apply so important boundaries become outgoing/bridge-or-motion/BGM-hit/title-safe/landing scene arcs, not isolated effects.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "Review unattended_first_draft_contract_audit.json before Resolve apply or handoff; it proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected.",

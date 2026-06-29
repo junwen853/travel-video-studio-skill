@@ -80,9 +80,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.41.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.41/travel-video-studio-skill-v0.1.41.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.41.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.42.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.42/travel-video-studio-skill-v0.1.42.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.42.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -168,6 +168,7 @@ A delivery package usually contains:
 - `final_blueprint_lineage_contract_audit.md`
 - `transition_cadence_contract_audit.md`
 - `transition_microstructure_contract_audit.md`
+- `transition_scene_arc_contract_audit.md`
 - `final_source_usage_contract_audit.md`
 - `reference_style_repair_plan/reference_style_repair_plan.md`
 - `effect_motion_blueprint/effect_motion_blueprint_report.md`
@@ -194,7 +195,7 @@ A delivery package usually contains:
 - `resolve_timeline_blueprint.json`
 - `resolve_blueprint_preflight.md`
 - `render_plan.json`
-- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `source_selection_coverage_contract_audit.json`, `first_assembly_source_order_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `transition_cadence_contract_audit.json`, `transition_microstructure_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, and `v14_baseline_contract_audit.json`
+- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `source_selection_coverage_contract_audit.json`, `first_assembly_source_order_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `transition_cadence_contract_audit.json`, `transition_microstructure_contract_audit.json`, `transition_scene_arc_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, and `v14_baseline_contract_audit.json`
 
 ## DaVinci Resolve Path
 

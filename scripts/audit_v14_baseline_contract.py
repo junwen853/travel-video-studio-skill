@@ -49,6 +49,7 @@ SKILL_PATTERNS = {
     "final_blueprint_lineage": "audit_final_blueprint_lineage_contract.py",
     "transition_cadence": "audit_transition_cadence_contract.py",
     "transition_microstructure": "audit_transition_microstructure_contract.py",
+    "transition_scene_arc": "audit_transition_scene_arc_contract.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
@@ -113,6 +114,7 @@ REQUIRED_SCRIPTS = [
     "audit_final_blueprint_lineage_contract.py",
     "audit_transition_cadence_contract.py",
     "audit_transition_microstructure_contract.py",
+    "audit_transition_scene_arc_contract.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
@@ -245,6 +247,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
     transition_cadence = load_json(package_dir / "transition_cadence_contract_audit.json") or {}
     transition_microstructure = load_json(package_dir / "transition_microstructure_contract_audit.json") or {}
+    transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
@@ -1238,6 +1241,32 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionExecutionReadinessSummary": transition_execution_readiness_summary,
             "blueprintKind": transition_execution_readiness_inputs.get("blueprintKind"),
             "blueprint": transition_execution_readiness_inputs.get("blueprint"),
+        },
+    )
+    transition_scene_arc_summary = get_summary(transition_scene_arc)
+    add_check(
+        checks,
+        "Transition scene arc contract proves V14-level transitions read as outgoing, bridge or motion reason, BGM hit, title-safe window, and landing shot",
+        transition_scene_arc.get("status") == "passed"
+        and int(transition_scene_arc_summary.get("visualBoundaryCount") or 0) >= 1
+        and (
+            int(transition_scene_arc_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_scene_arc_summary.get("sceneArcStrategyCount") or 0) >= 1
+        )
+        and int(transition_scene_arc_summary.get("appliedBridgeBeatClipCount") or 0) >= int(transition_scene_arc_summary.get("expectedBridgeBeatClipCount") or 0)
+        and int(transition_scene_arc_summary.get("motionTransitionCount") or 0) <= int(transition_scene_arc_summary.get("maxMotionAllowed") or 0)
+        and int(transition_scene_arc_summary.get("decorativeRepeatedRunMax") or 0) < 4
+        and float(transition_scene_arc_summary.get("dominantStyleShare") or 0.0) <= 0.7
+        and float(transition_scene_arc_summary.get("maxTransitionDurationSeconds") or 0.0) <= 0.9
+        and transition_scene_arc_summary.get("movementReady") is True
+        and transition_scene_arc_summary.get("textureReady") is True
+        and transition_scene_arc_summary.get("payoffReady") is True
+        and transition_scene_arc_summary.get("aftertasteReady") is True
+        and int(transition_scene_arc_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_scene_arc.get("blockers"),
+        {
+            "transitionSceneArcStatus": transition_scene_arc.get("status"),
+            "transitionSceneArcSummary": transition_scene_arc_summary,
         },
     )
     reference_scene_grammar_summary = get_summary(reference_scene_grammar)

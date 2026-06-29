@@ -477,6 +477,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_microstructure = load_json(package_dir / "transition_microstructure_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
     timeline_variety = load_json(package_dir / "timeline_variety_contract_audit.json") or {}
+    transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
@@ -491,9 +492,10 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tms_summary = summary_of(transition_microstructure)
     rsg_summary = summary_of(reference_scene_grammar)
     tv_summary = summary_of(timeline_variety)
+    tsa_summary = summary_of(transition_scene_arc)
     add_gate(
         gates,
-        "Transition cadence, execution, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, and reference-like",
+        "Transition cadence, execution, scene arcs, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, and reference-like",
         transition_quality.get("status") == "passed"
         and shot_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
@@ -508,6 +510,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_microstructure.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
         and timeline_variety.get("status") == "passed"
+        and transition_scene_arc.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
         and as_int(sb_summary.get("blockedBoundaryCount")) == 0
         and as_int(tm_summary.get("blockedBoundaryCount")) == 0
@@ -566,6 +569,20 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and bool_field(tv_summary, "aftertasteReady")
         and as_int(tv_summary.get("sameSourceRunMax")) <= 3
         and as_int(tv_summary.get("sameFunctionRunMax")) <= 4
+        and as_int(tsa_summary.get("blockedCheckCount")) == 0
+        and as_int(tsa_summary.get("visualBoundaryCount")) >= 1
+        and (
+            as_int(tsa_summary.get("importantBoundaryCount")) == 0
+            or as_int(tsa_summary.get("sceneArcStrategyCount")) >= 1
+        )
+        and as_int(tsa_summary.get("appliedBridgeBeatClipCount")) >= as_int(tsa_summary.get("expectedBridgeBeatClipCount"))
+        and as_int(tsa_summary.get("motionTransitionCount")) <= as_int(tsa_summary.get("maxMotionAllowed"))
+        and as_int(tsa_summary.get("decorativeRepeatedRunMax")) < 4
+        and float(tsa_summary.get("dominantStyleShare") or 0.0) <= 0.7
+        and bool_field(tsa_summary, "movementReady")
+        and bool_field(tsa_summary, "textureReady")
+        and bool_field(tsa_summary, "payoffReady")
+        and bool_field(tsa_summary, "aftertasteReady")
         and as_int(tm_summary.get("motivatedBoundaryCount")) == as_int(tm_summary.get("visualBoundaryCount"))
         and as_int(tpc_summary.get("pairContinuityPayloadCount")) == as_int(tpc_summary.get("visualBoundaryCount"))
         and not transition_quality.get("blockers")
@@ -581,7 +598,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_cadence.get("blockers")
         and not transition_microstructure.get("blockers")
         and not reference_scene_grammar.get("blockers")
-        and not timeline_variety.get("blockers"),
+        and not timeline_variety.get("blockers")
+        and not transition_scene_arc.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
             "transitionQualityBoundaryCount": tq_summary.get("visualBoundaryCount"),
@@ -614,6 +632,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "referenceSceneGrammarSummary": rsg_summary,
             "timelineVarietyStatus": timeline_variety.get("status"),
             "timelineVarietySummary": tv_summary,
+            "transitionSceneArcStatus": transition_scene_arc.get("status"),
+            "transitionSceneArcSummary": tsa_summary,
         },
     )
 
