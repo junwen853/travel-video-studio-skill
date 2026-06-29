@@ -53,6 +53,7 @@ Expected files:
 - `resolve_transition_materialization_contract_audit.json` / `.md`: active/final-blueprint and Resolve-adapter gate proving transition recipe/effect payloads survive into timeline marker customData/readback evidence
 - `resolve_transition_apply_plan/resolve_transition_apply_plan.json` / `.md` and `resolve_transition_apply_contract_audit.json` / `.md`: apply-path gate proving visible transitions have API-supported cuts/bridge clips or explicit manual Resolve/Fusion steps with required readback/frame evidence instead of marker-only metadata
 - `final_blueprint_lineage_contract_audit.json` / `.md`: active/final-blueprint gate proving the final Resolve blueprint inherited the latest ready candidate chain instead of an old or partial blueprint
+- `effect_motion_application_contract_audit.json` / `.md`: active/final-blueprint gate proving restrained title/route motion effects survived candidate-to-final handoff, stayed BGM-only/title-safe, and did not overuse rotation/whip/speed-ramp effects
 - `transition_cadence_contract_audit.json` / `.md`: film-level gate proving final transition rhythm has full boundary coverage, restrained motivated motion, no repeated-template chain, no effect spam, bridge beats at important route/title/timeline boundaries, and candidate-lineage/Resolve apply proof
 - `transition_microstructure_contract_audit.json` / `.md`: shot-to-shot gate proving every adjacent transition has a BGM landing, BGM-only/title-safe window, pair continuity, source handles, bridge beats where needed, and a real Resolve/manual/bridge apply path
 - `transition_scene_arc_contract_audit.json` / `.md`: reference-style transition gate proving important boundaries read as outgoing shot, bridge or motion reason, BGM hit, title-safe window, and landing shot instead of isolated effects
@@ -89,6 +90,7 @@ Expected files:
 - `bgm_cues.md`: music mood, timing, source/license status
 - `effect_motion_blueprint/resolve_timeline_blueprint_effect_motion.json`: non-destructive Resolve candidate containing restrained title/transition effect-motion metadata and markers
 - `effect_motion_blueprint/effect_motion_blueprint_report.json` / `.md`: effect-motion materialization summary, safety flags, and approval/follow-up instructions
+- `effect_motion_application_contract_audit.json` / `.md`: final-blueprint proof that effect-motion rows were applied with clip annotations, markers, restrained duration/intensity, motion evidence, BGM-only audio, and title-zone safety
 - `bgm_phrase_blueprint/resolve_timeline_blueprint_bgm_phrase.json`: non-destructive Resolve candidate containing BGM section/phrase rows, timeline markers, clip annotations, and per-transition phrase cues
 - `bgm_phrase_blueprint/bgm_phrase_blueprint_report.json` / `.md`: BGM phrase materialization summary, safety flags, and approval/follow-up instructions
 - `rhythm_recut_application_contract_audit.json` / `.md`: final-candidate gate proving rhythm-recut main segments and existing-footage cutaways survived into the final candidate blueprint
@@ -174,7 +176,7 @@ The package is not final until:
 - unattended first-draft contract audit passes before Resolve apply or external handoff, proving the package has one connected first-draft chain, including first-assembly source-order proof, instead of isolated planning files
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves
 - title/place cards have been generated or explicitly deferred
-- effect motion blueprint report exists before Resolve apply when effect motion rows are ready, proving restrained title/transition effects became candidate metadata without mutating the active blueprint by default
+- effect motion blueprint report and application audit exist before Resolve apply when effect motion rows are ready, proving restrained title/transition effects became candidate metadata and survived into the final blueprint without mutating source footage
 - actual Resolve writes have a readback audit report
 - render plan has been prepared and re-audited
 - `delivery_audit.json` reports no blockers before final render

@@ -14,21 +14,21 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Plans each chapter as a complete vlog arc: context, movement, lived-in texture, destination payoff, and aftertaste/handoff before rhythm or Resolve trust.
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
 - Learns from multiple local reference videos as an aggregate, non-copying batch profile.
-- Plans BGM, BGM phrase cues, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, visual bridge material, and restrained effect-motion candidates.
+- Plans BGM, BGM phrase cues, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, visual bridge material, and restrained effect-motion candidates with final application proof.
 - Converts transition decisions into Resolve-ready recipes and candidate blueprint metadata, audits the whole transition motif/cadence chain, plans 2-5 shot bridge sequences, materializes those beats, proves those bridge inserts survive into the final candidate, and proves final BGM-hit/title-safe/motion-proven/pair-continuous/execution-ready transition polish metadata plus Resolve marker/readback payloads and latest candidate-chain lineage survive into the active/final Resolve blueprint.
 - Runs rhythm recut candidates from the latest BGM phrase blueprint and audits final application so long-shot repairs preserve transition, effect, music-cue metadata, and actual main-segment/cutaway survival in the final candidate.
 - Converts blocked reference/director/QA style gaps into concrete repair rows with owner scripts, required artifacts, and acceptance evidence.
 - Audits transition execution readiness so final transitions have package-local Resolve recipes, BGM hits, title-safe windows, pair readiness, and handle evidence before Resolve apply.
-- Audits transition-polish application, Resolve transition materialization, and Resolve transition apply paths so active/final blueprints cannot drop BGM-hit/title-safe transition metadata, marker/readback payloads, or visible-effect API/manual/bridge handoff proof after candidate generation.
+- Audits effect-motion application, transition-polish application, Resolve transition materialization, and Resolve transition apply paths so active/final blueprints cannot drop restrained title/rotation/whip/speed-ramp metadata, BGM-hit/title-safe transition metadata, marker/readback payloads, or visible-effect API/manual/bridge handoff proof after candidate generation.
 - Audits bridge-sequence application so planned route/title/day-change bridge beats cannot be dropped from the final candidate blueprint.
-- Audits final blueprint lineage, film-level transition cadence, shot-to-shot transition microstructure, whole-film transition effect palette, and pair-level visual match so the active Resolve blueprint cannot silently fall back to an old or partial candidate, bare-cut montage, repeated-template chain, effect-spam transition rhythm, one dominant motif, arbitrary adjacent-pair cuts, unlanded BGM hits, unsafe titles, missing handles, or weak adjacent-pair joins after BGM phrase, effect motion, rhythm recut, bridge, transition execution, and transition polish stages.
+- Audits final blueprint lineage, effect-motion application, film-level transition cadence, shot-to-shot transition microstructure, whole-film transition effect palette, and pair-level visual match so the active Resolve blueprint cannot silently fall back to an old or partial candidate, bare-cut montage, repeated-template chain, effect-spam transition rhythm, one dominant motif, arbitrary adjacent-pair cuts, unlanded BGM hits, unsafe titles, missing handles, dropped effect-motion rows, or weak adjacent-pair joins after BGM phrase, effect motion, rhythm recut, bridge, transition execution, and transition polish stages.
 - Audits final source usage so final raw clips must come from footage-select hero/main/texture choices instead of unmatched, repair, reject, or utility-dominant source material.
 - Audits creator-cut application so rejected, weak, utility, or unmatched clips cannot remain active in the final candidate blueprint.
 - Audits reference scene grammar so opening, chapters, transitions, and ending use context/movement/texture/payoff/aftertaste structure instead of flat montage.
 - Audits timeline variety so the final film has movement, lived-in texture, destination payoff, and ending aftertaste instead of hiding weak shot choice behind transitions.
-- Audits the unattended first-draft chain before Resolve apply, connecting raw intake, first-assembly source order, story, BGM, captions, titles, rhythm, rhythm-recut application, final-source usage, creator-cut application, timeline-variety, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition microstructure, transition scene-arc/effect-palette/visual-match, execution readiness, scene grammar, repair closure, and blueprint preflight into one gate.
+- Audits the unattended first-draft chain before Resolve apply, connecting raw intake, first-assembly source order, story, BGM, captions, titles, rhythm, rhythm-recut application, final-source usage, creator-cut application, timeline-variety, effect-motion application, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition microstructure, transition scene-arc/effect-palette/visual-match, execution readiness, scene grammar, repair closure, and blueprint preflight into one gate.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
-- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, full-source first-assembly order, final-source usage, creator-cut application, rhythm-recut application, timeline-variety, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition microstructure, transition effect palette, transition visual match, transition pair-continuity/execution readiness, reference scene grammar, route texture, export quality, and V14 baseline maturity.
+- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, full-source first-assembly order, final-source usage, creator-cut application, rhythm-recut application, timeline-variety, effect-motion application, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition microstructure, transition effect palette, transition visual match, transition pair-continuity/execution readiness, reference scene grammar, route texture, export quality, and V14 baseline maturity.
 
 The default finishing path is DaVinci Resolve through the Resolve Python API. GUI automation is treated as a fallback, not the normal route.
 
@@ -164,6 +164,7 @@ A delivery package usually contains:
 - `bridge_sequence_plan/bridge_sequence_plan.md`
 - `bridge_sequence_blueprint/bridge_sequence_blueprint_report.md`
 - `bridge_sequence_application_contract_audit.md`
+- `effect_motion_application_contract_audit.md`
 - `transition_polish_application_contract_audit.md`
 - `final_blueprint_lineage_contract_audit.md`
 - `transition_cadence_contract_audit.md`
@@ -198,7 +199,7 @@ A delivery package usually contains:
 - `resolve_timeline_blueprint.json`
 - `resolve_blueprint_preflight.md`
 - `render_plan.json`
-- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `source_selection_coverage_contract_audit.json`, `first_assembly_source_order_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `transition_cadence_contract_audit.json`, `transition_microstructure_contract_audit.json`, `transition_scene_arc_contract_audit.json`, `transition_effect_palette_contract_audit.json`, `transition_visual_match_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `rhythm_recut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, and `v14_baseline_contract_audit.json`
+- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `effect_motion_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `source_selection_coverage_contract_audit.json`, `first_assembly_source_order_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `transition_cadence_contract_audit.json`, `transition_microstructure_contract_audit.json`, `transition_scene_arc_contract_audit.json`, `transition_effect_palette_contract_audit.json`, `transition_visual_match_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `rhythm_recut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, and `v14_baseline_contract_audit.json`
 
 ## DaVinci Resolve Path
 
@@ -237,6 +238,7 @@ A package is not considered deliverable until the relevant audits pass:
 - transition pair-continuity contract
 - transition execution-readiness contract
 - transition-polish application contract
+- effect-motion application contract
 - Resolve transition materialization contract
 - Resolve transition apply contract
 - bridge-sequence application contract

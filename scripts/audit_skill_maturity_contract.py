@@ -67,6 +67,7 @@ REQUIRED_SCRIPTS = {
         "prepare_visual_establishing_plan.py",
         "prepare_effect_motion_plan.py",
         "prepare_effect_motion_blueprint.py",
+        "audit_effect_motion_application_contract.py",
         "prepare_feedback_regression_plan.py",
         "prepare_audio_scene_policy_plan.py",
         "prepare_footage_select_plan.py",
@@ -145,6 +146,7 @@ REQUIRED_SKILL_PATTERNS = {
     "visual_establishing_plan_rule": "prepare_visual_establishing_plan.py",
     "effect_motion_plan_rule": "prepare_effect_motion_plan.py",
     "effect_motion_blueprint_rule": "prepare_effect_motion_blueprint.py",
+    "effect_motion_application_contract_rule": "audit_effect_motion_application_contract.py",
     "feedback_regression_plan_rule": "prepare_feedback_regression_plan.py",
     "audio_scene_policy_plan_rule": "prepare_audio_scene_policy_plan.py",
     "footage_select_plan_rule": "prepare_footage_select_plan.py",
@@ -209,6 +211,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_polish_blueprint_engine_rule": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine_rule": "transition-execution-readiness-engine.md",
     "effect_motion_blueprint_engine_rule": "effect-motion-blueprint-engine.md",
+    "effect_motion_application_contract_reference_rule": "effect-motion-application-contract.md",
     "reference_style_repair_engine_rule": "reference-style-repair-engine.md",
 }
 
@@ -238,6 +241,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine": "transition-execution-readiness-engine.md",
     "effect_motion_blueprint_engine": "effect-motion-blueprint-engine.md",
+    "effect_motion_application_contract": "effect-motion-application-contract.md",
     "reference_style_repair_engine": "reference-style-repair-engine.md",
     "opening_story_engine": "opening-story-engine.md",
     "full_timeline_review": "full-film timeline strips",
@@ -4916,6 +4920,91 @@ def unattended_first_draft_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def effect_motion_application_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "effect_motion_application_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rows = data.get("effectRows") if isinstance(data.get("effectRows"), list) else []
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "finalBlueprint": inputs.get("finalBlueprint"),
+        "finalBlueprintExists": inputs.get("finalBlueprintExists"),
+        "finalBlueprintKind": inputs.get("finalBlueprintKind"),
+        "finalBlueprintInsidePackage": inputs.get("finalBlueprintInsidePackage"),
+        "effectMotionStatus": inputs.get("effectMotionStatus"),
+        "sourceCandidateExists": inputs.get("sourceCandidateExists"),
+        "sourceCandidateInsidePackage": inputs.get("sourceCandidateInsidePackage"),
+        "finalHasEffectMotionBlueprintPlan": inputs.get("finalHasEffectMotionBlueprintPlan"),
+        "finalBlueprintLineageStatus": inputs.get("finalBlueprintLineageStatus"),
+        "sourceEffectRowCount": summary.get("sourceEffectRowCount"),
+        "finalEffectMotionCandidateCount": summary.get("finalEffectMotionCandidateCount"),
+        "auditedEffectRowCount": summary.get("auditedEffectRowCount"),
+        "passedEffectRowCount": summary.get("passedEffectRowCount"),
+        "blockedEffectRowCount": summary.get("blockedEffectRowCount"),
+        "motionEffectRowCount": summary.get("motionEffectRowCount"),
+        "maxMotionAllowed": summary.get("maxMotionAllowed"),
+        "titleEffectRowCount": summary.get("titleEffectRowCount"),
+        "bgmOnlyRowCount": summary.get("bgmOnlyRowCount"),
+        "titleSafeRowCount": summary.get("titleSafeRowCount"),
+        "sourceEvidenceRowCount": summary.get("sourceEvidenceRowCount"),
+        "motionEvidenceRowCount": summary.get("motionEvidenceRowCount"),
+        "decisionFieldsRowCount": summary.get("decisionFieldsRowCount"),
+        "clipAnnotationRowCount": summary.get("clipAnnotationRowCount"),
+        "markerRowCount": summary.get("markerRowCount"),
+        "forbiddenEffectHitCount": summary.get("forbiddenEffectHitCount"),
+        "rowCount": len(rows),
+        "passedRowCount": sum(1 for row in rows if isinstance(row, dict) and row.get("status") == "passed"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def effect_motion_application_contract_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("sourceEffectRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("finalBlueprintExists") is True
+        and evidence.get("finalBlueprintInsidePackage") is True
+        and evidence.get("sourceCandidateExists") is True
+        and evidence.get("sourceCandidateInsidePackage") is True
+        and evidence.get("finalHasEffectMotionBlueprintPlan") is True
+        and evidence.get("finalBlueprintLineageStatus") == "passed"
+        and evidence.get("effectMotionStatus") == "ready_with_effect_motion_blueprint"
+        and row_count >= 3
+        and int(evidence.get("auditedEffectRowCount") or 0) == row_count
+        and int(evidence.get("passedEffectRowCount") or 0) == row_count
+        and int(evidence.get("passedRowCount") or 0) == row_count
+        and int(evidence.get("blockedEffectRowCount") or 0) == 0
+        and int(evidence.get("motionEffectRowCount") or 0) <= int(evidence.get("maxMotionAllowed") or 0)
+        and int(evidence.get("bgmOnlyRowCount") or 0) == row_count
+        and int(evidence.get("titleSafeRowCount") or 0) == row_count
+        and int(evidence.get("sourceEvidenceRowCount") or 0) == row_count
+        and int(evidence.get("motionEvidenceRowCount") or 0) == row_count
+        and int(evidence.get("decisionFieldsRowCount") or 0) == row_count
+        and int(evidence.get("clipAnnotationRowCount") or 0) == row_count
+        and int(evidence.get("markerRowCount") or 0) == row_count
+        and int(evidence.get("forbiddenEffectHitCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def rhythm_recut_application_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "rhythm_recut_application_contract_audit.json"
     data = load_json(path) or {}
@@ -5400,6 +5489,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Final blueprint lineage contract proves the active blueprint inherits the latest ready candidate chain",
         final_blueprint_lineage_contract_ready(final_blueprint_lineage),
         final_blueprint_lineage,
+    )
+    effect_motion_application = effect_motion_application_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Effect motion application contract proves restrained title and route-motion effects survive into the final blueprint",
+        effect_motion_application_contract_ready(effect_motion_application),
+        effect_motion_application,
     )
     final_source_usage = final_source_usage_contract_evidence(package_dir)
     add_check(

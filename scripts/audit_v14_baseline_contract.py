@@ -21,6 +21,7 @@ SKILL_PATTERNS = {
     "orientation_repair": "prepare_orientation_repair_package.py",
     "visual_establishing": "prepare_visual_establishing_plan.py",
     "effect_motion_blueprint": "prepare_effect_motion_blueprint.py",
+    "effect_motion_application": "audit_effect_motion_application_contract.py",
     "bgm_phrase_blueprint": "prepare_bgm_phrase_blueprint.py",
     "bilibili_malta": "bilibili-travel-style.md",
     "reference_batch_profile": "prepare_reference_batch_profile.py",
@@ -89,6 +90,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_bridge_plan.py",
     "prepare_effect_motion_plan.py",
     "prepare_effect_motion_blueprint.py",
+    "audit_effect_motion_application_contract.py",
     "prepare_reference_batch_profile.py",
     "prepare_footage_select_plan.py",
     "prepare_source_selection_repair_plan.py",
@@ -225,6 +227,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition = load_json(package_dir / "transition_bridge_plan" / "transition_bridge_plan.json") or {}
     effect = load_json(package_dir / "effect_motion_plan" / "effect_motion_plan.json") or {}
     effect_motion_blueprint = load_json(package_dir / "effect_motion_blueprint" / "effect_motion_blueprint_report.json") or {}
+    effect_motion_application = load_json(package_dir / "effect_motion_application_contract_audit.json") or {}
     bgm_phrase_blueprint = load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json") or {}
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
@@ -1068,6 +1071,30 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "finalBlueprint": final_blueprint_lineage_inputs.get("finalBlueprint"),
         },
     )
+    effect_motion_application_summary = get_summary(effect_motion_application)
+    add_check(
+        checks,
+        "Effect motion application contract proves restrained title and route-motion effects survived into the final blueprint",
+        effect_motion_application.get("status") == "passed"
+        and int(effect_motion_application_summary.get("sourceEffectRowCount") or 0) >= 3
+        and int(effect_motion_application_summary.get("passedEffectRowCount") or 0) == int(effect_motion_application_summary.get("sourceEffectRowCount") or 0)
+        and int(effect_motion_application_summary.get("blockedEffectRowCount") or 0) == 0
+        and int(effect_motion_application_summary.get("motionEffectRowCount") or 0) <= int(effect_motion_application_summary.get("maxMotionAllowed") or 0)
+        and int(effect_motion_application_summary.get("bgmOnlyRowCount") or 0) == int(effect_motion_application_summary.get("sourceEffectRowCount") or 0)
+        and int(effect_motion_application_summary.get("titleSafeRowCount") or 0) == int(effect_motion_application_summary.get("sourceEffectRowCount") or 0)
+        and int(effect_motion_application_summary.get("sourceEvidenceRowCount") or 0) == int(effect_motion_application_summary.get("sourceEffectRowCount") or 0)
+        and int(effect_motion_application_summary.get("motionEvidenceRowCount") or 0) == int(effect_motion_application_summary.get("sourceEffectRowCount") or 0)
+        and int(effect_motion_application_summary.get("clipAnnotationRowCount") or 0) == int(effect_motion_application_summary.get("sourceEffectRowCount") or 0)
+        and int(effect_motion_application_summary.get("markerRowCount") or 0) == int(effect_motion_application_summary.get("sourceEffectRowCount") or 0)
+        and int(effect_motion_application_summary.get("forbiddenEffectHitCount") or 0) == 0
+        and int(effect_motion_application_summary.get("blockerCount") or 0) == 0
+        and not effect_motion_application.get("blockers"),
+        {
+            "effectMotionApplicationStatus": effect_motion_application.get("status"),
+            "effectMotionApplicationSummary": effect_motion_application_summary,
+            "blockers": effect_motion_application.get("blockers"),
+        },
+    )
     transition_cadence_summary = get_summary(transition_cadence)
     add_check(
         checks,
@@ -1479,6 +1506,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and resolve_transition_materialization.get("status") == "passed"
         and resolve_transition_apply.get("status") == "passed"
         and final_blueprint_lineage.get("status") == "passed"
+        and effect_motion_application.get("status") == "passed"
         and transition_cadence.get("status") == "passed"
         and transition_quality.get("status") == "passed"
         and shot_transition_boundary.get("status") == "passed"
@@ -1551,6 +1579,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "resolveTransitionApplySummary": resolve_transition_apply_summary,
             "finalBlueprintLineageStatus": final_blueprint_lineage.get("status"),
             "finalBlueprintLineageSummary": final_blueprint_lineage_summary,
+            "effectMotionApplicationStatus": effect_motion_application.get("status"),
+            "effectMotionApplicationSummary": effect_motion_application_summary,
             "transitionCadenceStatus": transition_cadence.get("status"),
             "transitionCadenceSummary": transition_cadence_summary,
             "transitionQualityStatus": transition_quality.get("status"),

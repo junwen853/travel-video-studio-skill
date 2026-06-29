@@ -96,6 +96,7 @@ export TRAVEL_VIDEO_REFERENCE="/path/to/reference-travel-film.mp4"
 ```bash
 python3 -m py_compile ~/.codex/skills/travel-video-studio/scripts/*.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_rhythm_recut_application_contract.py
+test -f ~/.codex/skills/travel-video-studio/scripts/audit_effect_motion_application_contract.py
 python3 ~/.codex/skills/travel-video-studio/scripts/check_project_state.py \
   --project-dir "$VIDEO_CLAW_STUDIO_DIR"
 ```

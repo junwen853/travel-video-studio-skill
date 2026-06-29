@@ -13,6 +13,7 @@ The default behavior is non-destructive:
 - writes `effect_motion_blueprint/resolve_timeline_blueprint_effect_motion.json`
 - writes `effect_motion_blueprint/effect_motion_blueprint_report.json` and `.md`
 - leaves the active `resolve_timeline_blueprint.json` unchanged unless `--update-blueprint` is explicitly passed
+- must be followed by `audit_effect_motion_application_contract.py` after final blueprint lineage so final blueprints cannot drop or overuse effect-motion rows
 
 ## Command
 
@@ -48,6 +49,7 @@ Pass:
 - whip, rotation, and speed-ramp rows have route-motion evidence
 - no glitch, random spin, flash, shake, particle, logo reveal, or template-pack effects
 - no Resolve writes, render queues, downloads, or source-footage modifications occur
+- `effect_motion_application_contract_audit.json` later passes against the final blueprint before Resolve apply
 
 Reject:
 

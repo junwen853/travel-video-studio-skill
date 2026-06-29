@@ -492,6 +492,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     resolve_transition_apply = load_json(package_dir / "resolve_transition_apply_contract_audit.json") or {}
     bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
+    effect_motion_application = load_json(package_dir / "effect_motion_application_contract_audit.json") or {}
     transition_cadence = load_json(package_dir / "transition_cadence_contract_audit.json") or {}
     transition_microstructure = load_json(package_dir / "transition_microstructure_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
@@ -509,6 +510,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     rta_summary = summary_of(resolve_transition_apply)
     bsa_summary = summary_of(bridge_sequence_application)
     fbl_summary = summary_of(final_blueprint_lineage)
+    ema_summary = summary_of(effect_motion_application)
     tc_summary = summary_of(transition_cadence)
     tms_summary = summary_of(transition_microstructure)
     rsg_summary = summary_of(reference_scene_grammar)
@@ -529,6 +531,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and resolve_transition_apply.get("status") == "passed"
         and bridge_sequence_application.get("status") == "passed"
         and final_blueprint_lineage.get("status") == "passed"
+        and effect_motion_application.get("status") == "passed"
         and transition_cadence.get("status") == "passed"
         and transition_microstructure.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
@@ -568,6 +571,17 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(fbl_summary.get("readyStageCount")) >= as_int(fbl_summary.get("requiredMinimumReadyStages"), 5)
         and as_int(fbl_summary.get("blockedReadyStageCount")) == 0
         and as_int(fbl_summary.get("finalPlanKeyCount")) >= as_int(fbl_summary.get("requiredMinimumReadyStages"), 5)
+        and as_int(ema_summary.get("sourceEffectRowCount")) >= 1
+        and as_int(ema_summary.get("passedEffectRowCount")) == as_int(ema_summary.get("sourceEffectRowCount"))
+        and as_int(ema_summary.get("blockedEffectRowCount")) == 0
+        and as_int(ema_summary.get("motionEffectRowCount")) <= as_int(ema_summary.get("maxMotionAllowed"))
+        and as_int(ema_summary.get("bgmOnlyRowCount")) == as_int(ema_summary.get("sourceEffectRowCount"))
+        and as_int(ema_summary.get("titleSafeRowCount")) == as_int(ema_summary.get("sourceEffectRowCount"))
+        and as_int(ema_summary.get("sourceEvidenceRowCount")) == as_int(ema_summary.get("sourceEffectRowCount"))
+        and as_int(ema_summary.get("motionEvidenceRowCount")) == as_int(ema_summary.get("sourceEffectRowCount"))
+        and as_int(ema_summary.get("clipAnnotationRowCount")) == as_int(ema_summary.get("sourceEffectRowCount"))
+        and as_int(ema_summary.get("markerRowCount")) == as_int(ema_summary.get("sourceEffectRowCount"))
+        and as_int(ema_summary.get("forbiddenEffectHitCount")) == 0
         and as_int(tc_summary.get("blockedCheckCount")) == 0
         and as_int(tc_summary.get("visualBoundaryCount")) >= 1
         and as_int(tc_summary.get("transitionRowCount")) >= as_int(tc_summary.get("visualBoundaryCount"))
@@ -639,6 +653,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not resolve_transition_apply.get("blockers")
         and not bridge_sequence_application.get("blockers")
         and not final_blueprint_lineage.get("blockers")
+        and not effect_motion_application.get("blockers")
         and not transition_cadence.get("blockers")
         and not transition_microstructure.get("blockers")
         and not reference_scene_grammar.get("blockers")
@@ -670,6 +685,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "bridgeSequenceApplicationSummary": bsa_summary,
             "finalBlueprintLineageStatus": final_blueprint_lineage.get("status"),
             "finalBlueprintLineageSummary": fbl_summary,
+            "effectMotionApplicationStatus": effect_motion_application.get("status"),
+            "effectMotionApplicationSummary": ema_summary,
             "transitionCadenceStatus": transition_cadence.get("status"),
             "transitionCadenceSummary": tc_summary,
             "transitionMicrostructureStatus": transition_microstructure.get("status"),
