@@ -27,6 +27,7 @@ SKILL_PATTERNS = {
     "footage_select": "prepare_footage_select_plan.py",
     "source_selection_repair": "prepare_source_selection_repair_plan.py",
     "source_selection_coverage": "audit_source_selection_coverage_contract.py",
+    "first_assembly_source_order": "audit_first_assembly_source_order_contract.py",
     "raw_intake_completeness": "audit_raw_intake_completeness.py",
     "opening_story": "prepare_opening_story_plan.py",
     "chapter_arc": "prepare_chapter_arc_plan.py",
@@ -88,6 +89,7 @@ REQUIRED_SCRIPTS = [
     "prepare_footage_select_plan.py",
     "prepare_source_selection_repair_plan.py",
     "audit_source_selection_coverage_contract.py",
+    "audit_first_assembly_source_order_contract.py",
     "audit_raw_intake_completeness.py",
     "prepare_opening_story_plan.py",
     "prepare_chapter_arc_plan.py",
@@ -221,6 +223,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
     source_selection_coverage = load_json(package_dir / "source_selection_coverage_contract_audit.json") or {}
+    first_assembly_source_order = load_json(package_dir / "first_assembly_source_order_contract_audit.json") or {}
     opening_story = load_json(package_dir / "opening_story_plan" / "opening_story_plan.json") or {}
     chapter_arc = load_json(package_dir / "chapter_arc_plan" / "chapter_arc_plan.json") or {}
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
@@ -313,6 +316,30 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "sourceSelectionCoverageStatus": source_selection_coverage.get("status"),
             "sourceSelectionCoverageSummary": source_selection_audit_summary,
             "blockers": source_selection_coverage.get("blockers"),
+        },
+    )
+
+    first_assembly_summary = get_summary(first_assembly_source_order)
+    first_assembly_chapters = int(first_assembly_summary.get("deliveryChapterCount") or 0)
+    first_assembly_candidates = int(first_assembly_summary.get("candidateVideoCount") or 0)
+    add_check(
+        checks,
+        "First assembly source-order gate proves V14 starts from full-source selection, not filename order or blueprint fallback samples",
+        first_assembly_source_order.get("status") == "passed"
+        and int(first_assembly_summary.get("blockedCheckCount") or 0) == 0
+        and int(first_assembly_summary.get("activeSourceVideoCount") or 0) > 0
+        and int(first_assembly_summary.get("footageSelectSourceVideoCount") or 0) >= int(first_assembly_summary.get("activeSourceVideoCount") or 0)
+        and first_assembly_chapters >= 1
+        and int(first_assembly_summary.get("sortedChapterCount") or 0) >= first_assembly_chapters
+        and first_assembly_candidates >= 3
+        and int(first_assembly_summary.get("candidateRowsUsed") or 0) >= min(first_assembly_candidates, max(3, first_assembly_chapters))
+        and int(first_assembly_summary.get("riskyTopSelectionRowCount") or 0) == 0
+        and int(first_assembly_summary.get("missingTopSelectionDataCount") or 0) == 0
+        and (not first_assembly_summary.get("largeSource") or first_assembly_summary.get("footageSelectInputSource") == "media_index"),
+        {
+            "status": first_assembly_source_order.get("status"),
+            "summary": first_assembly_summary,
+            "blockers": first_assembly_source_order.get("blockers"),
         },
     )
 

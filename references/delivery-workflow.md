@@ -23,6 +23,7 @@ Expected files:
 - source project `route_review/<timestamp>/route_decision_application.json` / `.md`: dry-run or approved application of route decisions back into `route_review.json`
 - source project `route_review/<timestamp>/confirmed_route_candidate.md`: approval-gated candidate or repair plan before confirmed-route writes
 - source or package `footage_select_plan/footage_select_plan.json` / `.md`: raw-footage scoring and highlight-selection plan used before first assembly
+- `first_assembly_source_order_contract_audit.json` / `.md`: contract proving the delivery plan and Resolve blueprint used full-source footage selection for first assembly instead of filename order, blueprint fallback samples, or repair/reject rows
 - source or package `raw_intake_completeness_audit.json` / `.md`: full source-tree, recognition, confirmed-route, footage-select, derived-exclusion, and stale-artifact gate before trusting large unordered folders
 - package `source_selection_repair_plan/source_selection_repair_plan.json` / `.md`: blocking repair rows when chapter source coverage lacks movement, lived-in texture, payoff, hero, bridge, or orientation closure
 - package `source_selection_coverage_contract_audit.json` / `.md`: source-coverage gate before opening, chapter, transition, stock/aerial, rhythm, creator-cut, or Resolve apply work
@@ -128,6 +129,7 @@ The package is not final until:
 - confirmed-route candidate is apply-ready before overwriting `confirmed_route_timeline.json`
 - footage select plan exists before first assembly, proves active source videos were tiered, and blocks derived/portrait/weak footage from leading the cut
 - raw intake completeness audit passes after first package build, proving the media index covers the mounted source tree and every active source video is recognized, routed exactly once, scored, non-derived, and fresh
+- first assembly source-order contract passes after source-selection coverage, proving every delivery chapter was sorted by safe scored source candidates rather than filename order or fallback samples
 - reference batch profile exists before rhythm/style claims when multiple reference videos were supplied
 - opening story plan exists after first package build and proves all six first-three-minute beats before title, BGM, rhythm, creator-cut, director-intent, or Resolve apply claims
 - chapter arc plan exists after opening-story planning and before rhythm/creator-cut/Resolve trust, proving each chapter has beat decisions or assigned repair owners
@@ -148,6 +150,7 @@ The package is not final until:
 - Resolve timeline enrichment exists and records subtitle cues, audio plan, stock/aerial placeholders, transitions, and markers
 - Resolve timeline blueprint dry-run passes
 - Resolve timeline blueprint records whether footage selection sorted first-assembly chapter media by tier/score
+- Resolve timeline blueprint and delivery plan both record `used_for_first_assembly_sort` before rhythm, transition, or opening-story work is trusted
 - transition execution plan exists before Resolve apply when transition grammar exists; bridge-missing rows must remain blocked until real bridge footage is inserted
 - transition execution blueprint report exists before Resolve apply, proving approved transition recipes became candidate `transitions[]`, clip in/out metadata, and timeline markers without mutating the active blueprint by default
 - transition motif plan exists after transition execution and before Resolve apply, proving repeated/template transitions, missing BGM cues, title-zone risk, and unmotivated motion effects are repaired or explicitly assigned
@@ -163,7 +166,7 @@ The package is not final until:
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
 - reference repair closure audit exists after the repair plan; P0 rows must be closed or Resolve/final-quality claims stay blocked
 - Resolve blueprint preflight is present and not blocked before any `--apply`
-- unattended first-draft contract audit passes before Resolve apply or external handoff, proving the package has one connected first-draft chain instead of isolated planning files
+- unattended first-draft contract audit passes before Resolve apply or external handoff, proving the package has one connected first-draft chain, including first-assembly source-order proof, instead of isolated planning files
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves
 - title/place cards have been generated or explicitly deferred
 - effect motion blueprint report exists before Resolve apply when effect motion rows are ready, proving restrained title/transition effects became candidate metadata without mutating the active blueprint by default

@@ -252,6 +252,30 @@ def summarize_source_selection_coverage_contract(report: dict[str, Any] | None) 
     }
 
 
+def summarize_first_assembly_source_order_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "activeSourceVideoCount": summary.get("activeSourceVideoCount"),
+        "sourceSizeGB": summary.get("sourceSizeGB"),
+        "largeSource": summary.get("largeSource"),
+        "footageSelectInputSource": summary.get("footageSelectInputSource"),
+        "footageSelectSourceVideoCount": summary.get("footageSelectSourceVideoCount"),
+        "candidateVideoCount": summary.get("candidateVideoCount"),
+        "candidateRowsUsed": summary.get("candidateRowsUsed"),
+        "deliveryChapterCount": summary.get("deliveryChapterCount"),
+        "sortedChapterCount": summary.get("sortedChapterCount"),
+        "riskyTopSelectionRowCount": summary.get("riskyTopSelectionRowCount"),
+        "missingTopSelectionDataCount": summary.get("missingTopSelectionDataCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_opening_story_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -2095,6 +2119,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_source_selection_coverage_contract", source_selection_audit_cmd, ok_codes={0, 2}))
 
+    first_assembly_source_order_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_first_assembly_source_order_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_first_assembly_source_order_contract", first_assembly_source_order_cmd, ok_codes={0, 2}))
+
     if args.reference or args.reference_dir:
         reference_batch_cmd = [
             "python3",
@@ -2324,6 +2357,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     raw_intake_completeness_summary = None
     source_selection_repair_summary = None
     source_selection_coverage_summary = None
+    first_assembly_source_order_summary = None
     opening_story_summary = None
     chapter_arc_summary = None
     asset_decision_summary = None
@@ -2444,6 +2478,18 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(
                     f"Source selection coverage warning: {item}"
                     for item in source_selection_coverage_summary.get("warnings") or []
+                )
+        if step["id"] == "audit_first_assembly_source_order_contract":
+            first_assembly_source_order_summary = summarize_first_assembly_source_order_contract(payload)
+            if first_assembly_source_order_summary and first_assembly_source_order_summary.get("status") == "blocked":
+                blockers.extend(
+                    f"First assembly source order blocker: {item}"
+                    for item in first_assembly_source_order_summary.get("blockers") or []
+                )
+            if first_assembly_source_order_summary and first_assembly_source_order_summary.get("warnings"):
+                warnings.extend(
+                    f"First assembly source order warning: {item}"
+                    for item in first_assembly_source_order_summary.get("warnings") or []
                 )
         if step["id"] == "prepare_opening_story_plan":
             opening_story_summary = summarize_opening_story_plan(payload)
@@ -2662,6 +2708,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "source_selection_coverage_contract_audit.json").exists():
         source_selection_coverage_summary = summarize_source_selection_coverage_contract(
             load_json(package_dir / "source_selection_coverage_contract_audit.json")
+        )
+    if package_dir and (package_dir / "first_assembly_source_order_contract_audit.json").exists():
+        first_assembly_source_order_summary = summarize_first_assembly_source_order_contract(
+            load_json(package_dir / "first_assembly_source_order_contract_audit.json")
         )
     if package_dir and (package_dir / "opening_story_plan" / "opening_story_plan.json").exists():
         opening_story_summary = summarize_opening_story_plan(
@@ -2885,6 +2935,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "rawIntakeCompletenessSummary": raw_intake_completeness_summary,
         "sourceSelectionRepairSummary": source_selection_repair_summary,
         "sourceSelectionCoverageSummary": source_selection_coverage_summary,
+        "firstAssemblySourceOrderSummary": first_assembly_source_order_summary,
         "openingStorySummary": opening_story_summary,
         "chapterArcSummary": chapter_arc_summary,
         "assetDecisionSummary": asset_decision_summary,
@@ -2954,6 +3005,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review footage_select_plan.json before trusting first assembly; repair/reject rows should not lead the cut.",
             "Review raw_intake_completeness_audit.json before trusting any large unordered source folder; every active source video must be indexed, recognized, routed exactly once, and scored before first assembly.",
             "Review source_selection_repair_plan.json before opening/chapter/transition work; every chapter needs ready local movement, lived-in texture, and payoff coverage before effects or stock fallback.",
+            "Review first_assembly_source_order_contract_audit.json before rhythm/opening work so the first assembly proves it used full-source footage selection instead of filename order, blueprint fallback samples, or repair/reject rows.",
             "Review opening_story_plan.json before title, BGM, rhythm, or Resolve apply so the first three minutes have viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff.",
             "Review chapter_arc_plan.json before rhythm/creator-cut/Resolve apply so every chapter has context, movement, lived-in texture, payoff, and aftertaste decisions.",
             "Fill transition_bridge_plan.json local bridge or stock/aerial fallback decisions before final claims.",

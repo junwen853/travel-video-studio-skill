@@ -173,6 +173,37 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         },
     )
 
+    first_assembly_order = load_json(package_dir / "first_assembly_source_order_contract_audit.json") or {}
+    first_assembly_summary = summary_of(first_assembly_order)
+    add_gate(
+        gates,
+        "First assembly source order proves the cut used full-source selection instead of filename order",
+        first_assembly_order.get("status") == "passed"
+        and as_int(first_assembly_summary.get("blockedCheckCount")) == 0
+        and as_int(first_assembly_summary.get("deliveryChapterCount")) >= 1
+        and as_int(first_assembly_summary.get("sortedChapterCount")) >= as_int(first_assembly_summary.get("deliveryChapterCount"))
+        and as_int(first_assembly_summary.get("candidateRowsUsed")) >= min(
+            max(3, as_int(first_assembly_summary.get("deliveryChapterCount"))),
+            as_int(first_assembly_summary.get("candidateVideoCount")),
+        )
+        and as_int(first_assembly_summary.get("riskyTopSelectionRowCount")) == 0
+        and as_int(first_assembly_summary.get("missingTopSelectionDataCount")) == 0
+        and (not first_assembly_summary.get("largeSource") or first_assembly_summary.get("footageSelectInputSource") == "media_index"),
+        {
+            "status": first_assembly_order.get("status"),
+            "activeSourceVideoCount": first_assembly_summary.get("activeSourceVideoCount"),
+            "largeSource": first_assembly_summary.get("largeSource"),
+            "footageSelectInputSource": first_assembly_summary.get("footageSelectInputSource"),
+            "candidateVideoCount": first_assembly_summary.get("candidateVideoCount"),
+            "candidateRowsUsed": first_assembly_summary.get("candidateRowsUsed"),
+            "deliveryChapterCount": first_assembly_summary.get("deliveryChapterCount"),
+            "sortedChapterCount": first_assembly_summary.get("sortedChapterCount"),
+            "riskyTopSelectionRowCount": first_assembly_summary.get("riskyTopSelectionRowCount"),
+            "missingTopSelectionDataCount": first_assembly_summary.get("missingTopSelectionDataCount"),
+            "blockers": first_assembly_order.get("blockers") or [],
+        },
+    )
+
     blueprint = load_json(package_dir / "resolve_timeline_blueprint.json") or {}
     coverage = blueprint.get("longFormCoverage") if isinstance(blueprint.get("longFormCoverage"), dict) else {}
     clip_count = video_clip_count(blueprint)

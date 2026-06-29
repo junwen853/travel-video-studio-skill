@@ -69,6 +69,7 @@ REQUIRED_SCRIPTS = {
         "prepare_footage_select_plan.py",
         "prepare_source_selection_repair_plan.py",
         "audit_source_selection_coverage_contract.py",
+        "audit_first_assembly_source_order_contract.py",
         "prepare_opening_story_plan.py",
         "prepare_chapter_arc_plan.py",
         "prepare_edit_rhythm_plan.py",
@@ -142,6 +143,7 @@ REQUIRED_SKILL_PATTERNS = {
     "footage_select_plan_rule": "prepare_footage_select_plan.py",
     "source_selection_repair_plan_rule": "prepare_source_selection_repair_plan.py",
     "source_selection_coverage_contract_rule": "audit_source_selection_coverage_contract.py",
+    "first_assembly_source_order_contract_rule": "audit_first_assembly_source_order_contract.py",
     "raw_intake_completeness_rule": "audit_raw_intake_completeness.py",
     "opening_story_plan_rule": "prepare_opening_story_plan.py",
     "opening_story_engine_rule": "opening-story-engine.md",
@@ -174,6 +176,7 @@ REQUIRED_SKILL_PATTERNS = {
     "reference_batch_profile_rule": "prepare_reference_batch_profile.py",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
+    "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
     "creator_cut_engine_rule": "creator-cut-engine.md",
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
     "transition_execution_engine_rule": "transition-execution-engine.md",
@@ -1816,6 +1819,60 @@ def source_selection_repair_plan_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("safetyWritesResolve") is False
         and evidence.get("safetyDownloadsExternalAssets") is False
         and evidence.get("safetyModifiesSourceFootage") is False
+    )
+
+
+def first_assembly_source_order_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "first_assembly_source_order_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "activeSourceVideoCount": summary.get("activeSourceVideoCount"),
+        "sourceSizeGB": summary.get("sourceSizeGB"),
+        "largeSource": summary.get("largeSource"),
+        "footageSelectInputSource": summary.get("footageSelectInputSource"),
+        "footageSelectSourceVideoCount": summary.get("footageSelectSourceVideoCount"),
+        "candidateVideoCount": summary.get("candidateVideoCount"),
+        "candidateRowsUsed": summary.get("candidateRowsUsed"),
+        "deliveryChapterCount": summary.get("deliveryChapterCount"),
+        "sortedChapterCount": summary.get("sortedChapterCount"),
+        "riskyTopSelectionRowCount": summary.get("riskyTopSelectionRowCount"),
+        "missingTopSelectionDataCount": summary.get("missingTopSelectionDataCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def first_assembly_source_order_contract_ready(evidence: dict[str, Any]) -> bool:
+    chapters = int(evidence.get("deliveryChapterCount") or 0)
+    candidates = int(evidence.get("candidateVideoCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("activeSourceVideoCount") or 0) > 0
+        and int(evidence.get("footageSelectSourceVideoCount") or 0) >= int(evidence.get("activeSourceVideoCount") or 0)
+        and chapters >= 1
+        and int(evidence.get("sortedChapterCount") or 0) >= chapters
+        and candidates >= 3
+        and int(evidence.get("candidateRowsUsed") or 0) >= min(candidates, max(3, chapters))
+        and int(evidence.get("riskyTopSelectionRowCount") or 0) == 0
+        and int(evidence.get("missingTopSelectionDataCount") or 0) == 0
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and (not evidence.get("largeSource") or evidence.get("footageSelectInputSource") == "media_index")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
     )
 
 
@@ -4958,6 +5015,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Source selection repair plan proves each chapter has local movement, texture, payoff, and no blocking source gaps before first assembly",
         source_selection_repair_plan_ready(source_repair_evidence),
         source_repair_evidence,
+    )
+    first_assembly_source_order_evidence = first_assembly_source_order_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "First assembly source order contract proves large unordered folders are cut by full-source selection, not filename order or blueprint fallback samples",
+        first_assembly_source_order_contract_ready(first_assembly_source_order_evidence),
+        first_assembly_source_order_evidence,
     )
     opening_story_evidence = opening_story_plan_evidence(package_dir)
     add_check(
