@@ -48,6 +48,7 @@ Expected files:
 - `transition_polish_blueprint/transition_polish_blueprint_report.json` / `.md`: final transition polish summary, safety flags, and approval/follow-up instructions
 - `transition_polish_application_contract_audit.json` / `.md`: active/final-blueprint gate proving transition-polish rows survived candidate-to-final handoff
 - `final_blueprint_lineage_contract_audit.json` / `.md`: active/final-blueprint gate proving the final Resolve blueprint inherited the latest ready candidate chain instead of an old or partial blueprint
+- `final_source_usage_contract_audit.json` / `.md`: active/final-blueprint gate proving final raw clips actually match footage-select hero/main/texture choices and do not reintroduce unmatched, repair, reject, or utility-dominant source material
 - `transition_quality_contract_audit.json` / `.md`: final transition quality gate proving visual-boundary coverage, BGM-hit timing, title/subtitle avoidance, motion evidence, and no repeated/template effects
 - `shot_transition_boundary_contract_audit.json` / `.md`: shot-to-shot boundary gate proving each adjacent from/to pair maps to transition metadata with BGM-hit, title-safe, BGM-only, and motion-evidence checks
 - `transition_motivation_contract_audit.json` / `.md`: transition motivation gate proving each boundary has route, bridge, motion, title, or BGM reasoning rather than decorative effects

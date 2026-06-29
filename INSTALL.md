@@ -41,9 +41,9 @@ python3 scripts/install_for_agent.py \
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.33.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.33/travel-video-studio-skill-v0.1.33.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.33.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.34.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.34/travel-video-studio-skill-v0.1.34.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.34.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 ## Install From Source

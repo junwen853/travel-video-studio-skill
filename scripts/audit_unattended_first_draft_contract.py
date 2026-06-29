@@ -339,9 +339,11 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     creator_summary = summary_of(creator)
     creator_application = load_json(package_dir / "creator_cut_application_contract_audit.json") or {}
     creator_application_summary = summary_of(creator_application)
+    final_source_usage = load_json(package_dir / "final_source_usage_contract_audit.json") or {}
+    final_source_usage_summary = summary_of(final_source_usage)
     add_gate(
         gates,
-        "Rhythm and creator-cut plans assign function and the final candidate applies those decisions",
+        "Rhythm, creator-cut, and final source usage prove the final candidate applies selective raw footage decisions",
         rhythm.get("status") == "ready_with_edit_rhythm_plan"
         and as_int(rhythm_summary.get("primaryVisualShotCount")) >= 1
         and as_int(rhythm_summary.get("rowsWithDecisionFields")) == as_int(rhythm_summary.get("primaryVisualShotCount"))
@@ -354,7 +356,14 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(creator_application_summary.get("blockedClipCount")) == 0
         and as_int(creator_application_summary.get("chaptersBlocked")) == 0
         and as_int(creator_application_summary.get("rejectActiveClipCount")) == 0
-        and as_int(creator_application_summary.get("weakActiveClipCount")) == 0,
+        and as_int(creator_application_summary.get("weakActiveClipCount")) == 0
+        and final_source_usage.get("status") == "passed"
+        and as_int(final_source_usage_summary.get("rawSourceClipCount")) >= 1
+        and as_int(final_source_usage_summary.get("matchedRawSourceClipCount")) == as_int(final_source_usage_summary.get("rawSourceClipCount"))
+        and as_int(final_source_usage_summary.get("unmatchedRawSourceClipCount")) == 0
+        and as_int(final_source_usage_summary.get("selectedCandidateClipCount")) >= 1
+        and as_int(final_source_usage_summary.get("rejectOrRepairActiveClipCount")) == 0
+        and as_int(final_source_usage_summary.get("chaptersBlocked")) == 0,
         {
             "rhythmStatus": rhythm.get("status"),
             "primaryVisualShotCount": rhythm_summary.get("primaryVisualShotCount"),
@@ -364,6 +373,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "rejectOrUtilityCount": creator_summary.get("rejectOrUtilityCount"),
             "creatorApplicationStatus": creator_application.get("status"),
             "creatorApplicationSummary": creator_application_summary,
+            "finalSourceUsageStatus": final_source_usage.get("status"),
+            "finalSourceUsageSummary": final_source_usage_summary,
         },
     )
 

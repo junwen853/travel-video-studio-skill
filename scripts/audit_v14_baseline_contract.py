@@ -30,6 +30,7 @@ SKILL_PATTERNS = {
     "chapter_arc": "prepare_chapter_arc_plan.py",
     "creator_cut": "prepare_creator_cut_plan.py",
     "creator_cut_application": "audit_creator_cut_application_contract.py",
+    "final_source_usage": "audit_final_source_usage_contract.py",
     "transition_grammar": "prepare_transition_grammar_plan.py",
     "transition_execution": "prepare_transition_execution_plan.py",
     "transition_execution_blueprint": "prepare_transition_execution_blueprint.py",
@@ -84,6 +85,7 @@ REQUIRED_SCRIPTS = [
     "prepare_edit_rhythm_plan.py",
     "prepare_creator_cut_plan.py",
     "audit_creator_cut_application_contract.py",
+    "audit_final_source_usage_contract.py",
     "prepare_transition_grammar_plan.py",
     "prepare_transition_execution_plan.py",
     "prepare_transition_execution_blueprint.py",
@@ -207,6 +209,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
     creator_cut = load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json") or {}
     creator_cut_application = load_json(package_dir / "creator_cut_application_contract_audit.json") or {}
+    final_source_usage = load_json(package_dir / "final_source_usage_contract_audit.json") or {}
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
     transition_execution = load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json") or {}
     transition_execution_blueprint = load_json(package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json") or {}
@@ -640,6 +643,32 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "creatorCutApplicationSummary": creator_cut_application_summary,
             "blueprintKind": creator_cut_application_inputs.get("blueprintKind"),
             "blueprint": creator_cut_application_inputs.get("blueprint"),
+        },
+    )
+
+    final_source_summary = get_summary(final_source_usage)
+    final_source_inputs = final_source_usage.get("inputs") if isinstance(final_source_usage.get("inputs"), dict) else {}
+    final_source_raw_count = int(final_source_summary.get("rawSourceClipCount") or 0)
+    add_check(
+        checks,
+        "Final source usage proves V14-level raw footage selection survives into the active blueprint",
+        final_source_usage.get("status") == "passed"
+        and final_source_inputs.get("blueprintExists") is True
+        and final_source_inputs.get("blueprintInsidePackage") is True
+        and final_source_inputs.get("footageSelectPlanExists") is True
+        and final_source_raw_count >= 1
+        and int(final_source_summary.get("matchedRawSourceClipCount") or 0) == final_source_raw_count
+        and int(final_source_summary.get("unmatchedRawSourceClipCount") or 0) == 0
+        and int(final_source_summary.get("selectedCandidateClipCount") or 0) >= 1
+        and int(final_source_summary.get("rejectOrRepairActiveClipCount") or 0) == 0
+        and int(final_source_summary.get("chaptersBlocked") or 0) == 0
+        and int(final_source_summary.get("blockerCount") or 0) == 0
+        and not final_source_usage.get("blockers"),
+        {
+            "finalSourceUsageStatus": final_source_usage.get("status"),
+            "finalSourceUsageSummary": final_source_summary,
+            "blueprintKind": final_source_inputs.get("blueprintKind"),
+            "blueprint": final_source_inputs.get("blueprint"),
         },
     )
     transition_grammar_summary = get_summary(transition_grammar)
@@ -1136,6 +1165,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and rhythm.get("status") == "ready_with_edit_rhythm_plan"
         and creator_cut.get("status") == "ready_with_creator_cut_plan"
         and creator_cut_application.get("status") == "passed"
+        and final_source_usage.get("status") == "passed"
         and transition_grammar.get("status") == "ready_with_transition_grammar_plan"
         and transition_execution.get("status") == "ready_with_transition_execution_plan"
         and transition_execution_blueprint.get("status") == "ready_with_transition_execution_blueprint"
@@ -1183,6 +1213,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "creatorCutSummary": creator_cut_summary,
             "creatorCutApplicationStatus": creator_cut_application.get("status"),
             "creatorCutApplicationSummary": creator_cut_application_summary,
+            "finalSourceUsageStatus": final_source_usage.get("status"),
+            "finalSourceUsageSummary": final_source_summary,
             "transitionGrammarStatus": transition_grammar.get("status"),
             "transitionGrammarSummary": transition_grammar_summary,
             "transitionExecutionStatus": transition_execution.get("status"),

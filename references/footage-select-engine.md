@@ -65,6 +65,7 @@ Before first assembly:
 - vertical/square/unknown footage is marked for repair before use
 - derived exports and active exclusions are blocked from first-cut selection
 - the plan proves source media was triaged before stock, effects, or transition grammar are used
+- after the final candidate blueprint exists, `audit_final_source_usage_contract.py` proves final raw clips still match selected hero/main/texture rows and do not reintroduce unmatched, repair, reject, or utility-dominant material
 
 ## Downstream Order
 

@@ -48,6 +48,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_polish_application_contract.py",
         "audit_bridge_sequence_application_contract.py",
         "audit_final_blueprint_lineage_contract.py",
+        "audit_final_source_usage_contract.py",
         "audit_reference_scene_grammar_contract.py",
         "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
@@ -112,6 +113,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_polish_application_contract_rule": "audit_transition_polish_application_contract.py",
     "bridge_sequence_application_contract_rule": "audit_bridge_sequence_application_contract.py",
     "final_blueprint_lineage_contract_rule": "audit_final_blueprint_lineage_contract.py",
+    "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
     "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
@@ -166,6 +168,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bridge_sequence_application_contract_reference_rule": "bridge-sequence-application-contract.md",
     "transition_polish_application_contract_reference_rule": "transition-polish-application-contract.md",
     "final_blueprint_lineage_contract_reference_rule": "final-blueprint-lineage-contract.md",
+    "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine_rule": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine_rule": "transition-execution-readiness-engine.md",
@@ -190,6 +193,7 @@ REQUIRED_STYLE_PATTERNS = {
     "bridge_sequence_application_contract": "bridge-sequence-application-contract.md",
     "transition_polish_application_contract": "transition-polish-application-contract.md",
     "final_blueprint_lineage_contract": "final-blueprint-lineage-contract.md",
+    "final_source_usage_contract": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine": "transition-execution-readiness-engine.md",
@@ -227,6 +231,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "bridge_sequence_application_contract": "bridge sequence application contract",
     "transition_polish_application_contract": "transition polish application contract",
     "final_blueprint_lineage_contract": "final-blueprint lineage",
+    "final_source_usage_contract": "final source usage",
     "reference_style_repair_plan": "reference style repair plan",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
@@ -3189,6 +3194,68 @@ def final_blueprint_lineage_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def final_source_usage_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "final_source_usage_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprint": inputs.get("blueprint"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "footageSelectPlanExists": inputs.get("footageSelectPlanExists"),
+        "footageSelectStatus": inputs.get("footageSelectStatus"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "rawSourceClipCount": summary.get("rawSourceClipCount"),
+        "matchedRawSourceClipCount": summary.get("matchedRawSourceClipCount"),
+        "unmatchedRawSourceClipCount": summary.get("unmatchedRawSourceClipCount"),
+        "selectedCandidateClipCount": summary.get("selectedCandidateClipCount"),
+        "utilityClipCount": summary.get("utilityClipCount"),
+        "rejectOrRepairActiveClipCount": summary.get("rejectOrRepairActiveClipCount"),
+        "uniqueSourceCount": summary.get("uniqueSourceCount"),
+        "sameSourceRunMax": summary.get("sameSourceRunMax"),
+        "chaptersBlocked": summary.get("chaptersBlocked"),
+        "blockerCount": len(data.get("blockers") or []),
+        "warnings": data.get("warnings") or [],
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def final_source_usage_contract_ready(evidence: dict[str, Any]) -> bool:
+    raw_count = int(evidence.get("rawSourceClipCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and evidence.get("footageSelectPlanExists") is True
+        and evidence.get("footageSelectStatus") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
+        and raw_count >= 1
+        and int(evidence.get("matchedRawSourceClipCount") or 0) == raw_count
+        and int(evidence.get("unmatchedRawSourceClipCount") or 0) == 0
+        and int(evidence.get("selectedCandidateClipCount") or 0) >= 1
+        and int(evidence.get("rejectOrRepairActiveClipCount") or 0) == 0
+        and int(evidence.get("chaptersBlocked") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def reference_style_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json"
     data = load_json(path) or {}
@@ -4547,6 +4614,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Final blueprint lineage contract proves the active blueprint inherits the latest ready candidate chain",
         final_blueprint_lineage_contract_ready(final_blueprint_lineage),
         final_blueprint_lineage,
+    )
+    final_source_usage = final_source_usage_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Final source usage contract proves the active blueprint actually consumes footage-select hero/main/texture choices",
+        final_source_usage_contract_ready(final_source_usage),
+        final_source_usage,
     )
     reference_repair_evidence = reference_style_repair_plan_evidence(package_dir)
     add_check(

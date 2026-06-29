@@ -38,4 +38,4 @@ python3 <skill-dir>/scripts/audit_creator_cut_application_contract.py \
 
 ## Repair Route
 
-If blocked, do not hide the issue with a rotation, whip, zoom, or speed-ramp. First replace the weak active clip with a hero/main/texture candidate from the footage select or creator-cut plan. If the clip is needed for route honesty, record the exception in the creator-cut row decision fields, then rerun the audit. After changing the candidate blueprint, rerun transition readiness, reference scene grammar, unattended first-draft, final QA, maturity, and V14 baseline gates.
+If blocked, do not hide the issue with a rotation, whip, zoom, or speed-ramp. First replace the weak active clip with a hero/main/texture candidate from the footage select or creator-cut plan. If the clip is needed for route honesty, record the exception in the creator-cut row decision fields, then rerun the audit. After changing the candidate blueprint, rerun final source usage, transition readiness, reference scene grammar, unattended first-draft, final QA, maturity, and V14 baseline gates.
