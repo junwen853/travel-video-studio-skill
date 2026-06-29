@@ -10,6 +10,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Extracts and reviews representative frames so Codex can identify likely filming locations from visual evidence.
 - Reconstructs a trip route from unordered clips, folder names, dates, OCR/signage evidence, and optional cloud or local recognition passes.
 - Scores and tiers raw footage before first assembly, then audits that large folders are actually cut from full-source hero/main/texture bridge candidates instead of filename order or blueprint fallback samples.
+- Audits 100GB-class unordered folders for unattended readiness, proving media-root intake, whole-folder recognition, source selection, first assembly, first-draft chain, and blueprint preflight are connected before another AI or editor takes over.
 - Plans the first three minutes as a real opening story: viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff.
 - Plans each chapter as a complete vlog arc: context, movement, lived-in texture, destination payoff, and aftertaste/handoff before rhythm or Resolve trust.
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
@@ -81,9 +82,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.44.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.44/travel-video-studio-skill-v0.1.44.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.44.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.48.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.48/travel-video-studio-skill-v0.1.48.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.48.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -196,12 +197,13 @@ A delivery package usually contains:
 - `source_selection_repair_plan/source_selection_repair_plan.md`
 - `source_selection_coverage_contract_audit.md`
 - `first_assembly_source_order_contract_audit.md`
+- `large_source_unattended_readiness_contract_audit.md`
 - `reference_repair_closure_audit.md`
 - `visual_establishing_plan/visual_establishing_plan.md`
 - `resolve_timeline_blueprint.json`
 - `resolve_blueprint_preflight.md`
 - `render_plan.json`
-- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `effect_motion_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `source_selection_coverage_contract_audit.json`, `first_assembly_source_order_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `transition_cadence_contract_audit.json`, `transition_microstructure_contract_audit.json`, `transition_scene_arc_contract_audit.json`, `transition_effect_palette_contract_audit.json`, `transition_visual_match_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `rhythm_recut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, `reference_profile_application_contract_audit.json`, and `v14_baseline_contract_audit.json`
+- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `effect_motion_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `source_selection_coverage_contract_audit.json`, `first_assembly_source_order_contract_audit.json`, `large_source_unattended_readiness_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `transition_cadence_contract_audit.json`, `transition_microstructure_contract_audit.json`, `transition_scene_arc_contract_audit.json`, `transition_effect_palette_contract_audit.json`, `transition_visual_match_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `rhythm_recut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, `reference_profile_application_contract_audit.json`, and `v14_baseline_contract_audit.json`
 
 ## DaVinci Resolve Path
 
@@ -237,6 +239,7 @@ A package is not considered deliverable until the relevant audits pass:
 - package integrity audit
 - raw intake completeness audit
 - first assembly source-order contract
+- large source unattended-readiness contract
 - transition pair-continuity contract
 - transition execution-readiness contract
 - transition-polish application contract
@@ -274,6 +277,9 @@ A package is not considered deliverable until the relevant audits pass:
 
 ```bash
 python3 -m py_compile ~/.codex/skills/travel-video-studio/scripts/*.py
+python3 ~/.codex/skills/travel-video-studio/scripts/audit_large_source_unattended_readiness_contract.py \
+  --package-dir /path/to/delivery-package \
+  --json
 python3 ~/.codex/skills/travel-video-studio/scripts/audit_v14_baseline_contract.py \
   --package-dir /path/to/delivery-package \
   --skill-dir ~/.codex/skills/travel-video-studio

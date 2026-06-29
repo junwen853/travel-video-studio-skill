@@ -276,6 +276,31 @@ def summarize_first_assembly_source_order_contract(report: dict[str, Any] | None
     }
 
 
+def summarize_large_source_unattended_readiness_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "largeSource": summary.get("largeSource"),
+        "activeSourceVideoCount": summary.get("activeSourceVideoCount"),
+        "expectedActiveSourceCount": summary.get("expectedActiveSourceCount"),
+        "sourceSizeGB": summary.get("sourceSizeGB"),
+        "recognitionCoverageRatio": summary.get("recognitionCoverageRatio"),
+        "footageSelectInputSource": summary.get("footageSelectInputSource"),
+        "candidateVideoCount": summary.get("candidateVideoCount"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "firstAssemblyStatus": summary.get("firstAssemblyStatus"),
+        "unattendedFirstDraftStatus": summary.get("unattendedFirstDraftStatus"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+        "externalMediaIntake": inputs.get("externalMediaIntake"),
+    }
+
+
 def summarize_opening_story_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -2287,6 +2312,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_first_assembly_source_order_contract", first_assembly_source_order_cmd, ok_codes={0, 2}))
 
+    large_source_unattended_readiness_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_large_source_unattended_readiness_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_large_source_unattended_readiness_contract", large_source_unattended_readiness_cmd, ok_codes={0, 2}))
+
     if args.reference or args.reference_dir:
         reference_batch_cmd = [
             "python3",
@@ -2535,6 +2569,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     source_selection_repair_summary = None
     source_selection_coverage_summary = None
     first_assembly_source_order_summary = None
+    large_source_unattended_readiness_summary = None
     opening_story_summary = None
     chapter_arc_summary = None
     asset_decision_summary = None
@@ -2673,6 +2708,18 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(
                     f"First assembly source order warning: {item}"
                     for item in first_assembly_source_order_summary.get("warnings") or []
+                )
+        if step["id"] == "audit_large_source_unattended_readiness_contract":
+            large_source_unattended_readiness_summary = summarize_large_source_unattended_readiness_contract(payload)
+            if large_source_unattended_readiness_summary and large_source_unattended_readiness_summary.get("status") == "blocked":
+                blockers.extend(
+                    f"Large source unattended readiness blocker: {item}"
+                    for item in large_source_unattended_readiness_summary.get("blockers") or []
+                )
+            if large_source_unattended_readiness_summary and large_source_unattended_readiness_summary.get("warnings"):
+                warnings.extend(
+                    f"Large source unattended readiness warning: {item}"
+                    for item in large_source_unattended_readiness_summary.get("warnings") or []
                 )
         if step["id"] == "prepare_opening_story_plan":
             opening_story_summary = summarize_opening_story_plan(payload)
@@ -2932,6 +2979,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         first_assembly_source_order_summary = summarize_first_assembly_source_order_contract(
             load_json(package_dir / "first_assembly_source_order_contract_audit.json")
         )
+    if package_dir and (package_dir / "large_source_unattended_readiness_contract_audit.json").exists():
+        large_source_unattended_readiness_summary = summarize_large_source_unattended_readiness_contract(
+            load_json(package_dir / "large_source_unattended_readiness_contract_audit.json")
+        )
     if package_dir and (package_dir / "opening_story_plan" / "opening_story_plan.json").exists():
         opening_story_summary = summarize_opening_story_plan(
             load_json(package_dir / "opening_story_plan" / "opening_story_plan.json")
@@ -3179,6 +3230,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "sourceSelectionRepairSummary": source_selection_repair_summary,
         "sourceSelectionCoverageSummary": source_selection_coverage_summary,
         "firstAssemblySourceOrderSummary": first_assembly_source_order_summary,
+        "largeSourceUnattendedReadinessSummary": large_source_unattended_readiness_summary,
         "openingStorySummary": opening_story_summary,
         "chapterArcSummary": chapter_arc_summary,
         "assetDecisionSummary": asset_decision_summary,
@@ -3255,6 +3307,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review raw_intake_completeness_audit.json before trusting any large unordered source folder; every active source video must be indexed, recognized, routed exactly once, and scored before first assembly.",
             "Review source_selection_repair_plan.json before opening/chapter/transition work; every chapter needs ready local movement, lived-in texture, and payoff coverage before effects or stock fallback.",
             "Review first_assembly_source_order_contract_audit.json before rhythm/opening work so the first assembly proves it used full-source footage selection instead of filename order, blueprint fallback samples, or repair/reject rows.",
+            "Review large_source_unattended_readiness_contract_audit.json before handing a 100GB unordered source folder to another AI; it proves media-root intake, whole-folder recognition, source selection, first assembly, unattended first draft, and blueprint preflight are connected.",
             "Review opening_story_plan.json before title, BGM, rhythm, or Resolve apply so the first three minutes have viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff.",
             "Review chapter_arc_plan.json before rhythm/creator-cut/Resolve apply so every chapter has context, movement, lived-in texture, payoff, and aftertaste decisions.",
             "Fill transition_bridge_plan.json local bridge or stock/aerial fallback decisions before final claims.",

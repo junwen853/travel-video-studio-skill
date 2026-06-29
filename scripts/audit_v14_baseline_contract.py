@@ -30,6 +30,7 @@ SKILL_PATTERNS = {
     "source_selection_repair": "prepare_source_selection_repair_plan.py",
     "source_selection_coverage": "audit_source_selection_coverage_contract.py",
     "first_assembly_source_order": "audit_first_assembly_source_order_contract.py",
+    "large_source_unattended_readiness": "audit_large_source_unattended_readiness_contract.py",
     "raw_intake_completeness": "audit_raw_intake_completeness.py",
     "opening_story": "prepare_opening_story_plan.py",
     "chapter_arc": "prepare_chapter_arc_plan.py",
@@ -98,6 +99,7 @@ REQUIRED_SCRIPTS = [
     "prepare_source_selection_repair_plan.py",
     "audit_source_selection_coverage_contract.py",
     "audit_first_assembly_source_order_contract.py",
+    "audit_large_source_unattended_readiness_contract.py",
     "audit_raw_intake_completeness.py",
     "prepare_opening_story_plan.py",
     "prepare_chapter_arc_plan.py",
@@ -238,6 +240,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
     source_selection_coverage = load_json(package_dir / "source_selection_coverage_contract_audit.json") or {}
     first_assembly_source_order = load_json(package_dir / "first_assembly_source_order_contract_audit.json") or {}
+    large_source_unattended = load_json(package_dir / "large_source_unattended_readiness_contract_audit.json") or {}
     opening_story = load_json(package_dir / "opening_story_plan" / "opening_story_plan.json") or {}
     chapter_arc = load_json(package_dir / "chapter_arc_plan" / "chapter_arc_plan.json") or {}
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
@@ -358,6 +361,27 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "status": first_assembly_source_order.get("status"),
             "summary": first_assembly_summary,
             "blockers": first_assembly_source_order.get("blockers"),
+        },
+    )
+
+    large_source_summary = get_summary(large_source_unattended)
+    add_check(
+        checks,
+        "Large-source unattended readiness gate proves 100GB unordered folders can reach a safe first draft without filename-order fallback",
+        large_source_unattended.get("status") in {"passed", "passed_with_warnings"}
+        and int(large_source_summary.get("blockedCheckCount") or 0) == 0
+        and int(large_source_summary.get("activeSourceVideoCount") or 0) > 0
+        and int(large_source_summary.get("expectedActiveSourceCount") or 0) > 0
+        and float(large_source_summary.get("recognitionCoverageRatio") or 0) >= 1.0
+        and (not large_source_summary.get("largeSource") or large_source_summary.get("footageSelectInputSource") == "media_index")
+        and int(large_source_summary.get("candidateVideoCount") or 0) >= 3
+        and large_source_summary.get("firstAssemblyStatus") == "passed"
+        and large_source_summary.get("unattendedFirstDraftStatus") in {"passed", "passed_with_warnings"},
+        {
+            "status": large_source_unattended.get("status"),
+            "summary": large_source_summary,
+            "blockers": large_source_unattended.get("blockers"),
+            "warnings": large_source_unattended.get("warnings"),
         },
     )
 
@@ -1488,6 +1512,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and reference_batch.get("status") in {"ready_with_reference_batch_profile", "ready_with_single_reference_profile"}
         and reference_profile_application.get("status") == "passed"
         and raw_intake.get("status") == "passed"
+        and large_source_unattended.get("status") in {"passed", "passed_with_warnings"}
         and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
         and source_selection_repair.get("status") == "ready_no_source_selection_repairs_needed"
         and source_selection_coverage.get("status") == "passed"
@@ -1540,6 +1565,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "referenceProfileApplicationSummary": reference_profile_application_summary,
             "rawIntakeStatus": raw_intake.get("status"),
             "rawIntakeSummary": raw_intake_summary,
+            "largeSourceUnattendedReadinessStatus": large_source_unattended.get("status"),
+            "largeSourceUnattendedReadinessSummary": large_source_summary,
             "footageSelectStatus": footage_select.get("status"),
             "footageSelectSummary": footage_select_summary,
             "sourceSelectionRepairStatus": source_selection_repair.get("status"),

@@ -24,6 +24,7 @@ Expected files:
 - source project `route_review/<timestamp>/confirmed_route_candidate.md`: approval-gated candidate or repair plan before confirmed-route writes
 - source or package `footage_select_plan/footage_select_plan.json` / `.md`: raw-footage scoring and highlight-selection plan used before first assembly
 - `first_assembly_source_order_contract_audit.json` / `.md`: contract proving the delivery plan and Resolve blueprint used full-source footage selection for first assembly instead of filename order, blueprint fallback samples, or repair/reject rows
+- `large_source_unattended_readiness_contract_audit.json` / `.md`: contract proving 100GB-class unordered folders have media-root intake, whole-folder recognition, route truth, source selection, first assembly, unattended first-draft, and blueprint preflight connected before handoff
 - source or package `raw_intake_completeness_audit.json` / `.md`: full source-tree, recognition, confirmed-route, footage-select, derived-exclusion, and stale-artifact gate before trusting large unordered folders
 - package `source_selection_repair_plan/source_selection_repair_plan.json` / `.md`: blocking repair rows when chapter source coverage lacks movement, lived-in texture, payoff, hero, bridge, or orientation closure
 - package `source_selection_coverage_contract_audit.json` / `.md`: source-coverage gate before opening, chapter, transition, stock/aerial, rhythm, creator-cut, or Resolve apply work
@@ -97,7 +98,7 @@ Expected files:
 - `rhythm_recut_application_contract_audit.json` / `.md`: final-candidate gate proving rhythm-recut main segments and existing-footage cutaways survived into the final candidate blueprint
 - `qa_checklist.md`: final delivery checklist
 - `delivery_audit.json` / `delivery_audit.md`: machine-readable final readiness audit
-- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, audience-caption, transition-microstructure, timeline-variety, and unattended-first-draft summaries, BGM phrase blueprint summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
+- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, audience-caption, large-source unattended-readiness, transition-microstructure, timeline-variety, and unattended-first-draft summaries, BGM phrase blueprint summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
 
 ## Chapter Structure
 
@@ -137,6 +138,7 @@ The package is not final until:
 - footage select plan exists before first assembly, proves active source videos were tiered, and blocks derived/portrait/weak footage from leading the cut
 - raw intake completeness audit passes after first package build, proving the media index covers the mounted source tree and every active source video is recognized, routed exactly once, scored, non-derived, and fresh
 - first assembly source-order contract passes after source-selection coverage, proving every delivery chapter was sorted by safe scored source candidates rather than filename order or fallback samples
+- large source unattended-readiness contract passes before Resolve apply or external handoff, proving large unordered folders are selected through media index, fully recognized/routed, source-selected, first-assembled by scored candidates, and connected to unattended first-draft plus blueprint preflight
 - reference batch profile exists before rhythm/style claims when multiple reference videos were supplied, then `reference_profile_application_contract_audit.json` proves it was consumed by downstream story/rhythm/style gates
 - opening story plan exists after first package build and proves all six first-three-minute beats before title, BGM, rhythm, creator-cut, director-intent, or Resolve apply claims
 - chapter arc plan exists after opening-story planning and before rhythm/creator-cut/Resolve trust, proving each chapter has beat decisions or assigned repair owners
@@ -174,7 +176,7 @@ The package is not final until:
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
 - reference repair closure audit exists after the repair plan; P0 rows must be closed or Resolve/final-quality claims stay blocked
 - Resolve blueprint preflight is present and not blocked before any `--apply`
-- unattended first-draft contract audit passes before Resolve apply or external handoff, proving the package has one connected first-draft chain, including first-assembly source-order proof, instead of isolated planning files
+- unattended first-draft and large-source unattended-readiness contract audits pass before Resolve apply or external handoff, proving the package has one connected first-draft chain, including first-assembly source-order proof and 100GB-folder readiness, instead of isolated planning files
 - Resolve apply contract exists and is not used for `--apply` until blockers are clear and the user approves
 - title/place cards have been generated or explicitly deferred
 - effect motion blueprint report and application audit exist before Resolve apply when effect motion rows are ready, proving restrained title/transition effects became candidate metadata and survived into the final blueprint without mutating source footage

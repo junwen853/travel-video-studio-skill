@@ -84,7 +84,7 @@ python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <projec
 python3 <skill-dir>/scripts/audit_raw_intake_completeness.py --project-dir <project> --package-dir <package>
 ```
 
-Read `references/footage-select-engine.md` before this step. The plan should identify hero, main story, texture bridge, utility, repair, and reject rows across the whole source pool. The raw-intake audit must pass after the package exists, so first assembly starts from the best local footage instead of filename order or a partial source scan.
+Read `references/footage-select-engine.md`, `references/source-selection-repair-contract.md`, and `references/large-source-unattended-readiness-contract.md` before this step. The plan should identify hero, main story, texture bridge, utility, repair, and reject rows across the whole source pool. The raw-intake, first-assembly source-order, and large-source unattended-readiness audits must pass after the package exists, so first assembly starts from the best local footage instead of filename order, partial source scan, or transition effects hiding weak source selection.
 
 Before trusting a Resolve blueprint as "not AI-made", run:
 
@@ -227,7 +227,7 @@ Observed reusable traits from the V14 training reference pass:
 - A 20-minute Japan cut should keep enough breathing room for station/platform/train/street/food/weather details instead of rushing from landmark to landmark.
 - If the user rejects voiceover, the reference-like feeling should come from subtitles, BGM, scene ordering, and natural ambient texture rather than generated narration.
 - When reference-style, director-intent, director-polish, or final QA audits are blocked, generate `reference_style_repair_plan/reference_style_repair_plan.json`, run `reference_repair_closure_audit.json`, and fix/close P0 rows before another Resolve write.
-- Before Resolve apply or final QA handoff, run `audit_final_blueprint_lineage_contract.py`, `audit_effect_motion_application_contract.py`, `audit_reference_profile_application_contract.py`, and `audit_final_source_usage_contract.py` so BGM phrase, effect motion, bridge sequence, transition execution, rhythm recut, transition polish, and reference-profile application work is present in the active/final blueprint and downstream plans, restrained effects are not dropped or overused, and the final raw clips still come from footage-select hero/main/texture choices rather than unmatched or utility-dominant source material.
+- Before Resolve apply or final QA handoff, run `audit_large_source_unattended_readiness_contract.py`, `audit_final_blueprint_lineage_contract.py`, `audit_effect_motion_application_contract.py`, `audit_reference_profile_application_contract.py`, and `audit_final_source_usage_contract.py` so large unordered source folders are fully indexed/recognized/selected before style work, BGM phrase, effect motion, bridge sequence, transition execution, rhythm recut, transition polish, and reference-profile application work is present in the active/final blueprint and downstream plans, restrained effects are not dropped or overused, and the final raw clips still come from footage-select hero/main/texture choices rather than unmatched or utility-dominant source material.
 
 Expected generated evidence inside each delivery package:
 

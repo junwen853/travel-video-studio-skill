@@ -75,6 +75,7 @@ REQUIRED_SCRIPTS = {
         "prepare_source_selection_repair_plan.py",
         "audit_source_selection_coverage_contract.py",
         "audit_first_assembly_source_order_contract.py",
+        "audit_large_source_unattended_readiness_contract.py",
         "prepare_opening_story_plan.py",
         "prepare_chapter_arc_plan.py",
         "prepare_edit_rhythm_plan.py",
@@ -155,6 +156,7 @@ REQUIRED_SKILL_PATTERNS = {
     "source_selection_repair_plan_rule": "prepare_source_selection_repair_plan.py",
     "source_selection_coverage_contract_rule": "audit_source_selection_coverage_contract.py",
     "first_assembly_source_order_contract_rule": "audit_first_assembly_source_order_contract.py",
+    "large_source_unattended_readiness_contract_rule": "audit_large_source_unattended_readiness_contract.py",
     "raw_intake_completeness_rule": "audit_raw_intake_completeness.py",
     "opening_story_plan_rule": "prepare_opening_story_plan.py",
     "opening_story_engine_rule": "opening-story-engine.md",
@@ -189,6 +191,7 @@ REQUIRED_SKILL_PATTERNS = {
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
+    "large_source_unattended_readiness_contract_reference_rule": "large-source-unattended-readiness-contract.md",
     "creator_cut_engine_rule": "creator-cut-engine.md",
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
     "transition_execution_engine_rule": "transition-execution-engine.md",
@@ -1887,6 +1890,65 @@ def first_assembly_source_order_contract_ready(evidence: dict[str, Any]) -> bool
         and int(evidence.get("missingTopSelectionDataCount") or 0) == 0
         and int(evidence.get("blockedCheckCount") or 0) == 0
         and (not evidence.get("largeSource") or evidence.get("footageSelectInputSource") == "media_index")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
+def large_source_unattended_readiness_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "large_source_unattended_readiness_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "largeSource": summary.get("largeSource"),
+        "activeSourceVideoCount": summary.get("activeSourceVideoCount"),
+        "expectedActiveSourceCount": summary.get("expectedActiveSourceCount"),
+        "sourceSizeGB": summary.get("sourceSizeGB"),
+        "recognitionCoverageRatio": summary.get("recognitionCoverageRatio"),
+        "footageSelectInputSource": summary.get("footageSelectInputSource"),
+        "candidateVideoCount": summary.get("candidateVideoCount"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "firstAssemblyStatus": summary.get("firstAssemblyStatus"),
+        "unattendedFirstDraftStatus": summary.get("unattendedFirstDraftStatus"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "warningCheckCount": summary.get("warningCheckCount"),
+        "externalMediaIntake": inputs.get("externalMediaIntake"),
+        "requireExternalIntake": inputs.get("requireExternalIntake"),
+        "blockerCount": len(data.get("blockers") or []),
+        "warningCount": len(data.get("warnings") or []),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def large_source_unattended_readiness_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") in {"passed", "passed_with_warnings"}
+        and int(evidence.get("activeSourceVideoCount") or 0) > 0
+        and int(evidence.get("expectedActiveSourceCount") or 0) > 0
+        and float(evidence.get("recognitionCoverageRatio") or 0) >= 1.0
+        and (not evidence.get("largeSource") or evidence.get("footageSelectInputSource") == "media_index")
+        and int(evidence.get("candidateVideoCount") or 0) >= 3
+        and int(evidence.get("chapterRowCount") or 0) >= 1
+        and evidence.get("firstAssemblyStatus") == "passed"
+        and evidence.get("unattendedFirstDraftStatus") in {"passed", "passed_with_warnings"}
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False
         and evidence.get("downloadsExternalAssets") is False
@@ -5462,6 +5524,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "First assembly source order contract proves large unordered folders are cut by full-source selection, not filename order or blueprint fallback samples",
         first_assembly_source_order_contract_ready(first_assembly_source_order_evidence),
         first_assembly_source_order_evidence,
+    )
+    large_source_unattended_evidence = large_source_unattended_readiness_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Large source unattended readiness contract proves 100GB unordered folders are media-indexed, recognized, source-selected, first-assembled, and preflighted without filename-order fallback",
+        large_source_unattended_readiness_contract_ready(large_source_unattended_evidence),
+        large_source_unattended_evidence,
     )
     opening_story_evidence = opening_story_plan_evidence(package_dir)
     add_check(
