@@ -60,6 +60,7 @@ Expected files:
 - `transition_scene_arc_contract_audit.json` / `.md`: reference-style transition gate proving important boundaries read as outgoing shot, bridge or motion reason, BGM hit, title-safe window, and landing shot instead of isolated effects
 - `transition_effect_palette_contract_audit.json` / `.md`: film-level gate proving the transition palette balances clean cuts, match cuts, bridge scenes, mood dissolves, clean title reveals, and rare motivated motion instead of relying on one repeated effect style
 - `transition_visual_match_contract_audit.json` / `.md`: pair-level gate proving every adjacent transition has concrete visual, bridge, two-sided motion, mood/title, same-chapter, or BGM continuity evidence
+- `transition_storyboard_contract_audit.json` / `.md`: storyboard gate proving important day/place/title/timeline/ending transitions have viewer purpose, outgoing shot, bridge-or-motion beat, landing shot, and preview/frame evidence
 - `final_source_usage_contract_audit.json` / `.md`: active/final-blueprint gate proving final raw clips actually match footage-select hero/main/texture choices and do not reintroduce unmatched, repair, reject, or utility-dominant source material
 - `transition_quality_contract_audit.json` / `.md`: final transition quality gate proving visual-boundary coverage, BGM-hit timing, title/subtitle avoidance, motion evidence, and no repeated/template effects
 - `shot_transition_boundary_contract_audit.json` / `.md`: shot-to-shot boundary gate proving each adjacent from/to pair maps to transition metadata with BGM-hit, title-safe, BGM-only, and motion-evidence checks
@@ -98,7 +99,7 @@ Expected files:
 - `rhythm_recut_application_contract_audit.json` / `.md`: final-candidate gate proving rhythm-recut main segments and existing-footage cutaways survived into the final candidate blueprint
 - `qa_checklist.md`: final delivery checklist
 - `delivery_audit.json` / `delivery_audit.md`: machine-readable final readiness audit
-- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, audience-caption, large-source unattended-readiness, transition-microstructure, timeline-variety, and unattended-first-draft summaries, BGM phrase blueprint summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
+- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, audience-caption, large-source unattended-readiness, transition-microstructure, transition-storyboard, timeline-variety, and unattended-first-draft summaries, BGM phrase blueprint summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
 
 ## Chapter Structure
 

@@ -501,6 +501,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
+    transition_storyboard = load_json(package_dir / "transition_storyboard_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
@@ -520,9 +521,10 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tsa_summary = summary_of(transition_scene_arc)
     tep_summary = summary_of(transition_effect_palette)
     tvm_summary = summary_of(transition_visual_match)
+    tsb_summary = summary_of(transition_storyboard)
     add_gate(
         gates,
-        "Transition cadence, execution, scene arcs, effect palette, visual match, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, and reference-like",
+        "Transition cadence, execution, scene arcs, effect palette, visual match, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",
         transition_quality.get("status") == "passed"
         and shot_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
@@ -542,6 +544,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_scene_arc.get("status") == "passed"
         and transition_effect_palette.get("status") == "passed"
         and transition_visual_match.get("status") == "passed"
+        and transition_storyboard.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
         and as_int(sb_summary.get("blockedBoundaryCount")) == 0
         and as_int(tm_summary.get("blockedBoundaryCount")) == 0
@@ -644,6 +647,17 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             as_int(tvm_summary.get("importantBoundaryCount")) == 0
             or as_int(tvm_summary.get("importantBridgeOrSceneHandoffCount")) >= as_int(tvm_summary.get("importantBoundaryCount"))
         )
+        and as_int(tsb_summary.get("blockedRowCount")) == 0
+        and as_int(tsb_summary.get("visualBoundaryCount")) >= 1
+        and as_int(tsb_summary.get("storyboardReadyRowCount")) == as_int(tsb_summary.get("transitionRowCount"))
+        and as_int(tsb_summary.get("rowsWithViewerPurpose")) == as_int(tsb_summary.get("transitionRowCount"))
+        and as_int(tsb_summary.get("rowsWithOutgoingEvidence")) == as_int(tsb_summary.get("transitionRowCount"))
+        and as_int(tsb_summary.get("rowsWithLandingEvidence")) == as_int(tsb_summary.get("transitionRowCount"))
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(tsb_summary.get("importantPreviewEvidenceCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and as_int(tsb_summary.get("motionReadyRowCount")) == as_int(tsb_summary.get("motionTransitionCount"))
         and as_int(tm_summary.get("motivatedBoundaryCount")) == as_int(tm_summary.get("visualBoundaryCount"))
         and as_int(tpc_summary.get("pairContinuityPayloadCount")) == as_int(tpc_summary.get("visualBoundaryCount"))
         and not transition_quality.get("blockers")
@@ -664,7 +678,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not timeline_variety.get("blockers")
         and not transition_scene_arc.get("blockers")
         and not transition_effect_palette.get("blockers")
-        and not transition_visual_match.get("blockers"),
+        and not transition_visual_match.get("blockers")
+        and not transition_storyboard.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
             "transitionQualityBoundaryCount": tq_summary.get("visualBoundaryCount"),
@@ -707,6 +722,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionEffectPaletteSummary": tep_summary,
             "transitionVisualMatchStatus": transition_visual_match.get("status"),
             "transitionVisualMatchSummary": tvm_summary,
+            "transitionStoryboardStatus": transition_storyboard.get("status"),
+            "transitionStoryboardSummary": tsb_summary,
         },
     )
 

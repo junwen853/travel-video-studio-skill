@@ -1,0 +1,39 @@
+# Transition Storyboard Contract
+
+Use this contract when a travel edit needs the transition polish to feel closer to the Parallel World or Malta references, especially when the user says shot-to-shot flow feels abrupt, mechanical, or like random effects.
+
+## Required Inputs
+
+- `transition_grammar_plan/transition_grammar_plan.json`
+- `transition_scene_arc_contract_audit.json`
+- `transition_effect_palette_contract_audit.json`
+- `transition_visual_match_contract_audit.json`
+- `transition_microstructure_contract_audit.json`
+- `transition_pair_continuity_contract_audit.json`
+- `transition_execution_readiness_contract_audit.json`
+- `transition_polish_application_contract_audit.json`
+- `bridge_sequence_application_contract_audit.json`
+- `final_blueprint_lineage_contract_audit.json`
+
+## Pass Criteria
+
+Every transition row must read like a small viewer-facing storyboard, not a tool note. It needs:
+
+- `storyboardPurpose`: one of `route_move`, `time_jump`, `title_reveal`, `scenic_breath`, `texture_bridge`, `payoff_handoff`, `ending_aftertaste`, `bgm_handoff`, or `same_scene_continuity`
+- `outgoingShotEvidence`: what the viewer is leaving
+- `bridgeOrMotionBeatEvidence`: the route texture, movement, title, BGM, or match reason
+- `landingShotEvidence`: what the viewer lands on
+- `previewStripEvidence` or `frameSampleEvidence` for important day/place/title/timeline-gap/ending boundaries
+
+Whip, rotation, speed-ramp, and push transitions must cite real route movement or bridge evidence. Do not let a motion effect rescue two static or weak clips.
+
+Important transitions must be checked with frame or contact-sheet evidence before approval. Metadata-only transition approval is not enough for final handoff.
+
+## Outputs
+
+- `transition_storyboard_contract_audit.json`
+- `transition_storyboard_contract_audit.md`
+
+## Safety
+
+The audit is read-only. It does not write Resolve, queue renders, download assets, modify source footage, or modify source drives.

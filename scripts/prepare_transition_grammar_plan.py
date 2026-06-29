@@ -148,6 +148,12 @@ DECISION_FIELDS = {
     "durationFrames": None,
     "requiresBridgeInsert": False,
     "bridgeInsertSource": "",
+    "storyboardPurpose": "",
+    "outgoingShotEvidence": "",
+    "bridgeOrMotionBeatEvidence": "",
+    "landingShotEvidence": "",
+    "previewStripEvidence": "",
+    "frameSampleEvidence": "",
     "motionDirection": "",
     "bgmPhraseCue": "",
     "captionSuppressionNeeded": False,
@@ -350,6 +356,25 @@ def transition_status(category: str, recommendation: dict[str, Any]) -> str:
     return "ready_with_transition_grammar"
 
 
+def storyboard_purpose(category: str, recommendation: dict[str, Any]) -> str:
+    transition = str(recommendation.get("recommendedTransitionType") or "")
+    if category == "chapter_boundary":
+        return "route_move"
+    if category == "timeline_gap":
+        return "time_jump"
+    if category == "title_boundary":
+        return "title_reveal"
+    if category == "ending_transition":
+        return "ending_aftertaste"
+    if "dissolve" in transition:
+        return "scenic_breath"
+    if "bridge" in transition:
+        return "texture_bridge"
+    if transition in {"whip_pan_match", "rotation_match_cut", "speed_ramp_bridge"}:
+        return "bgm_handoff"
+    return "same_scene_continuity"
+
+
 def build_rows(package_dir: Path, clips: list[dict[str, Any]]) -> list[dict[str, Any]]:
     lookup = creator_lookup(package_dir)
     rows: list[dict[str, Any]] = []
@@ -391,6 +416,26 @@ def build_rows(package_dir: Path, clips: list[dict[str, Any]]) -> list[dict[str,
             "status": transition_status(category, recommendation),
             "decision": dict(DECISION_FIELDS),
         }
+        row["decision"]["storyboardPurpose"] = storyboard_purpose(category, recommendation)
+        row["decision"]["outgoingShotEvidence"] = " | ".join(
+            item
+            for item in (
+                source_name(left),
+                clean_words(left.get("role")),
+                clean_words(left_creator.get("creatorFunction")),
+            )
+            if item
+        )
+        row["decision"]["bridgeOrMotionBeatEvidence"] = ", ".join(row["signals"]["bridgeTerms"]) or recommendation.get("reason") or ""
+        row["decision"]["landingShotEvidence"] = " | ".join(
+            item
+            for item in (
+                source_name(right),
+                clean_words(right.get("role")),
+                clean_words(right_creator.get("creatorFunction")),
+            )
+            if item
+        )
         if recommendation.get("recommendedTransitionType") == "insert_bridge_first":
             row["decision"]["requiresBridgeInsert"] = True
         rows.append(row)

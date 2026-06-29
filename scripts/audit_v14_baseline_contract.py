@@ -266,6 +266,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
+    transition_storyboard = load_json(package_dir / "transition_storyboard_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
@@ -1396,6 +1397,34 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionVisualMatchSummary": transition_visual_match_summary,
         },
     )
+    transition_storyboard_summary = get_summary(transition_storyboard)
+    add_check(
+        checks,
+        "Transition storyboard contract proves important V14 transitions have viewer purpose, outgoing/bridge/landing proof, and preview evidence",
+        transition_storyboard.get("status") == "passed"
+        and int(transition_storyboard_summary.get("visualBoundaryCount") or 0) >= 1
+        and int(transition_storyboard_summary.get("transitionRowCount") or 0) >= int(transition_storyboard_summary.get("visualBoundaryCount") or 0)
+        and int(transition_storyboard_summary.get("storyboardReadyRowCount") or 0) == int(transition_storyboard_summary.get("transitionRowCount") or 0)
+        and int(transition_storyboard_summary.get("blockedRowCount") or 0) == 0
+        and int(transition_storyboard_summary.get("rowsWithViewerPurpose") or 0) == int(transition_storyboard_summary.get("transitionRowCount") or 0)
+        and int(transition_storyboard_summary.get("rowsWithOutgoingEvidence") or 0) == int(transition_storyboard_summary.get("transitionRowCount") or 0)
+        and int(transition_storyboard_summary.get("rowsWithLandingEvidence") or 0) == int(transition_storyboard_summary.get("transitionRowCount") or 0)
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_storyboard_summary.get("importantStoryboardReadyCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_storyboard_summary.get("importantPreviewEvidenceCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and int(transition_storyboard_summary.get("motionReadyRowCount") or 0) == int(transition_storyboard_summary.get("motionTransitionCount") or 0)
+        and int(transition_storyboard_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_storyboard.get("blockers"),
+        {
+            "transitionStoryboardStatus": transition_storyboard.get("status"),
+            "transitionStoryboardSummary": transition_storyboard_summary,
+        },
+    )
     reference_scene_grammar_summary = get_summary(reference_scene_grammar)
     reference_scene_grammar_inputs = reference_scene_grammar.get("inputs") if isinstance(reference_scene_grammar.get("inputs"), dict) else {}
     reference_scene_chapter_count = int(reference_scene_grammar_summary.get("chapterCount") or 0)
@@ -1543,6 +1572,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_motivation.get("status") == "passed"
         and transition_pair_continuity.get("status") == "passed"
         and transition_execution_readiness.get("status") == "passed"
+        and transition_storyboard.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
         and unattended_first_draft.get("status") in {"passed", "passed_with_warnings"}
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
@@ -1627,6 +1657,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionPairContinuitySummary": transition_pair_continuity_summary,
             "transitionExecutionReadinessStatus": transition_execution_readiness.get("status"),
             "transitionExecutionReadinessSummary": transition_execution_readiness_summary,
+            "transitionStoryboardStatus": transition_storyboard.get("status"),
+            "transitionStoryboardSummary": transition_storyboard_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": reference_scene_grammar_summary,
             "unattendedFirstDraftStatus": unattended_first_draft.get("status"),
