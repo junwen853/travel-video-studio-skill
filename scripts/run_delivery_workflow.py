@@ -794,6 +794,34 @@ def summarize_transition_execution_readiness_contract(report: dict[str, Any] | N
     }
 
 
+def summarize_transition_polish_application_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "finalBlueprintKind": inputs.get("finalBlueprintKind"),
+        "finalBlueprintInsidePackage": inputs.get("finalBlueprintInsidePackage"),
+        "sourcePolishRowCount": summary.get("sourcePolishRowCount"),
+        "finalTransitionPolishCandidateCount": summary.get("finalTransitionPolishCandidateCount"),
+        "finalTransitionRowCount": summary.get("finalTransitionRowCount"),
+        "auditedPolishRowCount": summary.get("auditedPolishRowCount"),
+        "passedPolishRowCount": summary.get("passedPolishRowCount"),
+        "blockedPolishRowCount": summary.get("blockedPolishRowCount"),
+        "recipeReadyRowCount": summary.get("recipeReadyRowCount"),
+        "bgmHitRowCount": summary.get("bgmHitRowCount"),
+        "titleSafeRowCount": summary.get("titleSafeRowCount"),
+        "pairReadyRowCount": summary.get("pairReadyRowCount"),
+        "clipAnnotationRowCount": summary.get("clipAnnotationRowCount"),
+        "markerRowCount": summary.get("markerRowCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_creator_cut_application_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -1924,6 +1952,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_execution_readiness_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_execution_readiness_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_execution_readiness_contract", transition_execution_readiness_cmd, ok_codes={0, 2}))
 
+    transition_polish_application_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_polish_application_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_transition_polish_application_contract", transition_polish_application_cmd, ok_codes={0, 2}))
+
     bridge_sequence_application_cmd = ["python3", str(SCRIPTS_DIR / "audit_bridge_sequence_application_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_bridge_sequence_application_contract", bridge_sequence_application_cmd, ok_codes={0, 2}))
 
@@ -2034,6 +2065,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_motivation_summary = None
     transition_pair_continuity_summary = None
     transition_execution_readiness_summary = None
+    transition_polish_application_summary = None
     bridge_sequence_application_summary = None
     creator_cut_application_summary = None
     reference_scene_grammar_summary = None
@@ -2183,6 +2215,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition execution readiness blocker: {item}" for item in transition_execution_readiness_summary.get("blockers") or [])
             if transition_execution_readiness_summary and transition_execution_readiness_summary.get("warnings"):
                 warnings.extend(f"Transition execution readiness warning: {item}" for item in transition_execution_readiness_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_polish_application_contract":
+            transition_polish_application_summary = summarize_transition_polish_application_contract(payload)
+            if transition_polish_application_summary and transition_polish_application_summary.get("status") == "blocked":
+                blockers.extend(f"Transition polish application blocker: {item}" for item in transition_polish_application_summary.get("blockers") or [])
+            if transition_polish_application_summary and transition_polish_application_summary.get("warnings"):
+                warnings.extend(f"Transition polish application warning: {item}" for item in transition_polish_application_summary.get("warnings") or [])
         if step["id"] == "audit_bridge_sequence_application_contract":
             bridge_sequence_application_summary = summarize_bridge_sequence_application_contract(payload)
             if bridge_sequence_application_summary and bridge_sequence_application_summary.get("status") == "blocked":
@@ -2377,6 +2415,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_execution_readiness_summary = summarize_transition_execution_readiness_contract(
             load_json(package_dir / "transition_execution_readiness_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_polish_application_contract_audit.json").exists():
+        transition_polish_application_summary = summarize_transition_polish_application_contract(
+            load_json(package_dir / "transition_polish_application_contract_audit.json")
+        )
     if package_dir and (package_dir / "bridge_sequence_application_contract_audit.json").exists():
         bridge_sequence_application_summary = summarize_bridge_sequence_application_contract(
             load_json(package_dir / "bridge_sequence_application_contract_audit.json")
@@ -2475,6 +2517,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionMotivationSummary": transition_motivation_summary,
         "transitionPairContinuitySummary": transition_pair_continuity_summary,
         "transitionExecutionReadinessSummary": transition_execution_readiness_summary,
+        "transitionPolishApplicationSummary": transition_polish_application_summary,
         "bridgeSequenceApplicationSummary": bridge_sequence_application_summary,
         "creatorCutApplicationSummary": creator_cut_application_summary,
         "referenceSceneGrammarSummary": reference_scene_grammar_summary,
@@ -2525,6 +2568,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review transition_motivation_contract_audit.json before Resolve apply so each transition has a viewer-facing route, motion, title, bridge, or BGM motivation instead of a decorative effect.",
             "Review transition_pair_continuity_contract_audit.json before Resolve apply so every adjacent from/to shot has concrete visual, route, motion, BGM, or title continuity evidence.",
             "Review transition_execution_readiness_contract_audit.json before Resolve apply so every transition has a package-local Resolve recipe, BGM hit, title-safe window, pair readiness, handles, and decision fields.",
+            "Review transition_polish_application_contract_audit.json before Resolve apply so final/active blueprints do not drop transition-polish metadata after candidate generation.",
             "Review bridge_sequence_application_contract_audit.json before Resolve apply so planned 2-5 shot bridge sequences survive into the final candidate blueprint.",
             "Review creator_cut_application_contract_audit.json before Resolve apply so rejected/utility/weak creator-cut rows cannot remain active in the final candidate blueprint.",
             "Review reference_scene_grammar_contract_audit.json before Resolve apply so opening, chapters, transitions, and ending follow the Parallel World/Malta scene-function grammar.",

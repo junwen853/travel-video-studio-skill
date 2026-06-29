@@ -45,6 +45,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_motivation_contract.py",
         "audit_transition_pair_continuity_contract.py",
         "audit_transition_execution_readiness_contract.py",
+        "audit_transition_polish_application_contract.py",
         "audit_bridge_sequence_application_contract.py",
         "audit_reference_scene_grammar_contract.py",
         "audit_unattended_first_draft_contract.py",
@@ -107,6 +108,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_motivation_contract_rule": "audit_transition_motivation_contract.py",
     "transition_pair_continuity_contract_rule": "audit_transition_pair_continuity_contract.py",
     "transition_execution_readiness_contract_rule": "audit_transition_execution_readiness_contract.py",
+    "transition_polish_application_contract_rule": "audit_transition_polish_application_contract.py",
     "bridge_sequence_application_contract_rule": "audit_bridge_sequence_application_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
     "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
@@ -160,6 +162,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract_reference_rule": "bridge-sequence-application-contract.md",
+    "transition_polish_application_contract_reference_rule": "transition-polish-application-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine_rule": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine_rule": "transition-execution-readiness-engine.md",
@@ -182,6 +185,7 @@ REQUIRED_STYLE_PATTERNS = {
     "bridge_sequence_engine": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract": "bridge-sequence-application-contract.md",
+    "transition_polish_application_contract": "transition-polish-application-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine": "transition-execution-readiness-engine.md",
@@ -210,12 +214,14 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "bgm_phrase_blueprint": "BGM phrase blueprint",
     "transition_polish_blueprint": "transition polish blueprint",
     "transition_execution_readiness_contract": "transition execution readiness contract",
+    "transition_polish_application_contract": "transition polish application contract",
     "transition_quality_contract": "transition quality contract",
     "shot_transition_boundary_contract": "shot transition boundary contract",
     "transition_motif_plan": "transition motif plan",
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
     "bridge_sequence_application_contract": "bridge sequence application contract",
+    "transition_polish_application_contract": "transition polish application contract",
     "reference_style_repair_plan": "reference style repair plan",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
@@ -3890,6 +3896,85 @@ def transition_execution_readiness_contract_ready(evidence: dict[str, Any]) -> b
     )
 
 
+def transition_polish_application_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_polish_application_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionPolishStatus": inputs.get("transitionPolishStatus"),
+        "sourceCandidateExists": inputs.get("sourceCandidateExists"),
+        "sourceCandidateInsidePackage": inputs.get("sourceCandidateInsidePackage"),
+        "finalBlueprintExists": inputs.get("finalBlueprintExists"),
+        "finalBlueprintKind": inputs.get("finalBlueprintKind"),
+        "finalBlueprintInsidePackage": inputs.get("finalBlueprintInsidePackage"),
+        "finalHasTransitionPolishBlueprintPlan": inputs.get("finalHasTransitionPolishBlueprintPlan"),
+        "sourcePolishRowCount": summary.get("sourcePolishRowCount"),
+        "finalTransitionPolishCandidateCount": summary.get("finalTransitionPolishCandidateCount"),
+        "finalTransitionRowCount": summary.get("finalTransitionRowCount"),
+        "finalVisualBoundaryCount": summary.get("finalVisualBoundaryCount"),
+        "auditedPolishRowCount": summary.get("auditedPolishRowCount"),
+        "passedPolishRowCount": summary.get("passedPolishRowCount"),
+        "blockedPolishRowCount": summary.get("blockedPolishRowCount"),
+        "recipeReadyRowCount": summary.get("recipeReadyRowCount"),
+        "bgmHitRowCount": summary.get("bgmHitRowCount"),
+        "bgmOnlyRowCount": summary.get("bgmOnlyRowCount"),
+        "titleSafeRowCount": summary.get("titleSafeRowCount"),
+        "pairReadyRowCount": summary.get("pairReadyRowCount"),
+        "clipAnnotationRowCount": summary.get("clipAnnotationRowCount"),
+        "markerRowCount": summary.get("markerRowCount"),
+        "motionRowCount": summary.get("motionRowCount"),
+        "motionReadyRowCount": summary.get("motionReadyRowCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_polish_application_contract_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("sourcePolishRowCount") or 0)
+    motion_count = int(evidence.get("motionRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("transitionPolishStatus") == "ready_with_transition_polish_blueprint"
+        and evidence.get("sourceCandidateExists") is True
+        and evidence.get("sourceCandidateInsidePackage") is True
+        and evidence.get("finalBlueprintExists") is True
+        and evidence.get("finalBlueprintInsidePackage") is True
+        and evidence.get("finalHasTransitionPolishBlueprintPlan") is True
+        and row_count >= 1
+        and int(evidence.get("finalTransitionPolishCandidateCount") or 0) >= row_count
+        and int(evidence.get("finalTransitionRowCount") or 0) >= row_count
+        and int(evidence.get("auditedPolishRowCount") or 0) == row_count
+        and int(evidence.get("passedPolishRowCount") or 0) == row_count
+        and int(evidence.get("blockedPolishRowCount") or 0) == 0
+        and int(evidence.get("recipeReadyRowCount") or 0) == row_count
+        and int(evidence.get("bgmHitRowCount") or 0) == row_count
+        and int(evidence.get("bgmOnlyRowCount") or 0) == row_count
+        and int(evidence.get("titleSafeRowCount") or 0) == row_count
+        and int(evidence.get("pairReadyRowCount") or 0) == row_count
+        and int(evidence.get("clipAnnotationRowCount") or 0) == row_count
+        and int(evidence.get("markerRowCount") or 0) == row_count
+        and int(evidence.get("motionReadyRowCount") or 0) == motion_count
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def reference_scene_grammar_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "reference_scene_grammar_contract_audit.json"
     data = load_json(path) or {}
@@ -4432,6 +4517,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition execution readiness contract proves every final transition has a package-local Resolve recipe, BGM hit, title-safe window, pair readiness, and handles",
         transition_execution_readiness_contract_ready(transition_execution_readiness_evidence),
         transition_execution_readiness_evidence,
+    )
+    transition_polish_application_evidence = transition_polish_application_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition polish application contract proves active/final blueprints preserve BGM-hit title-safe transition polish metadata",
+        transition_polish_application_contract_ready(transition_polish_application_evidence),
+        transition_polish_application_evidence,
     )
     reference_scene_grammar_evidence = reference_scene_grammar_contract_evidence(package_dir)
     add_check(

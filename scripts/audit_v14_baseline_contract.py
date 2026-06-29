@@ -39,6 +39,7 @@ SKILL_PATTERNS = {
     "bridge_sequence_application": "audit_bridge_sequence_application_contract.py",
     "rhythm_recut_blueprint": "prepare_rhythm_recut_blueprint.py",
     "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
+    "transition_polish_application": "audit_transition_polish_application_contract.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
@@ -91,6 +92,7 @@ REQUIRED_SCRIPTS = [
     "audit_bridge_sequence_application_contract.py",
     "prepare_rhythm_recut_blueprint.py",
     "prepare_transition_polish_blueprint.py",
+    "audit_transition_polish_application_contract.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
@@ -212,6 +214,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
     rhythm_recut_blueprint = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
     transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
+    transition_polish_application = load_json(package_dir / "transition_polish_application_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
@@ -821,6 +824,43 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "markerCount": len(transition_polish_markers),
         },
     )
+    transition_polish_application_summary = get_summary(transition_polish_application)
+    transition_polish_application_inputs = transition_polish_application.get("inputs") if isinstance(transition_polish_application.get("inputs"), dict) else {}
+    transition_polish_application_rows = int(transition_polish_application_summary.get("sourcePolishRowCount") or 0)
+    transition_polish_application_motion = int(transition_polish_application_summary.get("motionRowCount") or 0)
+    add_check(
+        checks,
+        "Transition polish application contract proves final active blueprints preserve BGM-hit title-safe transition metadata",
+        transition_polish_application.get("status") == "passed"
+        and transition_polish_application_inputs.get("transitionPolishStatus") == "ready_with_transition_polish_blueprint"
+        and transition_polish_application_inputs.get("sourceCandidateExists") is True
+        and transition_polish_application_inputs.get("sourceCandidateInsidePackage") is True
+        and transition_polish_application_inputs.get("finalBlueprintExists") is True
+        and transition_polish_application_inputs.get("finalBlueprintInsidePackage") is True
+        and transition_polish_application_inputs.get("finalHasTransitionPolishBlueprintPlan") is True
+        and transition_polish_application_rows >= 1
+        and int(transition_polish_application_summary.get("finalTransitionPolishCandidateCount") or 0) >= transition_polish_application_rows
+        and int(transition_polish_application_summary.get("finalTransitionRowCount") or 0) >= transition_polish_application_rows
+        and int(transition_polish_application_summary.get("auditedPolishRowCount") or 0) == transition_polish_application_rows
+        and int(transition_polish_application_summary.get("passedPolishRowCount") or 0) == transition_polish_application_rows
+        and int(transition_polish_application_summary.get("blockedPolishRowCount") or 0) == 0
+        and int(transition_polish_application_summary.get("recipeReadyRowCount") or 0) == transition_polish_application_rows
+        and int(transition_polish_application_summary.get("bgmHitRowCount") or 0) == transition_polish_application_rows
+        and int(transition_polish_application_summary.get("bgmOnlyRowCount") or 0) == transition_polish_application_rows
+        and int(transition_polish_application_summary.get("titleSafeRowCount") or 0) == transition_polish_application_rows
+        and int(transition_polish_application_summary.get("pairReadyRowCount") or 0) == transition_polish_application_rows
+        and int(transition_polish_application_summary.get("clipAnnotationRowCount") or 0) == transition_polish_application_rows
+        and int(transition_polish_application_summary.get("markerRowCount") or 0) == transition_polish_application_rows
+        and int(transition_polish_application_summary.get("motionReadyRowCount") or 0) == transition_polish_application_motion
+        and int(transition_polish_application_summary.get("blockerCount") or 0) == 0
+        and not transition_polish_application.get("blockers"),
+        {
+            "transitionPolishApplicationStatus": transition_polish_application.get("status"),
+            "transitionPolishApplicationSummary": transition_polish_application_summary,
+            "finalBlueprintKind": transition_polish_application_inputs.get("finalBlueprintKind"),
+            "finalBlueprint": transition_polish_application_inputs.get("finalBlueprint"),
+        },
+    )
     transition_quality_summary = get_summary(transition_quality)
     transition_quality_inputs = transition_quality.get("inputs") if isinstance(transition_quality.get("inputs"), dict) else {}
     transition_quality_rows = int(transition_quality_summary.get("transitionRowCount") or 0)
@@ -1081,6 +1121,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and bgm_phrase_blueprint.get("status") == "ready_with_bgm_phrase_blueprint"
         and rhythm_recut_blueprint.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}
         and transition_polish_blueprint.get("status") == "ready_with_transition_polish_blueprint"
+        and transition_polish_application.get("status") == "passed"
         and transition_quality.get("status") == "passed"
         and shot_transition_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
@@ -1136,6 +1177,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "rhythmRecutBlueprintSummary": rhythm_recut_blueprint_summary,
             "transitionPolishBlueprintStatus": transition_polish_blueprint.get("status"),
             "transitionPolishBlueprintSummary": transition_polish_summary,
+            "transitionPolishApplicationStatus": transition_polish_application.get("status"),
+            "transitionPolishApplicationSummary": transition_polish_application_summary,
             "transitionQualityStatus": transition_quality.get("status"),
             "transitionQualitySummary": transition_quality_summary,
             "shotTransitionBoundaryStatus": shot_transition_boundary.get("status"),
@@ -1177,7 +1220,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     final_qa_summary = get_summary(final_qa)
     add_check(
         checks,
-        "Final QA suite preserves the V14 17-stage handoff floor",
+        "Final QA suite preserves the V14 17+ stage handoff floor",
         final_qa.get("status") == "passed"
         and int(final_qa_summary.get("totalStages") or 0) >= 17
         and int(final_qa_summary.get("blockedStages") or 0) == 0
