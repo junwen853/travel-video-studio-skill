@@ -244,6 +244,10 @@ def append_markers(timeline: Any, blueprint: dict[str, Any], fps: float) -> tupl
             if raw_name != name:
                 note = f"Full marker name: {raw_name}\n{note}".strip()
             custom_payload = dict(item.get("customData") or {})
+            if item.get("role"):
+                custom_payload.setdefault("role", item.get("role"))
+            if isinstance(item.get("payload"), dict):
+                custom_payload.setdefault("payload", item["payload"])
             if raw_name != name:
                 custom_payload["fullName"] = raw_name
             if original_start != start:

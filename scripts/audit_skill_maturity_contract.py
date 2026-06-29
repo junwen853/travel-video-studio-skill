@@ -46,6 +46,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_pair_continuity_contract.py",
         "audit_transition_execution_readiness_contract.py",
         "audit_transition_polish_application_contract.py",
+        "audit_resolve_transition_materialization_contract.py",
         "audit_bridge_sequence_application_contract.py",
         "audit_final_blueprint_lineage_contract.py",
         "audit_final_source_usage_contract.py",
@@ -111,6 +112,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_pair_continuity_contract_rule": "audit_transition_pair_continuity_contract.py",
     "transition_execution_readiness_contract_rule": "audit_transition_execution_readiness_contract.py",
     "transition_polish_application_contract_rule": "audit_transition_polish_application_contract.py",
+    "resolve_transition_materialization_contract_rule": "audit_resolve_transition_materialization_contract.py",
     "bridge_sequence_application_contract_rule": "audit_bridge_sequence_application_contract.py",
     "final_blueprint_lineage_contract_rule": "audit_final_blueprint_lineage_contract.py",
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
@@ -167,6 +169,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract_reference_rule": "bridge-sequence-application-contract.md",
     "transition_polish_application_contract_reference_rule": "transition-polish-application-contract.md",
+    "resolve_transition_materialization_contract_reference_rule": "resolve-transition-materialization-contract.md",
     "final_blueprint_lineage_contract_reference_rule": "final-blueprint-lineage-contract.md",
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
@@ -192,6 +195,7 @@ REQUIRED_STYLE_PATTERNS = {
     "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract": "bridge-sequence-application-contract.md",
     "transition_polish_application_contract": "transition-polish-application-contract.md",
+    "resolve_transition_materialization_contract": "resolve-transition-materialization-contract.md",
     "final_blueprint_lineage_contract": "final-blueprint-lineage-contract.md",
     "final_source_usage_contract": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
@@ -223,6 +227,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_polish_blueprint": "transition polish blueprint",
     "transition_execution_readiness_contract": "transition execution readiness contract",
     "transition_polish_application_contract": "transition polish application contract",
+    "resolve_transition_materialization_contract": "Resolve transition materialization contract",
     "transition_quality_contract": "transition quality contract",
     "shot_transition_boundary_contract": "shot transition boundary contract",
     "transition_motif_plan": "transition motif plan",
@@ -4128,6 +4133,59 @@ def transition_polish_application_contract_ready(evidence: dict[str, Any]) -> bo
     )
 
 
+def resolve_transition_materialization_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "resolve_transition_materialization_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "buildResolveTimelinePreservesMarkerPayload": inputs.get("buildResolveTimelinePreservesMarkerPayload"),
+        "resolveReadbackChecked": inputs.get("resolveReadbackChecked"),
+        "transitionCandidateCount": summary.get("transitionCandidateCount"),
+        "transitionRowsWithMarkerPayload": summary.get("transitionRowsWithMarkerPayload"),
+        "transitionRowsWithClipAnnotation": summary.get("transitionRowsWithClipAnnotation"),
+        "visibleEffectRowCount": summary.get("visibleEffectRowCount"),
+        "resolveRowsWithPayload": summary.get("resolveRowsWithPayload"),
+        "blockedTransitionRowCount": summary.get("blockedTransitionRowCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def resolve_transition_materialization_contract_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("transitionCandidateCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and evidence.get("buildResolveTimelinePreservesMarkerPayload") is True
+        and row_count >= 1
+        and int(evidence.get("transitionRowsWithMarkerPayload") or 0) == row_count
+        and int(evidence.get("transitionRowsWithClipAnnotation") or 0) == row_count
+        and int(evidence.get("blockedTransitionRowCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def reference_scene_grammar_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "reference_scene_grammar_contract_audit.json"
     data = load_json(path) or {}
@@ -4691,6 +4749,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition polish application contract proves active/final blueprints preserve BGM-hit title-safe transition polish metadata",
         transition_polish_application_contract_ready(transition_polish_application_evidence),
         transition_polish_application_evidence,
+    )
+    resolve_transition_materialization_evidence = resolve_transition_materialization_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Resolve transition materialization contract proves transition recipes survive into Resolve marker payload/readback evidence",
+        resolve_transition_materialization_contract_ready(resolve_transition_materialization_evidence),
+        resolve_transition_materialization_evidence,
     )
     reference_scene_grammar_evidence = reference_scene_grammar_contract_evidence(package_dir)
     add_check(

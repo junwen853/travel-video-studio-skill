@@ -412,6 +412,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_pair_continuity = load_json(package_dir / "transition_pair_continuity_contract_audit.json") or {}
     transition_execution_readiness = load_json(package_dir / "transition_execution_readiness_contract_audit.json") or {}
     transition_polish_application = load_json(package_dir / "transition_polish_application_contract_audit.json") or {}
+    resolve_transition_materialization = load_json(package_dir / "resolve_transition_materialization_contract_audit.json") or {}
     bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
@@ -421,6 +422,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tpc_summary = summary_of(transition_pair_continuity)
     ter_summary = summary_of(transition_execution_readiness)
     tpa_summary = summary_of(transition_polish_application)
+    rtm_summary = summary_of(resolve_transition_materialization)
     bsa_summary = summary_of(bridge_sequence_application)
     fbl_summary = summary_of(final_blueprint_lineage)
     rsg_summary = summary_of(reference_scene_grammar)
@@ -433,6 +435,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_pair_continuity.get("status") == "passed"
         and transition_execution_readiness.get("status") == "passed"
         and transition_polish_application.get("status") == "passed"
+        and resolve_transition_materialization.get("status") == "passed"
         and bridge_sequence_application.get("status") == "passed"
         and final_blueprint_lineage.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
@@ -452,6 +455,10 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(tpa_summary.get("pairReadyRowCount")) == as_int(tpa_summary.get("sourcePolishRowCount"))
         and as_int(tpa_summary.get("clipAnnotationRowCount")) == as_int(tpa_summary.get("sourcePolishRowCount"))
         and as_int(tpa_summary.get("markerRowCount")) == as_int(tpa_summary.get("sourcePolishRowCount"))
+        and as_int(rtm_summary.get("blockedTransitionRowCount")) == 0
+        and as_int(rtm_summary.get("transitionCandidateCount")) >= 1
+        and as_int(rtm_summary.get("transitionRowsWithMarkerPayload")) == as_int(rtm_summary.get("transitionCandidateCount"))
+        and as_int(rtm_summary.get("transitionRowsWithClipAnnotation")) == as_int(rtm_summary.get("transitionCandidateCount"))
         and as_int(bsa_summary.get("blockedSequenceRowCount")) == 0
         and as_int(bsa_summary.get("missingBeatClipCount")) == 0
         and as_int(bsa_summary.get("sourceAudioLeakClipCount")) == 0
@@ -468,6 +475,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_pair_continuity.get("blockers")
         and not transition_execution_readiness.get("blockers")
         and not transition_polish_application.get("blockers")
+        and not resolve_transition_materialization.get("blockers")
         and not bridge_sequence_application.get("blockers")
         and not final_blueprint_lineage.get("blockers")
         and not reference_scene_grammar.get("blockers"),
@@ -487,6 +495,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionExecutionReadinessSummary": ter_summary,
             "transitionPolishApplicationStatus": transition_polish_application.get("status"),
             "transitionPolishApplicationSummary": tpa_summary,
+            "resolveTransitionMaterializationStatus": resolve_transition_materialization.get("status"),
+            "resolveTransitionMaterializationSummary": rtm_summary,
             "bridgeSequenceApplicationStatus": bridge_sequence_application.get("status"),
             "bridgeSequenceApplicationSummary": bsa_summary,
             "finalBlueprintLineageStatus": final_blueprint_lineage.get("status"),
