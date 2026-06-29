@@ -147,6 +147,32 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         },
     )
 
+    source_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
+    source_repair_summary = summary_of(source_repair)
+    add_gate(
+        gates,
+        "Source selection coverage has no blocking chapter repair rows before first assembly",
+        source_repair.get("status") == "ready_no_source_selection_repairs_needed"
+        and as_int(source_repair_summary.get("blockingRepairRowCount")) == 0
+        and as_int(source_repair_summary.get("chapterRowCount")) >= 1
+        and as_int(source_repair_summary.get("readyChapterCount")) == as_int(source_repair_summary.get("chapterRowCount"))
+        and as_int(source_repair_summary.get("heroCandidateCount")) >= 1
+        and as_int(source_repair_summary.get("movementBridgeCandidateCount")) >= max(1, as_int(source_repair_summary.get("chapterRowCount")) - 1)
+        and as_int(source_repair_summary.get("livedInTextureCandidateCount")) >= 1
+        and as_int(source_repair_summary.get("destinationPayoffCandidateCount")) >= 1,
+        {
+            "status": source_repair.get("status"),
+            "chapterRowCount": source_repair_summary.get("chapterRowCount"),
+            "readyChapterCount": source_repair_summary.get("readyChapterCount"),
+            "blockingRepairRowCount": source_repair_summary.get("blockingRepairRowCount"),
+            "warningRepairRowCount": source_repair_summary.get("warningRepairRowCount"),
+            "heroCandidateCount": source_repair_summary.get("heroCandidateCount"),
+            "movementBridgeCandidateCount": source_repair_summary.get("movementBridgeCandidateCount"),
+            "livedInTextureCandidateCount": source_repair_summary.get("livedInTextureCandidateCount"),
+            "destinationPayoffCandidateCount": source_repair_summary.get("destinationPayoffCandidateCount"),
+        },
+    )
+
     blueprint = load_json(package_dir / "resolve_timeline_blueprint.json") or {}
     coverage = blueprint.get("longFormCoverage") if isinstance(blueprint.get("longFormCoverage"), dict) else {}
     clip_count = video_clip_count(blueprint)

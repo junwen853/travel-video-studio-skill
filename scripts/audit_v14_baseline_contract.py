@@ -25,6 +25,8 @@ SKILL_PATTERNS = {
     "bilibili_malta": "bilibili-travel-style.md",
     "reference_batch_profile": "prepare_reference_batch_profile.py",
     "footage_select": "prepare_footage_select_plan.py",
+    "source_selection_repair": "prepare_source_selection_repair_plan.py",
+    "source_selection_coverage": "audit_source_selection_coverage_contract.py",
     "raw_intake_completeness": "audit_raw_intake_completeness.py",
     "opening_story": "prepare_opening_story_plan.py",
     "chapter_arc": "prepare_chapter_arc_plan.py",
@@ -81,6 +83,8 @@ REQUIRED_SCRIPTS = [
     "prepare_effect_motion_blueprint.py",
     "prepare_reference_batch_profile.py",
     "prepare_footage_select_plan.py",
+    "prepare_source_selection_repair_plan.py",
+    "audit_source_selection_coverage_contract.py",
     "audit_raw_intake_completeness.py",
     "prepare_opening_story_plan.py",
     "prepare_chapter_arc_plan.py",
@@ -209,6 +213,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
+    source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
+    source_selection_coverage = load_json(package_dir / "source_selection_coverage_contract_audit.json") or {}
     opening_story = load_json(package_dir / "opening_story_plan" / "opening_story_plan.json") or {}
     chapter_arc = load_json(package_dir / "chapter_arc_plan" / "chapter_arc_plan.json") or {}
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
@@ -274,6 +280,31 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(raw_intake_summary.get("activeDerivedVideoCount") or 0) == 0
         and int(raw_intake_summary.get("staleArtifactCount") or 0) == 0,
         {"status": raw_intake.get("status"), "summary": raw_intake_summary, "blockers": raw_intake.get("blockers")},
+    )
+
+    source_selection_summary = get_summary(source_selection_repair)
+    source_selection_audit_summary = get_summary(source_selection_coverage)
+    source_chapters = int(source_selection_summary.get("chapterRowCount") or 0)
+    add_check(
+        checks,
+        "Source selection repair gate proves V14 raw coverage is ready before effects, stock, or transition polish",
+        source_selection_repair.get("status") == "ready_no_source_selection_repairs_needed"
+        and source_selection_coverage.get("status") == "passed"
+        and source_chapters >= 1
+        and int(source_selection_summary.get("readyChapterCount") or 0) == source_chapters
+        and int(source_selection_summary.get("blockingRepairRowCount") or 0) == 0
+        and int(source_selection_summary.get("heroCandidateCount") or 0) >= 1
+        and int(source_selection_summary.get("movementBridgeCandidateCount") or 0) >= max(1, source_chapters - 1)
+        and int(source_selection_summary.get("livedInTextureCandidateCount") or 0) >= 1
+        and int(source_selection_summary.get("destinationPayoffCandidateCount") or 0) >= 1
+        and int(source_selection_audit_summary.get("blockedCheckCount") or 0) == 0,
+        {
+            "sourceSelectionRepairStatus": source_selection_repair.get("status"),
+            "sourceSelectionSummary": source_selection_summary,
+            "sourceSelectionCoverageStatus": source_selection_coverage.get("status"),
+            "sourceSelectionCoverageSummary": source_selection_audit_summary,
+            "blockers": source_selection_coverage.get("blockers"),
+        },
     )
 
     final_video = final_report.get("video") if isinstance(final_report.get("video"), dict) else {}
@@ -1217,6 +1248,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and reference_batch.get("status") in {"ready_with_reference_batch_profile", "ready_with_single_reference_profile"}
         and raw_intake.get("status") == "passed"
         and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
+        and source_selection_repair.get("status") == "ready_no_source_selection_repairs_needed"
+        and source_selection_coverage.get("status") == "passed"
         and chapter_arc.get("status") == "ready_with_chapter_arc_plan"
         and rhythm.get("status") == "ready_with_edit_rhythm_plan"
         and creator_cut.get("status") == "ready_with_creator_cut_plan"
@@ -1263,6 +1296,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "rawIntakeSummary": raw_intake_summary,
             "footageSelectStatus": footage_select.get("status"),
             "footageSelectSummary": footage_select_summary,
+            "sourceSelectionRepairStatus": source_selection_repair.get("status"),
+            "sourceSelectionRepairSummary": source_selection_summary,
+            "sourceSelectionCoverageStatus": source_selection_coverage.get("status"),
+            "sourceSelectionCoverageSummary": source_selection_audit_summary,
             "chapterArcStatus": chapter_arc.get("status"),
             "chapterArcSummary": chapter_arc_summary,
             "editRhythmStatus": rhythm.get("status"),

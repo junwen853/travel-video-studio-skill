@@ -64,6 +64,8 @@ REQUIRED_SCRIPTS = {
         "prepare_feedback_regression_plan.py",
         "prepare_audio_scene_policy_plan.py",
         "prepare_footage_select_plan.py",
+        "prepare_source_selection_repair_plan.py",
+        "audit_source_selection_coverage_contract.py",
         "prepare_opening_story_plan.py",
         "prepare_chapter_arc_plan.py",
         "prepare_edit_rhythm_plan.py",
@@ -132,6 +134,8 @@ REQUIRED_SKILL_PATTERNS = {
     "feedback_regression_plan_rule": "prepare_feedback_regression_plan.py",
     "audio_scene_policy_plan_rule": "prepare_audio_scene_policy_plan.py",
     "footage_select_plan_rule": "prepare_footage_select_plan.py",
+    "source_selection_repair_plan_rule": "prepare_source_selection_repair_plan.py",
+    "source_selection_coverage_contract_rule": "audit_source_selection_coverage_contract.py",
     "raw_intake_completeness_rule": "audit_raw_intake_completeness.py",
     "opening_story_plan_rule": "prepare_opening_story_plan.py",
     "opening_story_engine_rule": "opening-story-engine.md",
@@ -163,6 +167,7 @@ REQUIRED_SKILL_PATTERNS = {
     "parallel_world_cover_rule": "high-recognition aerial/skyline/coast/landmark/route background",
     "reference_batch_profile_rule": "prepare_reference_batch_profile.py",
     "footage_select_engine_rule": "footage-select-engine.md",
+    "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "creator_cut_engine_rule": "creator-cut-engine.md",
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
     "transition_execution_engine_rule": "transition-execution-engine.md",
@@ -189,6 +194,7 @@ REQUIRED_STYLE_PATTERNS = {
     "parallel_world_profile": "parallel-world-vlog-style.md",
     "reference_batch_profile": "reference-batch-profile-engine.md",
     "footage_select_engine": "footage-select-engine.md",
+    "source_selection_repair_contract": "source-selection-repair-contract.md",
     "creator_cut_engine": "creator-cut-engine.md",
     "chapter_arc_engine": "chapter-arc-engine.md",
     "transition_grammar_engine": "transition-grammar-engine.md",
@@ -223,6 +229,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "cover_title_contract": "cover title contract",
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
     "raw_footage_selection": "footage select plan",
+    "source_selection_repair": "source selection repair plan",
     "opening_story_plan": "opening_story_plan/opening_story_plan.json",
     "chapter_arc_plan": "chapter_arc_plan/chapter_arc_plan.json",
     "opening_route_promise": "viewer promise, destination proof",
@@ -1696,6 +1703,108 @@ def raw_intake_completeness_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("downloadsExternalAssets") is False
         and evidence.get("modifiesSourceDrive") is False
         and evidence.get("modifiesSourceFootage") is False
+    )
+
+
+def source_selection_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json"
+    audit_path = package_dir / "source_selection_coverage_contract_audit.json"
+    data = load_json(path) or {}
+    audit = load_json(audit_path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    audit_summary = audit.get("summary") if isinstance(audit.get("summary"), dict) else {}
+    repair_rows = data.get("repairRows") if isinstance(data.get("repairRows"), list) else []
+    chapter_rows = data.get("chapterCoverageRows") if isinstance(data.get("chapterCoverageRows"), list) else []
+    required_decision_fields = {
+        "acceptedRepair",
+        "ownerScriptExecuted",
+        "replacementRowIndexes",
+        "approvedFallback",
+        "resolveBlueprintUpdate",
+        "postRepairAudit",
+        "readbackEvidence",
+        "approvedBy",
+        "approvedAt",
+    }
+    repair_rows_with_decision_fields = 0
+    for row in repair_rows:
+        if not isinstance(row, dict):
+            continue
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if required_decision_fields.issubset(set(decision)):
+            repair_rows_with_decision_fields += 1
+    ready_chapter_rows = [
+        row for row in chapter_rows if isinstance(row, dict) and row.get("status") == "ready_with_chapter_selection_coverage"
+    ]
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "auditPath": str(audit_path),
+        "auditExists": audit_path.exists(),
+        "auditStatus": audit.get("status"),
+        "sourceVideoCount": summary.get("sourceVideoCount"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "readyChapterCount": summary.get("readyChapterCount"),
+        "candidateVideoCount": summary.get("candidateVideoCount"),
+        "heroCandidateCount": summary.get("heroCandidateCount"),
+        "movementBridgeCandidateCount": summary.get("movementBridgeCandidateCount"),
+        "livedInTextureCandidateCount": summary.get("livedInTextureCandidateCount"),
+        "destinationPayoffCandidateCount": summary.get("destinationPayoffCandidateCount"),
+        "blockingRepairRowCount": summary.get("blockingRepairRowCount"),
+        "warningRepairRowCount": summary.get("warningRepairRowCount"),
+        "repairRowCount": len(repair_rows),
+        "chapterCoverageRowCount": len(chapter_rows),
+        "readyChapterCoverageRowCount": len(ready_chapter_rows),
+        "repairRowsWithDecisionFields": repair_rows_with_decision_fields,
+        "auditBlockedCheckCount": audit_summary.get("blockedCheckCount"),
+        "blocksFilenameOrderAssembly": policy.get("blocksFilenameOrderAssembly"),
+        "blocksWeakChapterCoverageBeforeEffects": policy.get("blocksWeakChapterCoverageBeforeEffects"),
+        "localFootageBeforeStockOrAerialFallback": policy.get("localFootageBeforeStockOrAerialFallback"),
+        "orientationRepairClosedBeforeFinalUse": policy.get("orientationRepairClosedBeforeFinalUse"),
+        "repairRowsMustCloseBeforeResolveApply": policy.get("repairRowsMustCloseBeforeResolveApply"),
+        "doesNotModifySourceFootage": policy.get("doesNotModifySourceFootage"),
+        "writesResolve": policy.get("writesResolve"),
+        "downloadsExternalAssets": policy.get("downloadsExternalAssets"),
+        "safetyWritesResolve": safety.get("writesResolve"),
+        "safetyDownloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "safetyModifiesSourceFootage": safety.get("modifiesSourceFootage"),
+    }
+
+
+def source_selection_repair_plan_ready(evidence: dict[str, Any]) -> bool:
+    chapter_count = int(evidence.get("chapterRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("auditExists")
+        and evidence.get("status") == "ready_no_source_selection_repairs_needed"
+        and evidence.get("auditStatus") == "passed"
+        and int(evidence.get("sourceVideoCount") or 0) > 0
+        and chapter_count >= 1
+        and int(evidence.get("readyChapterCount") or 0) == chapter_count
+        and int(evidence.get("chapterCoverageRowCount") or 0) == chapter_count
+        and int(evidence.get("readyChapterCoverageRowCount") or 0) == chapter_count
+        and int(evidence.get("candidateVideoCount") or 0) > 0
+        and int(evidence.get("heroCandidateCount") or 0) >= 1
+        and int(evidence.get("movementBridgeCandidateCount") or 0) >= max(1, chapter_count - 1)
+        and int(evidence.get("livedInTextureCandidateCount") or 0) >= 1
+        and int(evidence.get("destinationPayoffCandidateCount") or 0) >= 1
+        and int(evidence.get("blockingRepairRowCount") or 0) == 0
+        and int(evidence.get("repairRowsWithDecisionFields") or 0) == int(evidence.get("repairRowCount") or 0)
+        and int(evidence.get("auditBlockedCheckCount") or 0) == 0
+        and evidence.get("blocksFilenameOrderAssembly") is True
+        and evidence.get("blocksWeakChapterCoverageBeforeEffects") is True
+        and evidence.get("localFootageBeforeStockOrAerialFallback") is True
+        and evidence.get("orientationRepairClosedBeforeFinalUse") is True
+        and evidence.get("repairRowsMustCloseBeforeResolveApply") is True
+        and evidence.get("doesNotModifySourceFootage") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("safetyWritesResolve") is False
+        and evidence.get("safetyDownloadsExternalAssets") is False
+        and evidence.get("safetyModifiesSourceFootage") is False
     )
 
 
@@ -4645,6 +4754,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Raw intake completeness proves every active source video is indexed, recognized, routed exactly once, and scored",
         raw_intake_completeness_ready(raw_intake_evidence),
         raw_intake_evidence,
+    )
+    source_repair_evidence = source_selection_repair_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Source selection repair plan proves each chapter has local movement, texture, payoff, and no blocking source gaps before first assembly",
+        source_selection_repair_plan_ready(source_repair_evidence),
+        source_repair_evidence,
     )
     opening_story_evidence = opening_story_plan_evidence(package_dir)
     add_check(

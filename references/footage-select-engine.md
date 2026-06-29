@@ -39,16 +39,28 @@ Run this after media indexing and route/location recognition, before `build_deli
 python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <project>
 ```
 
+After `build_delivery_package.py` creates a package, run the source coverage repair gate before trusting the first assembly:
+
+```bash
+python3 <skill-dir>/scripts/prepare_source_selection_repair_plan.py --package-dir <package> --project-dir <project>
+python3 <skill-dir>/scripts/audit_source_selection_coverage_contract.py --package-dir <package>
+```
+
 When only a package exists, run the fallback mode:
 
 ```bash
 python3 <skill-dir>/scripts/prepare_footage_select_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/prepare_source_selection_repair_plan.py --package-dir <package>
+python3 <skill-dir>/scripts/audit_source_selection_coverage_contract.py --package-dir <package>
 ```
 
 The script writes:
 
 - `footage_select_plan/footage_select_plan.json`
 - `footage_select_plan/footage_select_plan.md`
+- `source_selection_repair_plan/source_selection_repair_plan.json`
+- `source_selection_repair_plan/source_selection_repair_plan.md`
+- `source_selection_coverage_contract_audit.json` / `.md`
 - `raw_intake_completeness_audit.json` / `.md` after the package exists and `audit_raw_intake_completeness.py` is run
 
 If run at project level, `build_delivery_package.py` should read the plan and sort each chapter's media pool by `selectionTier` and `selectionScore`, while dropping `reject_excluded` rows and deprioritizing repair/review rows.
@@ -62,6 +74,7 @@ Before first assembly:
 - hero/main/texture/utility/reject tiers exist where the source supports them
 - every row has decision fields for approved use, trim, orientation repair, BGM/caption role, Resolve implementation, and readback evidence
 - chapter pools show whether movement, lived-in detail, and payoff coverage are missing
+- `source_selection_repair_plan.json` closes those missing chapter functions into blocking repair rows before effects, stock/aerial fallback, rhythm, creator-cut, or Resolve apply
 - vertical/square/unknown footage is marked for repair before use
 - derived exports and active exclusions are blocked from first-cut selection
 - the plan proves source media was triaged before stock, effects, or transition grammar are used
@@ -72,9 +85,10 @@ Before first assembly:
 Use the output in this order:
 
 1. Build or refresh the package so high-score local footage is chosen first.
-2. Run `prepare_edit_rhythm_plan.py` to decide pacing and cutaway needs.
-3. Run `prepare_creator_cut_plan.py` to classify the selected timeline clips by creator function.
-4. Run `prepare_transition_grammar_plan.py` to decide exact adjacent-pair transitions.
-5. Run rhythm recut and Resolve preflight only after the above plans agree.
+2. Run `prepare_source_selection_repair_plan.py` and `audit_source_selection_coverage_contract.py`; stop when blocking repair rows exist.
+3. Run `prepare_edit_rhythm_plan.py` to decide pacing and cutaway needs.
+4. Run `prepare_creator_cut_plan.py` to classify the selected timeline clips by creator function.
+5. Run `prepare_transition_grammar_plan.py` to decide exact adjacent-pair transitions.
+6. Run rhythm recut and Resolve preflight only after the above plans agree.
 
 Do not claim the Skill can reliably make a Bilibili/Malta-style first draft if this raw-footage selection layer is missing or only run after the timeline has already been assembled.

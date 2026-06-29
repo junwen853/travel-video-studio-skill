@@ -24,6 +24,8 @@ Expected files:
 - source project `route_review/<timestamp>/confirmed_route_candidate.md`: approval-gated candidate or repair plan before confirmed-route writes
 - source or package `footage_select_plan/footage_select_plan.json` / `.md`: raw-footage scoring and highlight-selection plan used before first assembly
 - source or package `raw_intake_completeness_audit.json` / `.md`: full source-tree, recognition, confirmed-route, footage-select, derived-exclusion, and stale-artifact gate before trusting large unordered folders
+- package `source_selection_repair_plan/source_selection_repair_plan.json` / `.md`: blocking repair rows when chapter source coverage lacks movement, lived-in texture, payoff, hero, bridge, or orientation closure
+- package `source_selection_coverage_contract_audit.json` / `.md`: source-coverage gate before opening, chapter, transition, stock/aerial, rhythm, creator-cut, or Resolve apply work
 - `opening_story_plan/opening_story_plan.json` / `.md`: first-three-minute viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff plan
 - `chapter_arc_plan/chapter_arc_plan.json` / `.md`: per-chapter context, movement, lived-in texture, payoff, and aftertaste/handoff planning with owner-script repair rows
 - `long_form_structure.md`: 20-minute chapter and pacing structure

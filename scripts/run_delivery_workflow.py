@@ -211,6 +211,47 @@ def summarize_raw_intake_completeness(report: dict[str, Any] | None) -> dict[str
     }
 
 
+def summarize_source_selection_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "sourceVideoCount": summary.get("sourceVideoCount"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "readyChapterCount": summary.get("readyChapterCount"),
+        "chaptersBlocked": summary.get("chaptersBlocked"),
+        "candidateVideoCount": summary.get("candidateVideoCount"),
+        "heroCandidateCount": summary.get("heroCandidateCount"),
+        "movementBridgeCandidateCount": summary.get("movementBridgeCandidateCount"),
+        "livedInTextureCandidateCount": summary.get("livedInTextureCandidateCount"),
+        "destinationPayoffCandidateCount": summary.get("destinationPayoffCandidateCount"),
+        "blockingRepairRowCount": summary.get("blockingRepairRowCount"),
+        "warningRepairRowCount": summary.get("warningRepairRowCount"),
+        "requiredOwnerScripts": summary.get("requiredOwnerScripts") or [],
+    }
+
+
+def summarize_source_selection_coverage_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "sourceVideoCount": summary.get("sourceVideoCount"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "readyChapterCount": summary.get("readyChapterCount"),
+        "candidateVideoCount": summary.get("candidateVideoCount"),
+        "blockingRepairRowCount": summary.get("blockingRepairRowCount"),
+        "warningRepairRowCount": summary.get("warningRepairRowCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_opening_story_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -1298,6 +1339,31 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Active derived/stale artifacts: {intake.get('activeDerivedVideoCount')} / {intake.get('staleArtifactCount')}",
             ]
         )
+    if report.get("sourceSelectionRepairSummary"):
+        source_repair = report["sourceSelectionRepairSummary"]
+        lines.extend(
+            [
+                "",
+                "## Source Selection Repair Plan",
+                f"- Status: `{source_repair.get('status')}`",
+                f"- Chapters ready/total: {source_repair.get('readyChapterCount')} / {source_repair.get('chapterRowCount')}",
+                f"- Candidates: {source_repair.get('candidateVideoCount')}",
+                f"- Hero/movement/texture/payoff: {source_repair.get('heroCandidateCount')} / {source_repair.get('movementBridgeCandidateCount')} / {source_repair.get('livedInTextureCandidateCount')} / {source_repair.get('destinationPayoffCandidateCount')}",
+                f"- Blocking/warning repairs: {source_repair.get('blockingRepairRowCount')} / {source_repair.get('warningRepairRowCount')}",
+            ]
+        )
+    if report.get("sourceSelectionCoverageSummary"):
+        source_coverage = report["sourceSelectionCoverageSummary"]
+        lines.extend(
+            [
+                "",
+                "## Source Selection Coverage Audit",
+                f"- Status: `{source_coverage.get('status')}`",
+                f"- Ready chapters: {source_coverage.get('readyChapterCount')} / {source_coverage.get('chapterRowCount')}",
+                f"- Blocked checks: {source_coverage.get('blockedCheckCount')}",
+                f"- Blocking/warning repairs: {source_coverage.get('blockingRepairRowCount')} / {source_coverage.get('warningRepairRowCount')}",
+            ]
+        )
     if report.get("openingStorySummary"):
         opening = report["openingStorySummary"]
         lines.extend(
@@ -1926,6 +1992,26 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_raw_intake_completeness", raw_intake_cmd, ok_codes={0, 2}))
 
+    source_selection_repair_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "prepare_source_selection_repair_plan.py"),
+        "--package-dir",
+        str(package_dir),
+        "--project-dir",
+        str(project_dir),
+        "--json",
+    ]
+    steps.append(run_step("prepare_source_selection_repair_plan", source_selection_repair_cmd, ok_codes={0, 2}))
+
+    source_selection_audit_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_source_selection_coverage_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_source_selection_coverage_contract", source_selection_audit_cmd, ok_codes={0, 2}))
+
     if args.reference or args.reference_dir:
         reference_batch_cmd = [
             "python3",
@@ -2144,6 +2230,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     route_decision_application_summary = None
     footage_select_summary = None
     raw_intake_completeness_summary = None
+    source_selection_repair_summary = None
+    source_selection_coverage_summary = None
     opening_story_summary = None
     chapter_arc_summary = None
     asset_decision_summary = None
@@ -2239,6 +2327,28 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(
                     f"Raw intake completeness warning: {item}"
                     for item in raw_intake_completeness_summary.get("warnings") or []
+                )
+        if step["id"] == "prepare_source_selection_repair_plan":
+            source_selection_repair_summary = summarize_source_selection_repair_plan(payload)
+            if source_selection_repair_summary and source_selection_repair_summary.get("status") == "blocked_source_selection_coverage_needs_repair":
+                blockers.append(
+                    "Source selection coverage blocker: close source_selection_repair_plan.json blocking repair rows before trusting the first assembly."
+                )
+            if source_selection_repair_summary and int(source_selection_repair_summary.get("warningRepairRowCount") or 0) > 0:
+                warnings.append(
+                    "Source selection coverage warning: close orientation/repair warning rows before final source usage approval."
+                )
+        if step["id"] == "audit_source_selection_coverage_contract":
+            source_selection_coverage_summary = summarize_source_selection_coverage_contract(payload)
+            if source_selection_coverage_summary and source_selection_coverage_summary.get("status") == "blocked":
+                blockers.extend(
+                    f"Source selection coverage audit blocker: {item}"
+                    for item in source_selection_coverage_summary.get("blockers") or []
+                )
+            if source_selection_coverage_summary and source_selection_coverage_summary.get("warnings"):
+                warnings.extend(
+                    f"Source selection coverage warning: {item}"
+                    for item in source_selection_coverage_summary.get("warnings") or []
                 )
         if step["id"] == "prepare_opening_story_plan":
             opening_story_summary = summarize_opening_story_plan(payload)
@@ -2431,6 +2541,14 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "raw_intake_completeness_audit.json").exists():
         raw_intake_completeness_summary = summarize_raw_intake_completeness(
             load_json(package_dir / "raw_intake_completeness_audit.json")
+        )
+    if package_dir and (package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json").exists():
+        source_selection_repair_summary = summarize_source_selection_repair_plan(
+            load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json")
+        )
+    if package_dir and (package_dir / "source_selection_coverage_contract_audit.json").exists():
+        source_selection_coverage_summary = summarize_source_selection_coverage_contract(
+            load_json(package_dir / "source_selection_coverage_contract_audit.json")
         )
     if package_dir and (package_dir / "opening_story_plan" / "opening_story_plan.json").exists():
         opening_story_summary = summarize_opening_story_plan(
@@ -2640,6 +2758,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "routeDecisionApplicationSummary": route_decision_application_summary,
         "footageSelectSummary": footage_select_summary,
         "rawIntakeCompletenessSummary": raw_intake_completeness_summary,
+        "sourceSelectionRepairSummary": source_selection_repair_summary,
+        "sourceSelectionCoverageSummary": source_selection_coverage_summary,
         "openingStorySummary": opening_story_summary,
         "chapterArcSummary": chapter_arc_summary,
         "assetDecisionSummary": asset_decision_summary,
@@ -2705,6 +2825,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review bgm_selection_package.json before Resolve apply so the selected BGM bed is local, license-traceable, target-duration-covering, and referenced by the active blueprint.",
             "Review footage_select_plan.json before trusting first assembly; repair/reject rows should not lead the cut.",
             "Review raw_intake_completeness_audit.json before trusting any large unordered source folder; every active source video must be indexed, recognized, routed exactly once, and scored before first assembly.",
+            "Review source_selection_repair_plan.json before opening/chapter/transition work; every chapter needs ready local movement, lived-in texture, and payoff coverage before effects or stock fallback.",
             "Review opening_story_plan.json before title, BGM, rhythm, or Resolve apply so the first three minutes have viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff.",
             "Review chapter_arc_plan.json before rhythm/creator-cut/Resolve apply so every chapter has context, movement, lived-in texture, payoff, and aftertaste decisions.",
             "Fill transition_bridge_plan.json local bridge or stock/aerial fallback decisions before final claims.",

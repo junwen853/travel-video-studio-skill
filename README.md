@@ -79,9 +79,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.36.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.36/travel-video-studio-skill-v0.1.36.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.36.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.37.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.37/travel-video-studio-skill-v0.1.37.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.37.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -183,12 +183,14 @@ A delivery package usually contains:
 - `title_typography_plan/title_typography_plan.md`
 - `cover_title_contract_audit.md`
 - `raw_intake_completeness_audit.md`
+- `source_selection_repair_plan/source_selection_repair_plan.md`
+- `source_selection_coverage_contract_audit.md`
 - `reference_repair_closure_audit.md`
 - `visual_establishing_plan/visual_establishing_plan.md`
 - `resolve_timeline_blueprint.json`
 - `resolve_blueprint_preflight.md`
 - `render_plan.json`
-- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, and `v14_baseline_contract_audit.json`
+- final QA reports, including `final_qa_suite_report.json`, `transition_pair_continuity_contract_audit.json`, `transition_execution_readiness_contract_audit.json`, `transition_polish_application_contract_audit.json`, `bridge_sequence_application_contract_audit.json`, `source_selection_coverage_contract_audit.json`, `final_blueprint_lineage_contract_audit.json`, `final_source_usage_contract_audit.json`, `creator_cut_application_contract_audit.json`, `reference_scene_grammar_contract_audit.json`, and `v14_baseline_contract_audit.json`
 
 ## DaVinci Resolve Path
 
