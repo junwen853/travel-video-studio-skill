@@ -26,6 +26,7 @@ SKILL_PATTERNS = {
     "bilibili_malta": "bilibili-travel-style.md",
     "reference_batch_profile": "prepare_reference_batch_profile.py",
     "reference_profile_application": "audit_reference_profile_application_contract.py",
+    "reference_transition_profile": "audit_reference_transition_profile_contract.py",
     "footage_select": "prepare_footage_select_plan.py",
     "source_selection_repair": "prepare_source_selection_repair_plan.py",
     "source_selection_coverage": "audit_source_selection_coverage_contract.py",
@@ -102,6 +103,7 @@ REQUIRED_SCRIPTS = [
     "audit_effect_motion_application_contract.py",
     "prepare_reference_batch_profile.py",
     "audit_reference_profile_application_contract.py",
+    "audit_reference_transition_profile_contract.py",
     "prepare_footage_select_plan.py",
     "prepare_source_selection_repair_plan.py",
     "audit_source_selection_coverage_contract.py",
@@ -249,6 +251,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     bgm_phrase_blueprint = load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json") or {}
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
     reference_profile_application = load_json(package_dir / "reference_profile_application_contract_audit.json") or {}
+    reference_transition_profile = load_json(package_dir / "reference_transition_profile_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -1540,6 +1543,31 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionStoryboardSummary": transition_storyboard_summary,
         },
     )
+    reference_transition_profile_summary = get_summary(reference_transition_profile)
+    add_check(
+        checks,
+        "Reference transition profile contract proves V14 transitions use the learned Parallel World/Malta bridge, breath, match, and restrained-motion language",
+        reference_transition_profile.get("status") == "passed"
+        and int(reference_transition_profile_summary.get("transitionRowCount") or 0) >= 1
+        and int(reference_transition_profile_summary.get("readyReportCount") or 0) >= int(reference_transition_profile_summary.get("requiredReportCount") or 0)
+        and int(reference_transition_profile_summary.get("blockerCount") or 0) == 0
+        and float(reference_transition_profile_summary.get("motionShare") or 0.0) <= 0.25
+        and (
+            int(reference_transition_profile_summary.get("transitionRowCount") or 0) < 3
+            or float(reference_transition_profile_summary.get("cleanMatchBreathShare") or 0.0) >= 0.45
+        )
+        and float(reference_transition_profile_summary.get("importantBridgeBreathCoverage") or 1.0) >= 1.0
+        and int(reference_transition_profile_summary.get("maxFamilyRun") or 0) <= 4
+        and (
+            int(reference_transition_profile_summary.get("transitionRowCount") or 0) < 4
+            or float(reference_transition_profile_summary.get("dominantFamilyShare") or 0.0) <= 0.65
+        )
+        and not reference_transition_profile.get("blockers"),
+        {
+            "referenceTransitionProfileStatus": reference_transition_profile.get("status"),
+            "referenceTransitionProfileSummary": reference_transition_profile_summary,
+        },
+    )
     reference_scene_grammar_summary = get_summary(reference_scene_grammar)
     reference_scene_grammar_inputs = reference_scene_grammar.get("inputs") if isinstance(reference_scene_grammar.get("inputs"), dict) else {}
     reference_scene_chapter_count = int(reference_scene_grammar_summary.get("chapterCount") or 0)
@@ -1655,6 +1683,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and cover_title.get("status") == "passed"
         and reference_batch.get("status") in {"ready_with_reference_batch_profile", "ready_with_single_reference_profile"}
         and reference_profile_application.get("status") == "passed"
+        and reference_transition_profile.get("status") == "passed"
         and raw_intake.get("status") == "passed"
         and large_source_unattended.get("status") in {"passed", "passed_with_warnings"}
         and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
@@ -1710,6 +1739,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "referenceBatchSummary": reference_batch_summary,
             "referenceProfileApplicationStatus": reference_profile_application.get("status"),
             "referenceProfileApplicationSummary": reference_profile_application_summary,
+            "referenceTransitionProfileStatus": reference_transition_profile.get("status"),
+            "referenceTransitionProfileSummary": reference_transition_profile_summary,
             "rawIntakeStatus": raw_intake.get("status"),
             "rawIntakeSummary": raw_intake_summary,
             "largeSourceUnattendedReadinessStatus": large_source_unattended.get("status"),

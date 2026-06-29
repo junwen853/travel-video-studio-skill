@@ -31,7 +31,7 @@ The audit passes only when:
 
 If blocked, repair the upstream transition grammar/execution/bridge/visual-match evidence first. Do not solve a blocked choreography row by adding a stronger effect. Add bridge footage, select a better landing shot, downgrade to a clean cut/match cut, or choose a quieter dissolve that fits the BGM phrase and title zone.
 
-After repair, rerun choreography plan, choreography contract, preview packet, audition packet, storyboard, unattended first-draft, V14 baseline, and maturity checks.
+After repair, rerun choreography plan, choreography contract, preview packet, audition packet, storyboard, reference-transition-profile, unattended first-draft, V14 baseline, and maturity checks.
 
 ## Safety
 

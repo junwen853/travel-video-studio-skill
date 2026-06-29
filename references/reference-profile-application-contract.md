@@ -2,6 +2,8 @@
 
 Use this contract after `prepare_reference_batch_profile.py` and after the downstream story, rhythm, creator-cut, transition, caption, audio, and style audits exist. It proves that the four Parallel World videos, Malta final, or another supplied reference set were applied as aggregate non-copying edit guidance instead of being stored as an unused analysis artifact.
 
+Pair it with `references/reference-transition-profile-contract.md` and `scripts/audit_reference_transition_profile_contract.py` after transition choreography/storyboard evidence exists. That second gate proves the current film's transition language actually follows the learned bridge, breath, match, and restrained-motion balance.
+
 ## Command
 
 ```bash

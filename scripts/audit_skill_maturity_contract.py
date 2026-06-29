@@ -37,6 +37,7 @@ REQUIRED_SCRIPTS = {
         "analyze_reference_video.py",
         "prepare_reference_batch_profile.py",
         "audit_reference_profile_application_contract.py",
+        "audit_reference_transition_profile_contract.py",
         "prepare_bgm_sourcing_brief.py",
         "prepare_bgm_selection_package.py",
         "prepare_bgm_phrase_blueprint.py",
@@ -155,6 +156,7 @@ REQUIRED_SKILL_PATTERNS = {
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
     "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
+    "reference_transition_profile_contract_rule": "audit_reference_transition_profile_contract.py",
     "timeline_variety_contract_rule": "audit_timeline_variety_contract.py",
     "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
@@ -204,6 +206,7 @@ REQUIRED_SKILL_PATTERNS = {
     "parallel_world_reference_rule": "parallel-world-vlog-style.md",
     "parallel_world_cover_rule": "high-recognition aerial/skyline/coast/landmark/route background",
     "reference_batch_profile_rule": "prepare_reference_batch_profile.py",
+    "reference_transition_profile_contract_reference_rule": "reference-transition-profile-contract.md",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
@@ -250,6 +253,7 @@ REQUIRED_STYLE_PATTERNS = {
     "parallel_world_profile": "parallel-world-vlog-style.md",
     "reference_batch_profile": "reference-batch-profile-engine.md",
     "reference_profile_application_contract": "reference-profile-application-contract.md",
+    "reference_transition_profile_contract": "reference-transition-profile-contract.md",
     "footage_select_engine": "footage-select-engine.md",
     "source_selection_repair_contract": "source-selection-repair-contract.md",
     "creator_cut_engine": "creator-cut-engine.md",
@@ -310,6 +314,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "resolve_transition_apply_contract": "Resolve transition apply contract",
     "transition_cadence_contract": "transition cadence contract",
     "transition_quality_contract": "transition quality contract",
+    "reference_transition_profile_contract": "reference transition profile contract",
     "shot_transition_boundary_contract": "shot transition boundary contract",
     "transition_storyboard_contract": "transition storyboard contract",
     "transition_preview_packet": "transition preview packet",
@@ -4679,6 +4684,59 @@ def reference_profile_application_contract_ready(evidence: dict[str, Any]) -> bo
     )
 
 
+def reference_transition_profile_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "reference_transition_profile_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "referenceProfileStatus": summary.get("referenceProfileStatus"),
+        "referenceVideoCount": summary.get("referenceVideoCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "motionShare": summary.get("motionShare"),
+        "cleanMatchBreathShare": summary.get("cleanMatchBreathShare"),
+        "importantBridgeBreathCoverage": summary.get("importantBridgeBreathCoverage"),
+        "maxFamilyRun": summary.get("maxFamilyRun"),
+        "dominantFamilyShare": summary.get("dominantFamilyShare"),
+        "readyReportCount": summary.get("readyReportCount"),
+        "requiredReportCount": summary.get("requiredReportCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def reference_transition_profile_contract_ready(evidence: dict[str, Any]) -> bool:
+    rows = int(evidence.get("transitionRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and rows >= 1
+        and int(evidence.get("readyReportCount") or 0) >= int(evidence.get("requiredReportCount") or 0)
+        and int(evidence.get("blockerCount") or 0) == 0
+        and float(evidence.get("motionShare") or 0.0) <= 0.25
+        and (rows < 3 or float(evidence.get("cleanMatchBreathShare") or 0.0) >= 0.45)
+        and float(evidence.get("importantBridgeBreathCoverage") or 1.0) >= 1.0
+        and int(evidence.get("maxFamilyRun") or 0) <= 4
+        and (rows < 4 or float(evidence.get("dominantFamilyShare") or 0.0) <= 0.65)
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def timeline_variety_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "timeline_variety_contract_audit.json"
     data = load_json(path) or {}
@@ -5867,6 +5925,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Reference profile application contract proves the reference batch reaches opening, chapter, rhythm, creator, transition, caption, audio, and style gates",
         reference_profile_application_contract_ready(reference_profile_application_evidence),
         reference_profile_application_evidence,
+    )
+    reference_transition_profile_evidence = reference_transition_profile_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Reference transition profile contract proves learned references become restrained bridge, breath, match, and motion-balance targets",
+        reference_transition_profile_contract_ready(reference_transition_profile_evidence),
+        reference_transition_profile_evidence,
     )
     bgm_evidence = bgm_sourcing_evidence(package_dir)
     add_check(

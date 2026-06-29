@@ -214,6 +214,16 @@ def style_targets(summary: dict[str, Any], pacing: dict[str, Any], audio: dict[s
         "audioMeanVolumeReferenceDb": audio.get("meanVolumeDb"),
         "openingTarget": "viewer promise, destination proof, clean hero title, practical arrival, lived-in texture, first handoff",
         "transitionTarget": "physical route bridge or motivated match before any whip/rotation/speed-ramp effect",
+        "transitionStyleTargets": {
+            "maxMotionShare": 0.25,
+            "minCleanMatchBreathShare": 0.45,
+            "minBridgeBreathImportantCoverage": 1.0,
+            "maxDominantFamilyShare": 0.65,
+            "maxFamilyRun": 4,
+            "requireBgmHit": True,
+            "requireCaptionQuietZone": True,
+            "forbidHighIntensity": True,
+        },
         "endingTarget": "route aftertaste after the main experience",
     }
 
@@ -305,6 +315,7 @@ def build_profile(args: argparse.Namespace) -> dict[str, Any]:
             "queuesRender": False,
             "downloadsExternalAssets": False,
             "modifiesSourceFootage": False,
+            "modifiesSourceDrive": False,
         },
     }
     write_json(output_dir / "reference_batch_profile.json", profile)

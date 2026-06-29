@@ -1219,6 +1219,30 @@ def summarize_reference_profile_application_contract(report: dict[str, Any] | No
     }
 
 
+def summarize_reference_transition_profile_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "referenceProfileStatus": summary.get("referenceProfileStatus"),
+        "referenceVideoCount": summary.get("referenceVideoCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "motionShare": summary.get("motionShare"),
+        "cleanMatchBreathShare": summary.get("cleanMatchBreathShare"),
+        "importantBridgeBreathCoverage": summary.get("importantBridgeBreathCoverage"),
+        "maxFamilyRun": summary.get("maxFamilyRun"),
+        "dominantFamilyShare": summary.get("dominantFamilyShare"),
+        "readyReportCount": summary.get("readyReportCount"),
+        "requiredReportCount": summary.get("requiredReportCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_timeline_variety_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2746,6 +2770,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_storyboard_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_storyboard_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_storyboard_contract", transition_storyboard_cmd, ok_codes={0, 2}))
 
+    reference_transition_profile_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_reference_transition_profile_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_reference_transition_profile_contract", reference_transition_profile_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -2876,6 +2909,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_audition_packet_summary = None
     transition_audition_quality_summary = None
     transition_storyboard_summary = None
+    reference_transition_profile_summary = None
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
@@ -3222,6 +3256,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition storyboard blocker: {item}" for item in transition_storyboard_summary.get("blockers") or [])
             if transition_storyboard_summary and transition_storyboard_summary.get("warnings"):
                 warnings.extend(f"Transition storyboard warning: {item}" for item in transition_storyboard_summary.get("warnings") or [])
+        if step["id"] == "audit_reference_transition_profile_contract":
+            reference_transition_profile_summary = summarize_reference_transition_profile_contract(payload)
+            if reference_transition_profile_summary and reference_transition_profile_summary.get("status") == "blocked":
+                blockers.extend(f"Reference transition profile blocker: {item}" for item in reference_transition_profile_summary.get("blockers") or [])
+            if reference_transition_profile_summary and reference_transition_profile_summary.get("warnings"):
+                warnings.extend(f"Reference transition profile warning: {item}" for item in reference_transition_profile_summary.get("warnings") or [])
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -3514,6 +3554,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_storyboard_summary = summarize_transition_storyboard_contract(
             load_json(package_dir / "transition_storyboard_contract_audit.json")
         )
+    if package_dir and (package_dir / "reference_transition_profile_contract_audit.json").exists():
+        reference_transition_profile_summary = summarize_reference_transition_profile_contract(
+            load_json(package_dir / "reference_transition_profile_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -3629,6 +3673,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionAuditionPacketSummary": transition_audition_packet_summary,
         "transitionAuditionQualitySummary": transition_audition_quality_summary,
         "transitionStoryboardSummary": transition_storyboard_summary,
+        "referenceTransitionProfileSummary": reference_transition_profile_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
@@ -3699,6 +3744,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review transition_visual_match_contract_audit.json before Resolve apply so every adjacent pair has concrete visual, bridge, motion, mood, title, local, or BGM continuity evidence instead of arbitrary effects.",
             "Review transition_choreography_plan/transition_choreography_plan.md and transition_choreography_contract_audit.json before preview/storyboard so every important boundary has outgoing, bridge-or-motion, landing, BGM-hit, and caption-quiet choreography.",
             "Review transition_preview_packet/transition_preview_packet.md, transition_preview_quality_contract_audit.json, transition_audition_packet/transition_audition_packet.md, transition_audition_quality_contract_audit.json, and transition_storyboard_contract_audit.json before Resolve apply so important route/title/day-change transitions have generated nonblank frame evidence plus playable muted outgoing/bridge/landing MP4 proof.",
+            "Review reference_transition_profile_contract_audit.json before Resolve apply so the current film's transition language matches the learned reference bridge, breath, match, and restrained-motion profile.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "Review unattended_first_draft_contract_audit.json before Resolve apply or handoff; it proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected.",

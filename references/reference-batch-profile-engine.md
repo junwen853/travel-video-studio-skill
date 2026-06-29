@@ -40,7 +40,7 @@ The batch profile aggregates:
 - audio loudness and silence evidence
 - sampled frame worksheet rows
 - non-copying usage contract
-- downstream style targets for rhythm, transition, opening, and ending
+- downstream style targets for rhythm, transition, transition family balance, opening, and ending
 
 ## Acceptance Bar
 
@@ -60,4 +60,4 @@ Reject:
 
 ## Workflow Position
 
-Run this before `prepare_chapter_arc_plan.py`, `prepare_edit_rhythm_plan.py`, `audit_reference_style_alignment.py`, and `prepare_reference_style_repair_plan.py`. After the downstream story/rhythm/creator/transition/caption/audio/style artifacts exist, run `audit_reference_profile_application_contract.py` and read `references/reference-profile-application-contract.md` so the profile is proven applied rather than left as unused analysis. The generated `reference_analysis.json` compatibility file lets existing rhythm/style scripts use the batch targets without special handling.
+Run this before `prepare_chapter_arc_plan.py`, `prepare_edit_rhythm_plan.py`, `audit_reference_style_alignment.py`, and `prepare_reference_style_repair_plan.py`. After the downstream story/rhythm/creator/transition/caption/audio/style artifacts exist, run `audit_reference_profile_application_contract.py` plus `audit_reference_transition_profile_contract.py`, and read `references/reference-profile-application-contract.md` plus `references/reference-transition-profile-contract.md` so the profile is proven applied rather than left as unused analysis. The generated `reference_analysis.json` compatibility file lets existing rhythm/style scripts use the batch targets without special handling.
