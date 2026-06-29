@@ -516,6 +516,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_audition_quality = load_json(package_dir / "transition_audition_quality_contract_audit.json") or {}
     transition_storyboard = load_json(package_dir / "transition_storyboard_contract_audit.json") or {}
     reference_transition_profile = load_json(package_dir / "reference_transition_profile_contract_audit.json") or {}
+    chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
@@ -544,6 +545,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     taq_summary = summary_of(transition_audition_quality)
     tsb_summary = summary_of(transition_storyboard)
     rtp_summary = summary_of(reference_transition_profile)
+    css_summary = summary_of(chapter_story_spine)
     add_gate(
         gates,
         "Transition cadence, execution, scene arcs, effect palette, visual match, preview packet quality, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",
@@ -817,6 +819,27 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionStoryboardSummary": tsb_summary,
             "referenceTransitionProfileStatus": reference_transition_profile.get("status"),
             "referenceTransitionProfileSummary": rtp_summary,
+        },
+    )
+
+    add_gate(
+        gates,
+        "Chapter story spine proves every chapter executes context, movement, lived-in texture, payoff, and aftertaste",
+        chapter_story_spine.get("status") == "passed"
+        and as_int(css_summary.get("chapterRowCount")) >= 1
+        and as_int(css_summary.get("chaptersWithCompleteStorySpine")) == as_int(css_summary.get("chapterRowCount"))
+        and as_int(css_summary.get("chaptersMissingStorySpine")) == 0
+        and css_summary.get("referenceSceneGrammarStatus") == "passed"
+        and css_summary.get("timelineVarietyStatus") == "passed"
+        and css_summary.get("transitionSceneArcStatus") == "passed"
+        and css_summary.get("referenceTransitionProfileStatus") == "passed"
+        and as_int(css_summary.get("blockedCheckCount")) == 0
+        and as_int(css_summary.get("blockerCount")) == 0
+        and not chapter_story_spine.get("blockers"),
+        {
+            "status": chapter_story_spine.get("status"),
+            "summary": css_summary,
+            "blockers": chapter_story_spine.get("blockers") or [],
         },
     )
 

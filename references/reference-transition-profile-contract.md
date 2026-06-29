@@ -1,6 +1,6 @@
 # Reference Transition Profile Contract
 
-Use this contract after reference-profile application, transition visual-match, transition choreography, preview/audition/storyboard, and before unattended-first-draft, V14 baseline, maturity, final QA, or Resolve apply claims.
+Use this contract after reference-profile application, transition visual-match, transition choreography, preview/audition/storyboard, and before chapter-story-spine, unattended-first-draft, V14 baseline, maturity, final QA, or Resolve apply claims.
 
 ## Command
 

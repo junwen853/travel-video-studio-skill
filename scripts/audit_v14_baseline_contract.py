@@ -70,6 +70,7 @@ SKILL_PATTERNS = {
     "transition_pair_continuity_contract": "audit_transition_pair_continuity_contract.py",
     "transition_execution_readiness_contract": "audit_transition_execution_readiness_contract.py",
     "reference_scene_grammar_contract": "audit_reference_scene_grammar_contract.py",
+    "chapter_story_spine_contract": "audit_chapter_story_spine_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
@@ -149,6 +150,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_pair_continuity_contract.py",
     "audit_transition_execution_readiness_contract.py",
     "audit_reference_scene_grammar_contract.py",
+    "audit_chapter_story_spine_contract.py",
     "audit_timeline_variety_contract.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
@@ -252,6 +254,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
     reference_profile_application = load_json(package_dir / "reference_profile_application_contract_audit.json") or {}
     reference_transition_profile = load_json(package_dir / "reference_transition_profile_contract_audit.json") or {}
+    chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -499,6 +502,30 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "chapterArcStatus": chapter_arc.get("status"),
             "chapterArcSummary": chapter_arc_summary,
+        },
+    )
+
+    chapter_story_spine_summary = get_summary(chapter_story_spine)
+    add_check(
+        checks,
+        "Chapter story spine contract proves V14 chapter arcs survive into rhythm, creator-cut, sources, and transitions",
+        chapter_story_spine.get("status") == "passed"
+        and int(chapter_story_spine_summary.get("chapterRowCount") or 0) >= 1
+        and int(chapter_story_spine_summary.get("chaptersWithCompleteStorySpine") or 0) == int(chapter_story_spine_summary.get("chapterRowCount") or -1)
+        and int(chapter_story_spine_summary.get("chaptersMissingStorySpine") or 0) == 0
+        and chapter_story_spine_summary.get("finalSourceStatus") == "passed"
+        and chapter_story_spine_summary.get("creatorApplicationStatus") == "passed"
+        and chapter_story_spine_summary.get("referenceSceneGrammarStatus") == "passed"
+        and chapter_story_spine_summary.get("timelineVarietyStatus") == "passed"
+        and chapter_story_spine_summary.get("transitionSceneArcStatus") == "passed"
+        and chapter_story_spine_summary.get("referenceTransitionProfileStatus") == "passed"
+        and int(chapter_story_spine_summary.get("blockedCheckCount") or 0) == 0
+        and int(chapter_story_spine_summary.get("blockerCount") or 0) == 0
+        and not chapter_story_spine.get("blockers"),
+        {
+            "chapterStorySpineStatus": chapter_story_spine.get("status"),
+            "chapterStorySpineSummary": chapter_story_spine_summary,
+            "blockers": chapter_story_spine.get("blockers"),
         },
     )
 
