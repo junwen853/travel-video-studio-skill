@@ -53,6 +53,8 @@ ACCEPTED_STATUSES = {
     "transition_scene_arc_contract_audit": {"passed"},
     "transition_effect_palette_contract_audit": {"passed"},
     "transition_visual_match_contract_audit": {"passed"},
+    "transition_choreography_plan": {"ready_with_transition_choreography_plan"},
+    "transition_choreography_contract_audit": {"passed"},
     "transition_preview_packet": {"ready_with_transition_preview_packet", "ready_no_important_transitions"},
     "transition_preview_quality_contract_audit": {"passed"},
     "transition_audition_packet": {"ready_with_transition_audition_packet", "ready_no_important_transitions"},
@@ -181,6 +183,8 @@ def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) ->
         return package_dir / "package_integrity_audit_strict_portable.json"
     if stage == "transition_preview_packet":
         return package_dir / "transition_preview_packet" / "transition_preview_packet.json"
+    if stage == "transition_choreography_plan":
+        return package_dir / "transition_choreography_plan" / "transition_choreography_plan.json"
     if stage == "transition_audition_packet":
         return package_dir / "transition_audition_packet" / "transition_audition_packet.json"
     return package_dir / f"{stage}.json"
@@ -626,6 +630,26 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "audit_transition_visual_match_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_choreography_plan",
+                [
+                    sys.executable,
+                    str(scripts / "prepare_transition_choreography_plan.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_choreography_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_transition_choreography_contract.py"),
                     "--package-dir",
                     str(package_dir),
                 ],

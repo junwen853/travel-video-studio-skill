@@ -57,6 +57,8 @@ SKILL_PATTERNS = {
     "transition_scene_arc": "audit_transition_scene_arc_contract.py",
     "transition_effect_palette": "audit_transition_effect_palette_contract.py",
     "transition_visual_match": "audit_transition_visual_match_contract.py",
+    "transition_choreography_plan": "prepare_transition_choreography_plan.py",
+    "transition_choreography_contract": "audit_transition_choreography_contract.py",
     "transition_preview_packet": "prepare_transition_preview_packet.py",
     "transition_preview_quality": "audit_transition_preview_quality_contract.py",
     "transition_audition_packet": "prepare_transition_audition_packet.py",
@@ -133,6 +135,8 @@ REQUIRED_SCRIPTS = [
     "audit_transition_scene_arc_contract.py",
     "audit_transition_effect_palette_contract.py",
     "audit_transition_visual_match_contract.py",
+    "prepare_transition_choreography_plan.py",
+    "audit_transition_choreography_contract.py",
     "prepare_transition_preview_packet.py",
     "audit_transition_preview_quality_contract.py",
     "prepare_transition_audition_packet.py",
@@ -277,6 +281,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
+    transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
+    transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
     transition_preview_quality = load_json(package_dir / "transition_preview_quality_contract_audit.json") or {}
     transition_audition_packet = load_json(package_dir / "transition_audition_packet" / "transition_audition_packet.json") or {}
@@ -1438,6 +1444,32 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "transitionVisualMatchStatus": transition_visual_match.get("status"),
             "transitionVisualMatchSummary": transition_visual_match_summary,
+        },
+    )
+    transition_choreography_plan_summary = get_summary(transition_choreography_plan)
+    transition_choreography_contract_summary = get_summary(transition_choreography_contract)
+    add_check(
+        checks,
+        "Transition choreography contract proves V14 transitions have outgoing, bridge-or-motion, landing, BGM-hit, and caption-quiet intent before preview/storyboard",
+        transition_choreography_plan.get("status") == "ready_with_transition_choreography_plan"
+        and transition_choreography_contract.get("status") == "passed"
+        and int(transition_choreography_plan_summary.get("transitionRowCount") or 0) >= 1
+        and int(transition_choreography_plan_summary.get("blockedChoreographyRowCount") or 0) == 0
+        and int(transition_choreography_contract_summary.get("blockedChoreographyRowCount") or 0) == 0
+        and int(transition_choreography_contract_summary.get("highIntensityRowCount") or 0) == 0
+        and int(transition_choreography_contract_summary.get("importantRowsWithThreeBeatCount") or 0) >= int(transition_choreography_contract_summary.get("importantBoundaryCount") or 0)
+        and int(transition_choreography_contract_summary.get("maxFamilyRun") or 0) <= 4
+        and (
+            int(transition_choreography_contract_summary.get("transitionRowCount") or 0) < 4
+            or float(transition_choreography_contract_summary.get("dominantFamilyShare") or 0.0) <= 0.7
+        )
+        and not transition_choreography_plan.get("blockers")
+        and not transition_choreography_contract.get("blockers"),
+        {
+            "transitionChoreographyPlanStatus": transition_choreography_plan.get("status"),
+            "transitionChoreographyPlanSummary": transition_choreography_plan_summary,
+            "transitionChoreographyContractStatus": transition_choreography_contract.get("status"),
+            "transitionChoreographyContractSummary": transition_choreography_contract_summary,
         },
     )
     transition_preview_summary = get_summary(transition_preview_packet)

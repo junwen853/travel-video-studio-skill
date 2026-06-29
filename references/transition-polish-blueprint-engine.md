@@ -1,10 +1,10 @@
 # Transition Polish Blueprint Engine
 
-Use `scripts/prepare_transition_polish_blueprint.py` after BGM phrase and rhythm recut candidates exist. This pass turns transition metadata into final micro-transition execution rows before Resolve apply.
+Use `scripts/prepare_transition_polish_blueprint.py` after BGM phrase, rhythm recut, and transition choreography candidates exist. This pass turns transition metadata into final micro-transition execution rows before Resolve apply.
 
 ## Purpose
 
-The earlier transition scripts decide what should happen: grammar, execution recipes, motif safety, bridge sequences, effect motion, BGM phrase cues, and rhythm recut. This pass verifies the final candidate still keeps those decisions together after recut and writes a single non-destructive candidate blueprint with per-transition polish metadata.
+The earlier transition scripts decide what should happen: grammar, execution recipes, motif safety, bridge sequences, effect motion, BGM phrase cues, choreography, and rhythm recut. This pass verifies the final candidate still keeps those decisions together after recut and writes a single non-destructive candidate blueprint with per-transition polish metadata.
 
 ## Required Behavior
 
@@ -14,6 +14,7 @@ The earlier transition scripts decide what should happen: grammar, execution rec
 - Add `transition.transitionPolishCandidate` to every candidate transition.
 - Add `transitionPolishCandidate.transitionMotivation` with route, bridge, motion, title, or BGM reasoning for the viewer.
 - Add `transitionPolishCandidate.pairContinuity` with concrete from/to continuity evidence, pair fit, allowed style, and reject-if conditions.
+- Add `transitionPolishCandidate.transitionChoreography` with approved outgoing, bridge-or-motion, landing, BGM-hit, caption-quiet, and intensity metadata.
 - Add `transitionPolishOut` / `transitionPolishIn` annotations to adjacent clips.
 - Add timeline markers with `role: transition_polish_candidate_marker`.
 - Keep the active `resolve_timeline_blueprint.json` untouched unless `--update-blueprint` is explicitly approved.
@@ -26,6 +27,7 @@ Every polish row should have:
 - Title/subtitle avoidance: suppress captions around the transition hit and avoid title overlay collision.
 - Resolve recipe: effect name, duration frames/seconds, and keyframe plan.
 - Motion proof: whip, rotation, push, slide, speed ramp, or similar motion requires route-motion or bridge evidence.
+- Choreography proof: every transition carries approved three-beat choreography; missing choreography blocks polish.
 - BGM-only audio policy: no source voice or camera audio may be introduced.
 - Motivation policy: every transition must explain why it works for the viewer; motion/rotation/whip/speed effects need source motion or bridge evidence, and chapter jumps need route/bridge logic.
 - Decision fields for editor approval, preflight evidence, readback evidence, and frame sample evidence.
@@ -36,6 +38,7 @@ Reject or mark repair-needed if:
 
 - A transition has no BGM phrase cue or hit.
 - A motion transition lacks motion or bridge evidence.
+- A transition reaches polish without a ready choreography row.
 - A random spin, glitch, flash, shake, strobe, particle, template, or whoosh-pack style appears.
 - The row hides missing route continuity with an effect.
 - The row has no title/subtitle avoidance policy.
@@ -53,6 +56,8 @@ Reject or mark repair-needed if:
 - `transition_motivation_contract_audit.md`
 - `transition_pair_continuity_contract_audit.json`
 - `transition_pair_continuity_contract_audit.md`
+- `transition_choreography_plan/transition_choreography_plan.json`
+- `transition_choreography_contract_audit.json`
 
 Before Resolve apply, run:
 
@@ -67,6 +72,12 @@ python3 <skill-dir>/scripts/audit_transition_motivation_contract.py \
   --package-dir <package>
 
 python3 <skill-dir>/scripts/audit_transition_pair_continuity_contract.py \
+  --package-dir <package>
+
+python3 <skill-dir>/scripts/prepare_transition_choreography_plan.py \
+  --package-dir <package>
+
+python3 <skill-dir>/scripts/audit_transition_choreography_contract.py \
   --package-dir <package>
 
 python3 <skill-dir>/scripts/audit_resolve_blueprint.py \

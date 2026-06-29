@@ -111,6 +111,20 @@ def choose_base_blueprint(package_dir: Path) -> tuple[dict[str, Any] | None, Pat
     return load_json(active), active, "active_blueprint"
 
 
+def choreography_lookup(package_dir: Path) -> tuple[dict[int, dict[str, Any]], dict[str, Any], Path]:
+    path = package_dir / "transition_choreography_plan" / "transition_choreography_plan.json"
+    plan = load_json(path) or {}
+    rows = plan.get("choreographyRows") if isinstance(plan.get("choreographyRows"), list) else []
+    lookup: dict[int, dict[str, Any]] = {}
+    for index, row in enumerate(rows, start=1):
+        if not isinstance(row, dict):
+            continue
+        row_index = as_int(row.get("rowIndex"), index)
+        if row_index:
+            lookup[row_index] = row
+    return lookup, plan if isinstance(plan, dict) else {}, path
+
+
 def transition_boundary(transition: dict[str, Any]) -> float | None:
     for key in ("boundarySeconds", "timelineStartSeconds", "startSeconds"):
         value = as_float(transition.get(key))
@@ -558,6 +572,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     if not transitions:
         transitions = infer_transitions_from_clips([clip for clip in clips if isinstance(clip, dict)])
     phrases = phrase_rows(candidate)
+    choreography_by_row, choreography_plan, choreography_path = choreography_lookup(package_dir)
     polished: list[dict[str, Any]] = []
     rows_with_decisions = 0
     rows_with_bgm = 0
@@ -573,6 +588,8 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     continuity_strong_rows = 0
     continuity_acceptable_rows = 0
     continuity_weak_rows = 0
+    rows_with_choreography = 0
+    rows_missing_choreography = 0
 
     for index, transition in enumerate(transitions, start=1):
         if not isinstance(transition, dict):
@@ -621,11 +638,19 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         else:
             continuity_weak_rows += 1
             blocked = True
+        row_index = as_int(transition.get("rowIndex"), index)
+        choreography = choreography_by_row.get(row_index)
+        if choreography and choreography.get("status") == "ready_with_transition_choreography":
+            rows_with_choreography += 1
+        else:
+            choreography = {}
+            rows_missing_choreography += 1
+            blocked = True
         if blocked:
             blocked_rows += 1
         payload = {
             "role": "transition_polish_candidate",
-            "rowIndex": transition.get("rowIndex") or index,
+            "rowIndex": row_index,
             "status": "materialized" if not blocked else "needs_transition_polish_repair",
             "boundarySeconds": round3(boundary),
             "boundaryCategory": transition.get("boundaryCategory") or "adjacent_clip_boundary",
@@ -643,6 +668,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             },
             "transitionMotivation": motivation,
             "pairContinuity": continuity,
+            "transitionChoreography": choreography,
             "titleSubtitleAvoidance": title_avoidance,
             "motionEvidenceSatisfied": motion_is_safe(transition),
             "motionStyle": motion_row,
@@ -670,6 +696,8 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         "createdAt": updated_at,
         "baseBlueprint": str(base_path),
         "baseBlueprintKind": base_kind,
+        "sourceTransitionChoreographyPlan": str(choreography_path),
+        "sourceTransitionChoreographyPlanStatus": choreography_plan.get("status"),
         "report": str(report_path),
         "candidateBlueprint": str(candidate_path),
         "fps": fps,
@@ -700,6 +728,8 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         "inputs": {
             "baseBlueprint": str(base_path),
             "baseBlueprintKind": base_kind,
+            "transitionChoreographyPlan": str(choreography_path),
+            "transitionChoreographyPlanStatus": choreography_plan.get("status"),
         },
         "outputs": {
             "candidateBlueprint": str(candidate_path),
@@ -721,6 +751,8 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "pairContinuityStrongCount": continuity_strong_rows,
             "pairContinuityAcceptableCount": continuity_acceptable_rows,
             "pairContinuityWeakCount": continuity_weak_rows,
+            "rowsWithTransitionChoreography": rows_with_choreography,
+            "rowsMissingTransitionChoreography": rows_missing_choreography,
             "blockedRowCount": blocked_rows,
             "clipAnnotationCount": clip_annotation_count,
             "markerCount": marker_count,
@@ -732,6 +764,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "pass": [
                 "Every candidate transition gets a micro-polish recipe tied to a BGM phrase hit.",
                 "Every transition hit carries subtitle/title avoidance metadata.",
+                "Every candidate transition carries three-beat outgoing/bridge-or-motion/landing choreography.",
                 "Whip, rotation, speed, push, or slide transitions require motion or bridge evidence.",
                 "The script writes only a candidate blueprint and never mutates Resolve or source footage by default.",
             ],
@@ -739,6 +772,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "Transitions are only generic labels without BGM hit timing or Resolve keyframes.",
                 "Template, glitch, flash, shake, random-spin, strobe, or particle effects are selected.",
                 "Motion effects are used to hide weak route continuity or missing bridge footage.",
+                "A transition reaches polish without approved choreography rows.",
                 "Scenic/title/transition windows can leak source voice or subtitle overlap.",
             ],
         },

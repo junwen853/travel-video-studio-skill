@@ -58,6 +58,8 @@ REQUIRED_SCRIPTS = {
         "audit_transition_scene_arc_contract.py",
         "audit_transition_effect_palette_contract.py",
         "audit_transition_visual_match_contract.py",
+        "prepare_transition_choreography_plan.py",
+        "audit_transition_choreography_contract.py",
         "prepare_transition_preview_packet.py",
         "audit_transition_preview_quality_contract.py",
         "prepare_transition_audition_packet.py",
@@ -143,6 +145,8 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_scene_arc_contract_rule": "audit_transition_scene_arc_contract.py",
     "transition_effect_palette_contract_rule": "audit_transition_effect_palette_contract.py",
     "transition_visual_match_contract_rule": "audit_transition_visual_match_contract.py",
+    "transition_choreography_plan_rule": "prepare_transition_choreography_plan.py",
+    "transition_choreography_contract_rule": "audit_transition_choreography_contract.py",
     "transition_preview_packet_rule": "prepare_transition_preview_packet.py",
     "transition_preview_quality_contract_rule": "audit_transition_preview_quality_contract.py",
     "transition_audition_packet_rule": "prepare_transition_audition_packet.py",
@@ -222,6 +226,8 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_scene_arc_contract_reference_rule": "transition-scene-arc-contract.md",
     "transition_effect_palette_contract_reference_rule": "transition-effect-palette-contract.md",
     "transition_visual_match_contract_reference_rule": "transition-visual-match-contract.md",
+    "transition_choreography_engine_reference_rule": "transition-choreography-engine.md",
+    "transition_choreography_contract_reference_rule": "transition-choreography-contract.md",
     "transition_preview_packet_reference_rule": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract_reference_rule": "transition-preview-quality-contract.md",
     "transition_audition_packet_reference_rule": "transition-audition-packet-engine.md",
@@ -262,6 +268,8 @@ REQUIRED_STYLE_PATTERNS = {
     "final_blueprint_lineage_contract": "final-blueprint-lineage-contract.md",
     "transition_cadence_contract": "transition-cadence-contract.md",
     "transition_storyboard_contract": "transition-storyboard-contract.md",
+    "transition_choreography_engine": "transition-choreography-engine.md",
+    "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_preview_packet_engine": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract": "transition-preview-quality-contract.md",
     "transition_audition_packet_engine": "transition-audition-packet-engine.md",
@@ -5102,6 +5110,102 @@ def transition_visual_match_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_choreography_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_choreography_plan" / "transition_choreography_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "readyChoreographyRowCount": summary.get("readyChoreographyRowCount"),
+        "blockedChoreographyRowCount": summary.get("blockedChoreographyRowCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantRowsWithThreeBeatCount": summary.get("importantRowsWithThreeBeatCount"),
+        "motionChoreographyRowCount": summary.get("motionChoreographyRowCount"),
+        "maxFamilyRun": summary.get("maxFamilyRun"),
+        "dominantFamilyShare": summary.get("dominantFamilyShare"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_choreography_plan_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_transition_choreography_plan"
+        and int(evidence.get("transitionRowCount") or 0) >= 1
+        and int(evidence.get("readyChoreographyRowCount") or 0) == int(evidence.get("transitionRowCount") or 0)
+        and int(evidence.get("blockedChoreographyRowCount") or 0) == 0
+        and int(evidence.get("importantRowsWithThreeBeatCount") or 0) >= int(evidence.get("importantBoundaryCount") or 0)
+        and int(evidence.get("maxFamilyRun") or 0) <= 4
+        and (int(evidence.get("transitionRowCount") or 0) < 4 or float(evidence.get("dominantFamilyShare") or 0.0) <= 0.7)
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
+def transition_choreography_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_choreography_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "passedChoreographyRowCount": summary.get("passedChoreographyRowCount"),
+        "blockedChoreographyRowCount": summary.get("blockedChoreographyRowCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantRowsWithThreeBeatCount": summary.get("importantRowsWithThreeBeatCount"),
+        "motionChoreographyRowCount": summary.get("motionChoreographyRowCount"),
+        "highIntensityRowCount": summary.get("highIntensityRowCount"),
+        "maxFamilyRun": summary.get("maxFamilyRun"),
+        "dominantFamilyShare": summary.get("dominantFamilyShare"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_choreography_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("transitionRowCount") or 0) >= 1
+        and int(evidence.get("passedChoreographyRowCount") or 0) == int(evidence.get("transitionRowCount") or 0)
+        and int(evidence.get("blockedChoreographyRowCount") or 0) == 0
+        and int(evidence.get("highIntensityRowCount") or 0) == 0
+        and int(evidence.get("importantRowsWithThreeBeatCount") or 0) >= int(evidence.get("importantBoundaryCount") or 0)
+        and int(evidence.get("maxFamilyRun") or 0) <= 4
+        and (int(evidence.get("transitionRowCount") or 0) < 4 or float(evidence.get("dominantFamilyShare") or 0.0) <= 0.7)
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_storyboard_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_storyboard_contract_audit.json"
     data = load_json(path) or {}
@@ -6120,6 +6224,21 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition visual match contract proves every adjacent pair has concrete visual, bridge, motion, mood, title, local, or BGM continuity evidence",
         transition_visual_match_contract_ready(transition_visual_match_evidence),
         transition_visual_match_evidence,
+    )
+    transition_choreography_plan = transition_choreography_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition choreography plan proves each boundary has outgoing, bridge-or-motion, landing, BGM-hit, caption-quiet, and repetition-aware direction",
+        transition_choreography_plan_ready(transition_choreography_plan),
+        transition_choreography_plan,
+    )
+    transition_choreography_contract = transition_choreography_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition choreography contract proves V14-style motion accents are restrained, source-motivated, title-safe, and not repeated as a template chain",
+        transition_choreography_plan_ready(transition_choreography_plan)
+        and transition_choreography_contract_ready(transition_choreography_contract),
+        {"transitionChoreographyPlan": transition_choreography_plan, "transitionChoreographyContract": transition_choreography_contract},
     )
     transition_preview_packet = transition_preview_packet_evidence(package_dir)
     add_check(

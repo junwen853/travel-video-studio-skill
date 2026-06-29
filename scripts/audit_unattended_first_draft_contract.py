@@ -442,6 +442,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     bgm_phrase = load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json") or {}
     rhythm_recut = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
     rhythm_recut_application = load_json(package_dir / "rhythm_recut_application_contract_audit.json") or {}
+    transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
+    transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     polish = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
     add_gate(
         gates,
@@ -452,6 +454,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
         and bgm_phrase.get("status") == "ready_with_bgm_phrase_blueprint"
         and rhythm_recut.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}
+        and transition_choreography_plan.get("status") == "ready_with_transition_choreography_plan"
+        and transition_choreography_contract.get("status") == "passed"
         and polish.get("status") == "ready_with_transition_polish_blueprint",
         {
             "transitionGrammarStatus": transition_grammar.get("status"),
@@ -460,6 +464,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "bridgeSequenceStatus": bridge_sequence.get("status"),
             "bgmPhraseStatus": bgm_phrase.get("status"),
             "rhythmRecutStatus": rhythm_recut.get("status"),
+            "transitionChoreographyPlanStatus": transition_choreography_plan.get("status"),
+            "transitionChoreographyContractStatus": transition_choreography_contract.get("status"),
             "transitionPolishStatus": polish.get("status"),
         },
     )
@@ -502,6 +508,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
+    transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
+    transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
     transition_preview_quality = load_json(package_dir / "transition_preview_quality_contract_audit.json") or {}
     transition_audition_packet = load_json(package_dir / "transition_audition_packet" / "transition_audition_packet.json") or {}
@@ -527,6 +535,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tsa_summary = summary_of(transition_scene_arc)
     tep_summary = summary_of(transition_effect_palette)
     tvm_summary = summary_of(transition_visual_match)
+    tcp_summary = summary_of(transition_choreography_plan)
+    tcc_summary = summary_of(transition_choreography_contract)
     tpp_summary = summary_of(transition_preview_packet)
     tpq_summary = summary_of(transition_preview_quality)
     tap_summary = summary_of(transition_audition_packet)
@@ -555,6 +565,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_scene_arc.get("status") == "passed"
         and transition_effect_palette.get("status") == "passed"
         and transition_visual_match.get("status") == "passed"
+        and transition_choreography_plan.get("status") == "ready_with_transition_choreography_plan"
+        and transition_choreography_contract.get("status") == "passed"
         and transition_preview_packet.get("status") in {"ready_with_transition_preview_packet", "ready_no_important_transitions"}
         and transition_preview_quality.get("status") == "passed"
         and transition_audition_packet.get("status") in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}
@@ -688,6 +700,9 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             or as_int(tpq_summary.get("previewQualityReadyRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
         )
         and as_int(tpq_summary.get("blockedPreviewQualityRowCount")) == 0
+        and as_int(tcc_summary.get("blockedChoreographyRowCount")) == 0
+        and as_int(tcc_summary.get("highIntensityRowCount")) == 0
+        and as_int(tcc_summary.get("importantRowsWithThreeBeatCount")) >= as_int(tcc_summary.get("importantBoundaryCount"))
         and (
             as_int(tsb_summary.get("importantBoundaryCount")) == 0
             or as_int(tap_summary.get("readyAuditionRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
@@ -722,6 +737,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_scene_arc.get("blockers")
         and not transition_effect_palette.get("blockers")
         and not transition_visual_match.get("blockers")
+        and not transition_choreography_plan.get("blockers")
+        and not transition_choreography_contract.get("blockers")
         and not transition_preview_packet.get("blockers")
         and not transition_preview_quality.get("blockers")
         and not transition_audition_packet.get("blockers")
@@ -771,6 +788,10 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionEffectPaletteSummary": tep_summary,
             "transitionVisualMatchStatus": transition_visual_match.get("status"),
             "transitionVisualMatchSummary": tvm_summary,
+            "transitionChoreographyPlanStatus": transition_choreography_plan.get("status"),
+            "transitionChoreographyPlanSummary": tcp_summary,
+            "transitionChoreographyContractStatus": transition_choreography_contract.get("status"),
+            "transitionChoreographyContractSummary": tcc_summary,
             "transitionPreviewPacketStatus": transition_preview_packet.get("status"),
             "transitionPreviewPacketSummary": tpp_summary,
             "transitionPreviewQualityStatus": transition_preview_quality.get("status"),
