@@ -741,6 +741,35 @@ def summarize_transition_pair_continuity_contract(report: dict[str, Any] | None)
     }
 
 
+def summarize_transition_execution_readiness_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "passedBoundaryCount": summary.get("passedBoundaryCount"),
+        "blockedBoundaryCount": summary.get("blockedBoundaryCount"),
+        "recipeReadyBoundaryCount": summary.get("recipeReadyBoundaryCount"),
+        "bgmHitBoundaryCount": summary.get("bgmHitBoundaryCount"),
+        "titleSafeBoundaryCount": summary.get("titleSafeBoundaryCount"),
+        "decisionFieldBoundaryCount": summary.get("decisionFieldBoundaryCount"),
+        "pairReadyBoundaryCount": summary.get("pairReadyBoundaryCount"),
+        "handleReadyBoundaryCount": summary.get("handleReadyBoundaryCount"),
+        "motionBoundaryCount": summary.get("motionBoundaryCount"),
+        "motionReadyBoundaryCount": summary.get("motionReadyBoundaryCount"),
+        "decorativeRepeatedRunMax": summary.get("decorativeRepeatedRunMax"),
+        "maxTransitionDurationSeconds": summary.get("maxTransitionDurationSeconds"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_reference_scene_grammar_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -1499,6 +1528,22 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Motion boundaries: {continuity.get('motionBoundaryCount')}",
             ]
         )
+    if report.get("transitionExecutionReadinessSummary"):
+        readiness = report["transitionExecutionReadinessSummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Execution Readiness Contract",
+                f"- Exists: `{readiness.get('exists')}`",
+                f"- Status: `{readiness.get('status')}`",
+                f"- Blueprint kind/package-local: `{readiness.get('blueprintKind')}` / `{readiness.get('blueprintInsidePackage')}`",
+                f"- Boundaries/transitions: {readiness.get('visualBoundaryCount')} / {readiness.get('transitionRowCount')}",
+                f"- Passed/blocked boundaries: {readiness.get('passedBoundaryCount')} / {readiness.get('blockedBoundaryCount')}",
+                f"- Recipe/BGM/title/decision/pair/handle ready: {readiness.get('recipeReadyBoundaryCount')} / {readiness.get('bgmHitBoundaryCount')} / {readiness.get('titleSafeBoundaryCount')} / {readiness.get('decisionFieldBoundaryCount')} / {readiness.get('pairReadyBoundaryCount')} / {readiness.get('handleReadyBoundaryCount')}",
+                f"- Motion rows/ready: {readiness.get('motionBoundaryCount')} / {readiness.get('motionReadyBoundaryCount')}",
+                f"- Max transition duration: {readiness.get('maxTransitionDurationSeconds')}",
+            ]
+        )
     if report.get("referenceSceneGrammarSummary"):
         grammar = report["referenceSceneGrammarSummary"]
         lines.extend(
@@ -1811,6 +1856,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_pair_continuity_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_pair_continuity_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_pair_continuity_contract", transition_pair_continuity_cmd, ok_codes={0, 2}))
 
+    transition_execution_readiness_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_execution_readiness_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_transition_execution_readiness_contract", transition_execution_readiness_cmd, ok_codes={0, 2}))
+
     reference_scene_grammar_cmd = ["python3", str(SCRIPTS_DIR / "audit_reference_scene_grammar_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_reference_scene_grammar_contract", reference_scene_grammar_cmd, ok_codes={0, 2}))
 
@@ -1914,6 +1962,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     shot_transition_boundary_summary = None
     transition_motivation_summary = None
     transition_pair_continuity_summary = None
+    transition_execution_readiness_summary = None
     reference_scene_grammar_summary = None
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
@@ -2055,6 +2104,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition pair continuity blocker: {item}" for item in transition_pair_continuity_summary.get("blockers") or [])
             if transition_pair_continuity_summary and transition_pair_continuity_summary.get("warnings"):
                 warnings.extend(f"Transition pair continuity warning: {item}" for item in transition_pair_continuity_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_execution_readiness_contract":
+            transition_execution_readiness_summary = summarize_transition_execution_readiness_contract(payload)
+            if transition_execution_readiness_summary and transition_execution_readiness_summary.get("status") == "blocked":
+                blockers.extend(f"Transition execution readiness blocker: {item}" for item in transition_execution_readiness_summary.get("blockers") or [])
+            if transition_execution_readiness_summary and transition_execution_readiness_summary.get("warnings"):
+                warnings.extend(f"Transition execution readiness warning: {item}" for item in transition_execution_readiness_summary.get("warnings") or [])
         if step["id"] == "audit_reference_scene_grammar_contract":
             reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(payload)
             if reference_scene_grammar_summary and reference_scene_grammar_summary.get("status") == "blocked":
@@ -2233,6 +2288,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_pair_continuity_summary = summarize_transition_pair_continuity_contract(
             load_json(package_dir / "transition_pair_continuity_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_execution_readiness_contract_audit.json").exists():
+        transition_execution_readiness_summary = summarize_transition_execution_readiness_contract(
+            load_json(package_dir / "transition_execution_readiness_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_scene_grammar_contract_audit.json").exists():
         reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(
             load_json(package_dir / "reference_scene_grammar_contract_audit.json")
@@ -2322,6 +2381,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "shotTransitionBoundarySummary": shot_transition_boundary_summary,
         "transitionMotivationSummary": transition_motivation_summary,
         "transitionPairContinuitySummary": transition_pair_continuity_summary,
+        "transitionExecutionReadinessSummary": transition_execution_readiness_summary,
         "referenceSceneGrammarSummary": reference_scene_grammar_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
@@ -2369,6 +2429,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review bridge_sequence_plan.json before rhythm recut or Resolve apply so important route/title/timeline-gap transitions become 2-5 shot bridge sequences instead of single effects.",
             "Review transition_motivation_contract_audit.json before Resolve apply so each transition has a viewer-facing route, motion, title, bridge, or BGM motivation instead of a decorative effect.",
             "Review transition_pair_continuity_contract_audit.json before Resolve apply so every adjacent from/to shot has concrete visual, route, motion, BGM, or title continuity evidence.",
+            "Review transition_execution_readiness_contract_audit.json before Resolve apply so every transition has a package-local Resolve recipe, BGM hit, title-safe window, pair readiness, handles, and decision fields.",
             "Review reference_scene_grammar_contract_audit.json before Resolve apply so opening, chapters, transitions, and ending follow the Parallel World/Malta scene-function grammar.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",

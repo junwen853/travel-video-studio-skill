@@ -41,6 +41,7 @@ SKILL_PATTERNS = {
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
     "transition_pair_continuity_contract": "audit_transition_pair_continuity_contract.py",
+    "transition_execution_readiness_contract": "audit_transition_execution_readiness_contract.py",
     "reference_scene_grammar_contract": "audit_reference_scene_grammar_contract.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
@@ -90,6 +91,7 @@ REQUIRED_SCRIPTS = [
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
     "audit_transition_pair_continuity_contract.py",
+    "audit_transition_execution_readiness_contract.py",
     "audit_reference_scene_grammar_contract.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
@@ -208,6 +210,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
     transition_pair_continuity = load_json(package_dir / "transition_pair_continuity_contract_audit.json") or {}
+    transition_execution_readiness = load_json(package_dir / "transition_execution_readiness_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
     unattended_first_draft = load_json(package_dir / "unattended_first_draft_contract_audit.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
@@ -875,6 +878,43 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "blueprint": transition_pair_continuity_inputs.get("blueprint"),
         },
     )
+    transition_execution_readiness_summary = get_summary(transition_execution_readiness)
+    transition_execution_readiness_inputs = transition_execution_readiness.get("inputs") if isinstance(transition_execution_readiness.get("inputs"), dict) else {}
+    transition_execution_readiness_count = int(transition_execution_readiness_summary.get("visualBoundaryCount") or 0)
+    transition_execution_readiness_motion = int(transition_execution_readiness_summary.get("motionBoundaryCount") or 0)
+    add_check(
+        checks,
+        "Transition execution readiness contract proves final transitions have package-local Resolve recipes, BGM hits, title-safe windows, pair readiness, and handles",
+        transition_execution_readiness.get("status") == "passed"
+        and transition_execution_readiness_inputs.get("blueprintKind") == "transition_polish_candidate"
+        and transition_execution_readiness_inputs.get("blueprintExists") is True
+        and transition_execution_readiness_inputs.get("blueprintInsidePackage") is True
+        and transition_execution_readiness_count >= 1
+        and int(transition_execution_readiness_summary.get("transitionRowCount") or 0) >= transition_execution_readiness_count
+        and float(transition_execution_readiness_summary.get("transitionCoverageRatio") or 0) >= 1.0
+        and int(transition_execution_readiness_summary.get("auditedBoundaryCount") or 0) == transition_execution_readiness_count
+        and int(transition_execution_readiness_summary.get("passedBoundaryCount") or 0) == transition_execution_readiness_count
+        and int(transition_execution_readiness_summary.get("blockedBoundaryCount") or 0) == 0
+        and int(transition_execution_readiness_summary.get("recipeReadyBoundaryCount") or 0) == transition_execution_readiness_count
+        and int(transition_execution_readiness_summary.get("bgmHitBoundaryCount") or 0) == transition_execution_readiness_count
+        and int(transition_execution_readiness_summary.get("bgmOnlyBoundaryCount") or 0) == transition_execution_readiness_count
+        and int(transition_execution_readiness_summary.get("titleSafeBoundaryCount") or 0) == transition_execution_readiness_count
+        and int(transition_execution_readiness_summary.get("decisionFieldBoundaryCount") or 0) == transition_execution_readiness_count
+        and int(transition_execution_readiness_summary.get("pairReadyBoundaryCount") or 0) == transition_execution_readiness_count
+        and int(transition_execution_readiness_summary.get("handleReadyBoundaryCount") or 0) == transition_execution_readiness_count
+        and int(transition_execution_readiness_summary.get("motionReadyBoundaryCount") or 0) == transition_execution_readiness_motion
+        and int(transition_execution_readiness_summary.get("forbiddenHitCount") or 0) == 0
+        and int(transition_execution_readiness_summary.get("decorativeRepeatedRunMax") or 0) < 4
+        and float(transition_execution_readiness_summary.get("maxTransitionDurationSeconds") or 0.0) <= 0.9
+        and int(transition_execution_readiness_summary.get("blockerCount") or 0) == 0
+        and not transition_execution_readiness.get("blockers"),
+        {
+            "transitionExecutionReadinessStatus": transition_execution_readiness.get("status"),
+            "transitionExecutionReadinessSummary": transition_execution_readiness_summary,
+            "blueprintKind": transition_execution_readiness_inputs.get("blueprintKind"),
+            "blueprint": transition_execution_readiness_inputs.get("blueprint"),
+        },
+    )
     reference_scene_grammar_summary = get_summary(reference_scene_grammar)
     reference_scene_grammar_inputs = reference_scene_grammar.get("inputs") if isinstance(reference_scene_grammar.get("inputs"), dict) else {}
     reference_scene_chapter_count = int(reference_scene_grammar_summary.get("chapterCount") or 0)
@@ -982,6 +1022,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and shot_transition_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
         and transition_pair_continuity.get("status") == "passed"
+        and transition_execution_readiness.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
         and unattended_first_draft.get("status") in {"passed", "passed_with_warnings"}
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
@@ -1038,6 +1079,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionMotivationSummary": transition_motivation_summary,
             "transitionPairContinuityStatus": transition_pair_continuity.get("status"),
             "transitionPairContinuitySummary": transition_pair_continuity_summary,
+            "transitionExecutionReadinessStatus": transition_execution_readiness.get("status"),
+            "transitionExecutionReadinessSummary": transition_execution_readiness_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": reference_scene_grammar_summary,
             "unattendedFirstDraftStatus": unattended_first_draft.get("status"),
