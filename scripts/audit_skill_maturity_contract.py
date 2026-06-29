@@ -19,6 +19,7 @@ REQUIRED_SCRIPTS = {
         "run_videoclaw_route_pipeline.py",
         "prepare_footage_recognition_report.py",
         "audit_location_truth_contract.py",
+        "audit_raw_intake_completeness.py",
         "prepare_blocked_project_recovery_plan.py",
         "prepare_codex_visual_confirmed_route.py",
         "audit_confirmed_route_candidate.py",
@@ -107,6 +108,7 @@ REQUIRED_SKILL_PATTERNS = {
     "feedback_regression_plan_rule": "prepare_feedback_regression_plan.py",
     "audio_scene_policy_plan_rule": "prepare_audio_scene_policy_plan.py",
     "footage_select_plan_rule": "prepare_footage_select_plan.py",
+    "raw_intake_completeness_rule": "audit_raw_intake_completeness.py",
     "opening_story_plan_rule": "prepare_opening_story_plan.py",
     "opening_story_engine_rule": "opening-story-engine.md",
     "chapter_arc_plan_rule": "prepare_chapter_arc_plan.py",
@@ -1589,6 +1591,64 @@ def footage_select_plan_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("writesResolve") is False
         and evidence.get("hasPassRubric") is True
         and evidence.get("hasRejectRubric") is True
+    )
+
+
+def raw_intake_completeness_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "raw_intake_completeness_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "indexedVideoCount": summary.get("indexedVideoCount"),
+        "filesystemVideoCount": summary.get("filesystemVideoCount"),
+        "activeSourceVideoCount": summary.get("activeSourceVideoCount"),
+        "sourceSizeGB": summary.get("sourceSizeGB"),
+        "largeSource": summary.get("largeSource"),
+        "recognitionCoverageRatio": summary.get("recognitionCoverageRatio"),
+        "routeMissingVideoCount": summary.get("routeMissingVideoCount"),
+        "routeDuplicateVideoCount": summary.get("routeDuplicateVideoCount"),
+        "footageSelectMissingVideoCount": summary.get("footageSelectMissingVideoCount"),
+        "activeDerivedVideoCount": summary.get("activeDerivedVideoCount"),
+        "staleArtifactCount": summary.get("staleArtifactCount"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "warningCheckCount": summary.get("warningCheckCount"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+    }
+
+
+def raw_intake_completeness_ready(evidence: dict[str, Any]) -> bool:
+    indexed = int(evidence.get("indexedVideoCount") or 0)
+    filesystem = int(evidence.get("filesystemVideoCount") or 0)
+    active = int(evidence.get("activeSourceVideoCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and indexed > 0
+        and active > 0
+        and filesystem <= indexed
+        and float(evidence.get("recognitionCoverageRatio") or 0) >= 1.0
+        and int(evidence.get("routeMissingVideoCount") or 0) == 0
+        and int(evidence.get("routeDuplicateVideoCount") or 0) == 0
+        and int(evidence.get("footageSelectMissingVideoCount") or 0) == 0
+        and int(evidence.get("activeDerivedVideoCount") or 0) == 0
+        and int(evidence.get("staleArtifactCount") or 0) == 0
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceDrive") is False
+        and evidence.get("modifiesSourceFootage") is False
     )
 
 
@@ -3764,6 +3824,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Footage select plan turns the raw source pool into hero, main, texture, repair, and reject decisions before first assembly",
         footage_select_plan_ready(footage_select_evidence),
         footage_select_evidence,
+    )
+    raw_intake_evidence = raw_intake_completeness_evidence(package_dir)
+    add_check(
+        checks,
+        "Raw intake completeness proves every active source video is indexed, recognized, routed exactly once, and scored",
+        raw_intake_completeness_ready(raw_intake_evidence),
+        raw_intake_evidence,
     )
     opening_story_evidence = opening_story_plan_evidence(package_dir)
     add_check(

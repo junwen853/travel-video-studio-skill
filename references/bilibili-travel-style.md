@@ -81,9 +81,10 @@ Before building the first package from a large unordered folder, run the raw-foo
 
 ```bash
 python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <project>
+python3 <skill-dir>/scripts/audit_raw_intake_completeness.py --project-dir <project> --package-dir <package>
 ```
 
-Read `references/footage-select-engine.md` before this step. The plan should identify hero, main story, texture bridge, utility, repair, and reject rows across the whole source pool. `build_delivery_package.py` uses this plan when present, so first assembly starts from the best local footage instead of filename order.
+Read `references/footage-select-engine.md` before this step. The plan should identify hero, main story, texture bridge, utility, repair, and reject rows across the whole source pool. The raw-intake audit must pass after the package exists, so first assembly starts from the best local footage instead of filename order or a partial source scan.
 
 Before trusting a Resolve blueprint as "not AI-made", run:
 

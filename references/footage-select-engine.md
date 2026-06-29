@@ -49,6 +49,7 @@ The script writes:
 
 - `footage_select_plan/footage_select_plan.json`
 - `footage_select_plan/footage_select_plan.md`
+- `raw_intake_completeness_audit.json` / `.md` after the package exists and `audit_raw_intake_completeness.py` is run
 
 If run at project level, `build_delivery_package.py` should read the plan and sort each chapter's media pool by `selectionTier` and `selectionScore`, while dropping `reject_excluded` rows and deprioritizing repair/review rows.
 
@@ -57,6 +58,7 @@ If run at project level, `build_delivery_package.py` should read the plan and so
 Before first assembly:
 
 - every active source video is represented in `selectionRows`
+- `audit_raw_intake_completeness.py` passes, proving media index, recognition report, confirmed route, and footage select agree on every active source video
 - hero/main/texture/utility/reject tiers exist where the source supports them
 - every row has decision fields for approved use, trim, orientation repair, BGM/caption role, Resolve implementation, and readback evidence
 - chapter pools show whether movement, lived-in detail, and payoff coverage are missing

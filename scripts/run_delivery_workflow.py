@@ -184,6 +184,33 @@ def summarize_footage_select_plan(plan: dict[str, Any] | None) -> dict[str, Any]
     }
 
 
+def summarize_raw_intake_completeness(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "projectDir": report.get("projectDir"),
+        "indexedVideoCount": summary.get("indexedVideoCount"),
+        "filesystemVideoCount": summary.get("filesystemVideoCount"),
+        "activeSourceVideoCount": summary.get("activeSourceVideoCount"),
+        "sourceSizeGB": summary.get("sourceSizeGB"),
+        "largeSource": summary.get("largeSource"),
+        "recognitionCoverageRatio": summary.get("recognitionCoverageRatio"),
+        "routeMissingVideoCount": summary.get("routeMissingVideoCount"),
+        "routeDuplicateVideoCount": summary.get("routeDuplicateVideoCount"),
+        "footageSelectMissingVideoCount": summary.get("footageSelectMissingVideoCount"),
+        "activeDerivedVideoCount": summary.get("activeDerivedVideoCount"),
+        "staleArtifactCount": summary.get("staleArtifactCount"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "warningCheckCount": summary.get("warningCheckCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_opening_story_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -949,6 +976,21 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Repair or reject: {select.get('repairOrRejectCount')}",
             ]
         )
+    if report.get("rawIntakeCompletenessSummary"):
+        intake = report["rawIntakeCompletenessSummary"]
+        lines.extend(
+            [
+                "",
+                "## Raw Intake Completeness",
+                f"- Status: `{intake.get('status')}`",
+                f"- Indexed/filesystem/active videos: {intake.get('indexedVideoCount')} / {intake.get('filesystemVideoCount')} / {intake.get('activeSourceVideoCount')}",
+                f"- Large source: `{intake.get('largeSource')}`; size GB: {intake.get('sourceSizeGB')}",
+                f"- Recognition coverage: {intake.get('recognitionCoverageRatio')}",
+                f"- Route missing/duplicate: {intake.get('routeMissingVideoCount')} / {intake.get('routeDuplicateVideoCount')}",
+                f"- Footage select missing: {intake.get('footageSelectMissingVideoCount')}",
+                f"- Active derived/stale artifacts: {intake.get('activeDerivedVideoCount')} / {intake.get('staleArtifactCount')}",
+            ]
+        )
     if report.get("openingStorySummary"):
         opening = report["openingStorySummary"]
         lines.extend(
@@ -1462,6 +1504,17 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
 
     package_dir = discover_output_dir(steps[-1], args.output_dir)
 
+    raw_intake_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_raw_intake_completeness.py"),
+        "--package-dir",
+        str(package_dir),
+        "--project-dir",
+        str(project_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_raw_intake_completeness", raw_intake_cmd, ok_codes={0, 2}))
+
     if args.reference or args.reference_dir:
         reference_batch_cmd = [
             "python3",
@@ -1637,6 +1690,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     route_decision_summary = None
     route_decision_application_summary = None
     footage_select_summary = None
+    raw_intake_completeness_summary = None
     opening_story_summary = None
     chapter_arc_summary = None
     asset_decision_summary = None
@@ -1708,6 +1762,18 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             route_decision_application_summary = summarize_route_decision_application(payload)
         if step["id"] == "prepare_footage_select_plan":
             footage_select_summary = summarize_footage_select_plan(payload)
+        if step["id"] == "audit_raw_intake_completeness":
+            raw_intake_completeness_summary = summarize_raw_intake_completeness(payload)
+            if raw_intake_completeness_summary and raw_intake_completeness_summary.get("status") == "blocked":
+                blockers.extend(
+                    f"Raw intake completeness blocker: {item}"
+                    for item in raw_intake_completeness_summary.get("blockers") or []
+                )
+            if raw_intake_completeness_summary and raw_intake_completeness_summary.get("warnings"):
+                warnings.extend(
+                    f"Raw intake completeness warning: {item}"
+                    for item in raw_intake_completeness_summary.get("warnings") or []
+                )
         if step["id"] == "prepare_opening_story_plan":
             opening_story_summary = summarize_opening_story_plan(payload)
         if step["id"] == "prepare_chapter_arc_plan":
@@ -1811,6 +1877,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "footage_select_plan" / "footage_select_plan.json").exists():
         footage_select_summary = summarize_footage_select_plan(
             load_json(package_dir / "footage_select_plan" / "footage_select_plan.json")
+        )
+    if package_dir and (package_dir / "raw_intake_completeness_audit.json").exists():
+        raw_intake_completeness_summary = summarize_raw_intake_completeness(
+            load_json(package_dir / "raw_intake_completeness_audit.json")
         )
     if package_dir and (package_dir / "opening_story_plan" / "opening_story_plan.json").exists():
         opening_story_summary = summarize_opening_story_plan(
@@ -1965,6 +2035,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "routeDecisionSummary": route_decision_summary,
         "routeDecisionApplicationSummary": route_decision_application_summary,
         "footageSelectSummary": footage_select_summary,
+        "rawIntakeCompletenessSummary": raw_intake_completeness_summary,
         "openingStorySummary": opening_story_summary,
         "chapterArcSummary": chapter_arc_summary,
         "assetDecisionSummary": asset_decision_summary,
@@ -2016,6 +2087,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Select and verify BGM/stock/aerial licenses.",
             "Review bgm_selection_package.json before Resolve apply so the selected BGM bed is local, license-traceable, target-duration-covering, and referenced by the active blueprint.",
             "Review footage_select_plan.json before trusting first assembly; repair/reject rows should not lead the cut.",
+            "Review raw_intake_completeness_audit.json before trusting any large unordered source folder; every active source video must be indexed, recognized, routed exactly once, and scored before first assembly.",
             "Review opening_story_plan.json before title, BGM, rhythm, or Resolve apply so the first three minutes have viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff.",
             "Review chapter_arc_plan.json before rhythm/creator-cut/Resolve apply so every chapter has context, movement, lived-in texture, payoff, and aftertaste decisions.",
             "Fill transition_bridge_plan.json local bridge or stock/aerial fallback decisions before final claims.",

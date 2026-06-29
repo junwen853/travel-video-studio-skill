@@ -111,9 +111,10 @@ Before the first package build, create a raw footage selection pool with:
 
 ```bash
 python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <project>
+python3 <skill-dir>/scripts/audit_raw_intake_completeness.py --project-dir <project> --package-dir <package>
 ```
 
-Use `references/footage-select-engine.md` for the acceptance bar. The plan must score the whole source pool, identify hero/main/texture bridge candidates, reject prior exports, and flag portrait/square/unknown clips for repair. This is what prevents a large folder from becoming a filename-order montage.
+Use `references/footage-select-engine.md` for the acceptance bar. The plan must score the whole source pool, identify hero/main/texture bridge candidates, reject prior exports, and flag portrait/square/unknown clips for repair. The raw-intake audit must also prove every active video is indexed, recognized, routed exactly once, and represented in selection rows.
 
 Before any rhythm recut or Resolve write, create `creator_cut_plan/creator_cut_plan.json` with:
 

@@ -25,6 +25,7 @@ SKILL_PATTERNS = {
     "bilibili_malta": "bilibili-travel-style.md",
     "reference_batch_profile": "prepare_reference_batch_profile.py",
     "footage_select": "prepare_footage_select_plan.py",
+    "raw_intake_completeness": "audit_raw_intake_completeness.py",
     "opening_story": "prepare_opening_story_plan.py",
     "chapter_arc": "prepare_chapter_arc_plan.py",
     "creator_cut": "prepare_creator_cut_plan.py",
@@ -68,6 +69,7 @@ REQUIRED_SCRIPTS = [
     "prepare_effect_motion_blueprint.py",
     "prepare_reference_batch_profile.py",
     "prepare_footage_select_plan.py",
+    "audit_raw_intake_completeness.py",
     "prepare_opening_story_plan.py",
     "prepare_chapter_arc_plan.py",
     "prepare_edit_rhythm_plan.py",
@@ -181,6 +183,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     bgm_phrase_blueprint = load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json") or {}
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
+    raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     opening_story = load_json(package_dir / "opening_story_plan" / "opening_story_plan.json") or {}
     chapter_arc = load_json(package_dir / "chapter_arc_plan" / "chapter_arc_plan.json") or {}
     rhythm = load_json(package_dir / "edit_rhythm_plan" / "edit_rhythm_plan.json") or {}
@@ -218,6 +221,22 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "missingScripts": missing_scripts,
             "scriptCount": len(REQUIRED_SCRIPTS),
         },
+    )
+
+    raw_intake_summary = get_summary(raw_intake)
+    add_check(
+        checks,
+        "Raw intake completeness gate proves the full source pool survived into recognition, route, and footage select",
+        raw_intake.get("status") == "passed"
+        and int(raw_intake_summary.get("indexedVideoCount") or 0) > 0
+        and int(raw_intake_summary.get("activeSourceVideoCount") or 0) > 0
+        and float(raw_intake_summary.get("recognitionCoverageRatio") or 0) >= 1.0
+        and int(raw_intake_summary.get("routeMissingVideoCount") or 0) == 0
+        and int(raw_intake_summary.get("routeDuplicateVideoCount") or 0) == 0
+        and int(raw_intake_summary.get("footageSelectMissingVideoCount") or 0) == 0
+        and int(raw_intake_summary.get("activeDerivedVideoCount") or 0) == 0
+        and int(raw_intake_summary.get("staleArtifactCount") or 0) == 0,
+        {"status": raw_intake.get("status"), "summary": raw_intake_summary, "blockers": raw_intake.get("blockers")},
     )
 
     final_video = final_report.get("video") if isinstance(final_report.get("video"), dict) else {}
@@ -832,6 +851,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and passed_status(director_polish)
         and cover_title.get("status") == "passed"
         and reference_batch.get("status") in {"ready_with_reference_batch_profile", "ready_with_single_reference_profile"}
+        and raw_intake.get("status") == "passed"
         and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
         and chapter_arc.get("status") == "ready_with_chapter_arc_plan"
         and rhythm.get("status") == "ready_with_edit_rhythm_plan"
@@ -864,6 +884,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "coverTitleSummary": cover_title_summary,
             "referenceBatchStatus": reference_batch.get("status"),
             "referenceBatchSummary": reference_batch_summary,
+            "rawIntakeStatus": raw_intake.get("status"),
+            "rawIntakeSummary": raw_intake_summary,
             "footageSelectStatus": footage_select.get("status"),
             "footageSelectSummary": footage_select_summary,
             "chapterArcStatus": chapter_arc.get("status"),

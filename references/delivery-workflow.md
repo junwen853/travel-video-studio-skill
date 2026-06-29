@@ -23,6 +23,7 @@ Expected files:
 - source project `route_review/<timestamp>/route_decision_application.json` / `.md`: dry-run or approved application of route decisions back into `route_review.json`
 - source project `route_review/<timestamp>/confirmed_route_candidate.md`: approval-gated candidate or repair plan before confirmed-route writes
 - source or package `footage_select_plan/footage_select_plan.json` / `.md`: raw-footage scoring and highlight-selection plan used before first assembly
+- source or package `raw_intake_completeness_audit.json` / `.md`: full source-tree, recognition, confirmed-route, footage-select, derived-exclusion, and stale-artifact gate before trusting large unordered folders
 - `opening_story_plan/opening_story_plan.json` / `.md`: first-three-minute viewer promise, destination proof, clean title, practical arrival, lived-in texture, and first handoff plan
 - `chapter_arc_plan/chapter_arc_plan.json` / `.md`: per-chapter context, movement, lived-in texture, payoff, and aftertaste/handoff planning with owner-script repair rows
 - `long_form_structure.md`: 20-minute chapter and pacing structure
@@ -108,6 +109,7 @@ The package is not final until:
 - route decision application report proves the decision sheet is either blocked, ready to apply, or applied
 - confirmed-route candidate is apply-ready before overwriting `confirmed_route_timeline.json`
 - footage select plan exists before first assembly, proves active source videos were tiered, and blocks derived/portrait/weak footage from leading the cut
+- raw intake completeness audit passes after first package build, proving the media index covers the mounted source tree and every active source video is recognized, routed exactly once, scored, non-derived, and fresh
 - reference batch profile exists before rhythm/style claims when multiple reference videos were supplied
 - opening story plan exists after first package build and proves all six first-three-minute beats before title, BGM, rhythm, creator-cut, director-intent, or Resolve apply claims
 - chapter arc plan exists after opening-story planning and before rhythm/creator-cut/Resolve trust, proving each chapter has beat decisions or assigned repair owners

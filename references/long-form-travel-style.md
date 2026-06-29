@@ -66,9 +66,10 @@ Before first assembly from unordered source media, generate `footage_select_plan
 
 ```bash
 python3 <skill-dir>/scripts/prepare_footage_select_plan.py --project-dir <project>
+python3 <skill-dir>/scripts/audit_raw_intake_completeness.py --project-dir <project> --package-dir <package>
 ```
 
-This plan should exist before `build_delivery_package.py` when the user expects a strong first draft from a large folder. It scores every active source video, promotes hero/main/texture bridge candidates, rejects prior exports, flags portrait/square/unknown clips for repair, and exposes missing chapter movement/detail/payoff coverage. The first assembly should use this plan to sort local footage before stock, effects, or rhythm recut are considered.
+This plan should exist before `build_delivery_package.py` when the user expects a strong first draft from a large folder. After the package exists, the raw-intake audit should prove the index, recognition report, confirmed route, and selection rows agree on every active source video. The first assembly should use this plan to sort local footage before stock, effects, or rhythm recut are considered.
 
 After `build_delivery_package.py`, generate `opening_story_plan/opening_story_plan.json` with:
 
