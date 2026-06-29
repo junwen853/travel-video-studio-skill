@@ -690,6 +690,32 @@ def summarize_shot_transition_boundary_contract(report: dict[str, Any] | None) -
     }
 
 
+def summarize_transition_motivation_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "motivatedBoundaryCount": summary.get("motivatedBoundaryCount"),
+        "pairMatchedBoundaryCount": summary.get("pairMatchedBoundaryCount"),
+        "bgmMotivatedBoundaryCount": summary.get("bgmMotivatedBoundaryCount"),
+        "bridgeMotivatedBoundaryCount": summary.get("bridgeMotivatedBoundaryCount"),
+        "motionMotivatedBoundaryCount": summary.get("motionMotivatedBoundaryCount"),
+        "titleSafeMotivatedBoundaryCount": summary.get("titleSafeMotivatedBoundaryCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "forbiddenHitCount": summary.get("forbiddenHitCount"),
+        "blockedBoundaryCount": summary.get("blockedBoundaryCount"),
+        "decorativeRepeatedRunMax": summary.get("decorativeRepeatedRunMax"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_reference_style_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -1350,6 +1376,22 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Decorative repeated run max: {boundary.get('decorativeRepeatedRunMax')}",
             ]
         )
+    if report.get("transitionMotivationSummary"):
+        motivation = report["transitionMotivationSummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Motivation Contract",
+                f"- Exists: `{motivation.get('exists')}`",
+                f"- Status: `{motivation.get('status')}`",
+                f"- Blueprint kind: `{motivation.get('blueprintKind')}`",
+                f"- Boundaries/transitions: {motivation.get('visualBoundaryCount')} / {motivation.get('transitionRowCount')}",
+                f"- Motivated/pair-matched: {motivation.get('motivatedBoundaryCount')} / {motivation.get('pairMatchedBoundaryCount')}",
+                f"- BGM/bridge/motion/title motivations: {motivation.get('bgmMotivatedBoundaryCount')} / {motivation.get('bridgeMotivatedBoundaryCount')} / {motivation.get('motionMotivatedBoundaryCount')} / {motivation.get('titleSafeMotivatedBoundaryCount')}",
+                f"- Important/blocked boundaries: {motivation.get('importantBoundaryCount')} / {motivation.get('blockedBoundaryCount')}",
+                f"- Forbidden hits: {motivation.get('forbiddenHitCount')}",
+            ]
+        )
     if report.get("referenceStyleRepairSummary"):
         repair = report["referenceStyleRepairSummary"]
         lines.extend(
@@ -1625,6 +1667,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     shot_transition_boundary_cmd = ["python3", str(SCRIPTS_DIR / "audit_shot_transition_boundary_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_shot_transition_boundary_contract", shot_transition_boundary_cmd, ok_codes={0, 2}))
 
+    transition_motivation_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_motivation_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_transition_motivation_contract", transition_motivation_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -1719,6 +1764,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_polish_summary = None
     transition_quality_summary = None
     shot_transition_boundary_summary = None
+    transition_motivation_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
     rhythm_recut_apply_summary = None
@@ -1840,6 +1886,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Shot transition boundary blocker: {item}" for item in shot_transition_boundary_summary.get("blockers") or [])
             if shot_transition_boundary_summary and shot_transition_boundary_summary.get("warnings"):
                 warnings.extend(f"Shot transition boundary warning: {item}" for item in shot_transition_boundary_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_motivation_contract":
+            transition_motivation_summary = summarize_transition_motivation_contract(payload)
+            if transition_motivation_summary and transition_motivation_summary.get("status") == "blocked":
+                blockers.extend(f"Transition motivation blocker: {item}" for item in transition_motivation_summary.get("blockers") or [])
+            if transition_motivation_summary and transition_motivation_summary.get("warnings"):
+                warnings.extend(f"Transition motivation warning: {item}" for item in transition_motivation_summary.get("warnings") or [])
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -1988,6 +2040,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         shot_transition_boundary_summary = summarize_shot_transition_boundary_contract(
             load_json(package_dir / "shot_transition_boundary_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_motivation_contract_audit.json").exists():
+        transition_motivation_summary = summarize_transition_motivation_contract(
+            load_json(package_dir / "transition_motivation_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -2064,6 +2120,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionPolishBlueprintSummary": transition_polish_summary,
         "transitionQualitySummary": transition_quality_summary,
         "shotTransitionBoundarySummary": shot_transition_boundary_summary,
+        "transitionMotivationSummary": transition_motivation_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
@@ -2106,6 +2163,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Preflight transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json before approving transition effects for Resolve.",
             "Review transition_motif_plan.json before Resolve apply so the film does not rely on repeated dissolves, random motion, or effects hiding weak route jumps.",
             "Review bridge_sequence_plan.json before rhythm recut or Resolve apply so important route/title/timeline-gap transitions become 2-5 shot bridge sequences instead of single effects.",
+            "Review transition_motivation_contract_audit.json before Resolve apply so each transition has a viewer-facing route, motion, title, bridge, or BGM motivation instead of a decorative effect.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "Review reference_style_repair_plan.json so blocked reference/director/QA gaps become executable repair rows before another Resolve write.",

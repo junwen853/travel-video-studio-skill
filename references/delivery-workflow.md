@@ -139,6 +139,7 @@ The package is not final until:
 - transition polish blueprint report exists before Resolve apply, proving final transitions carry BGM-hit timing, title/subtitle avoidance, motion-evidence checks, and restrained keyframes after rhythm recut
 - transition quality contract audit passes before Resolve apply, proving the transition-polish candidate covers every visual boundary and does not hide route gaps with random/repeated effects
 - shot transition boundary contract audit passes before Resolve apply, proving every adjacent visual boundary has the correct from/to transition row instead of generic hard cuts or random rotations
+- transition motivation contract audit passes before Resolve apply, proving every transition has route, bridge, motion, title, or BGM reasoning instead of a decorative effect
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
 - reference repair closure audit exists after the repair plan; P0 rows must be closed or Resolve/final-quality claims stay blocked
 - Resolve blueprint preflight is present and not blocked before any `--apply`

@@ -39,6 +39,7 @@ SKILL_PATTERNS = {
     "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
+    "transition_motivation_contract": "audit_transition_motivation_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure": "audit_reference_repair_closure.py",
     "route_texture": "audit_route_texture_contract.py",
@@ -84,6 +85,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_polish_blueprint.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
+    "audit_transition_motivation_contract.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_repair_closure.py",
     "audit_reference_style_alignment.py",
@@ -198,6 +200,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
+    transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
@@ -806,6 +809,35 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "blueprint": shot_boundary_inputs.get("blueprint"),
         },
     )
+    transition_motivation_summary = get_summary(transition_motivation)
+    transition_motivation_inputs = transition_motivation.get("inputs") if isinstance(transition_motivation.get("inputs"), dict) else {}
+    transition_motivation_count = int(transition_motivation_summary.get("visualBoundaryCount") or 0)
+    add_check(
+        checks,
+        "Transition motivation contract proves each transition has route, bridge, motion, title, or BGM reasoning",
+        transition_motivation.get("status") == "passed"
+        and transition_motivation_inputs.get("blueprintKind") == "transition_polish_candidate"
+        and transition_motivation_inputs.get("blueprintExists") is True
+        and transition_motivation_count >= 1
+        and int(transition_motivation_summary.get("transitionRowCount") or 0) >= transition_motivation_count
+        and float(transition_motivation_summary.get("transitionCoverageRatio") or 0) >= 1.0
+        and int(transition_motivation_summary.get("auditedBoundaryCount") or 0) == transition_motivation_count
+        and int(transition_motivation_summary.get("passedBoundaryCount") or 0) == transition_motivation_count
+        and int(transition_motivation_summary.get("blockedBoundaryCount") or 0) == 0
+        and int(transition_motivation_summary.get("motivatedBoundaryCount") or 0) == transition_motivation_count
+        and int(transition_motivation_summary.get("pairMatchedBoundaryCount") or 0) == transition_motivation_count
+        and int(transition_motivation_summary.get("bgmMotivatedBoundaryCount") or 0) == transition_motivation_count
+        and int(transition_motivation_summary.get("titleSafeMotivatedBoundaryCount") or 0) == transition_motivation_count
+        and int(transition_motivation_summary.get("forbiddenHitCount") or 0) == 0
+        and int(transition_motivation_summary.get("decorativeRepeatedRunMax") or 0) < 4
+        and not transition_motivation.get("blockers"),
+        {
+            "transitionMotivationStatus": transition_motivation.get("status"),
+            "transitionMotivationSummary": transition_motivation_summary,
+            "blueprintKind": transition_motivation_inputs.get("blueprintKind"),
+            "blueprint": transition_motivation_inputs.get("blueprint"),
+        },
+    )
     reference_repair_summary = get_summary(reference_repair)
     reference_repair_closure_summary = get_summary(reference_repair_closure)
     reference_repair_closure_rows = reference_repair_closure.get("closureRows") if isinstance(reference_repair_closure.get("closureRows"), list) else []
@@ -868,6 +900,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_polish_blueprint.get("status") == "ready_with_transition_polish_blueprint"
         and transition_quality.get("status") == "passed"
         and shot_transition_boundary.get("status") == "passed"
+        and transition_motivation.get("status") == "passed"
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and reference_repair_closure.get("status") in {"passed", "passed_with_evidence_warnings"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
@@ -918,6 +951,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionQualitySummary": transition_quality_summary,
             "shotTransitionBoundaryStatus": shot_transition_boundary.get("status"),
             "shotTransitionBoundarySummary": shot_boundary_summary,
+            "transitionMotivationStatus": transition_motivation.get("status"),
+            "transitionMotivationSummary": transition_motivation_summary,
             "referenceStyleRepairStatus": reference_repair.get("status"),
             "referenceStyleRepairSummary": reference_repair_summary,
             "referenceRepairClosureStatus": reference_repair_closure.get("status"),

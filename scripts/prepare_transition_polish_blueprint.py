@@ -271,6 +271,69 @@ def selected_recipe(transition: dict[str, Any], boundary: float, phrase: dict[st
     }
 
 
+def transition_motivation(
+    transition: dict[str, Any],
+    phrase: dict[str, Any] | None,
+    recipe: dict[str, Any],
+    *,
+    motion_allowed: bool,
+) -> dict[str, Any]:
+    category = str(transition.get("boundaryCategory") or "adjacent_clip_boundary")
+    has_bridge = transition.get("bridgeSequenceSatisfied") is True
+    has_motion = has_motion_style(transition)
+    has_phrase = bool(phrase) or isinstance(transition.get("bgmPhraseCandidate"), dict)
+    if has_bridge:
+        strategy = "route_bridge_sequence"
+        viewer_effect = "move the viewer through geography with real connective footage before the next shot"
+    elif has_motion and motion_allowed:
+        strategy = "motion_match_on_bgm_hit"
+        viewer_effect = "use source-supported motion to carry energy across the cut without hiding weak route logic"
+    elif "title" in category or "ending" in category:
+        strategy = "title_or_ending_clean_handoff"
+        viewer_effect = "let the scenic/title moment breathe while the next shot lands on music"
+    elif has_phrase:
+        strategy = "bgm_phrase_clean_cut"
+        viewer_effect = "cut on a music phrase or beat while preserving continuity"
+    else:
+        strategy = "clean_continuity_cut"
+        viewer_effect = "keep the edit transparent because no stronger motivated transition evidence exists"
+    return {
+        "strategy": strategy,
+        "viewerEffect": viewer_effect,
+        "boundaryCategory": category,
+        "fromSourcePath": transition.get("fromSourcePath"),
+        "toSourcePath": transition.get("toSourcePath"),
+        "evidence": {
+            "bgmPhraseIndex": phrase.get("phraseIndex") if phrase else None,
+            "bgmSection": phrase.get("section") if phrase else None,
+            "bgmHitSeconds": recipe.get("bgmHitSeconds"),
+            "motionEvidenceSatisfied": motion_allowed if has_motion else None,
+            "bridgeSequenceSatisfied": has_bridge,
+            "titleSubtitleAvoidance": True,
+            "sourceTransitionType": transition.get("approvedTransitionType"),
+            "sourceResolveEffectName": transition.get("resolveEffectName"),
+        },
+        "allowedBecause": [
+            item
+            for item in (
+                "bgm_phrase_or_hit" if recipe.get("bgmHitSeconds") is not None or has_phrase else "",
+                "bridge_sequence" if has_bridge else "",
+                "motion_evidence" if has_motion and motion_allowed else "",
+                "title_safe_handoff" if "title" in category or "ending" in category else "",
+                "clean_cut_when_unmotivated_effect_would_be_worse" if strategy == "clean_continuity_cut" else "",
+            )
+            if item
+        ],
+        "rejectIf": [
+            "decorative_effect_without_route_motion_or_bridge_evidence",
+            "transition_that_hides_missing_route_continuity",
+            "random_spin_flash_glitch_template_or_particle_style",
+            "title_or_subtitle_overlap_at_transition_hit",
+            "source_camera_voice_leaking_into_scenic_transition",
+        ],
+    }
+
+
 def clip_indices_near_boundary(clips: list[dict[str, Any]], boundary: float) -> tuple[int | None, int | None]:
     from_scored: list[tuple[float, int]] = []
     to_scored: list[tuple[float, int]] = []
@@ -371,6 +434,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         decision = dict(DECISION_FIELDS)
         if set(DECISION_FIELDS).issubset(set(decision)):
             rows_with_decisions += 1
+        motivation = transition_motivation(transition, phrase, recipe, motion_allowed=motion_is_safe(transition))
         payload = {
             "role": "transition_polish_candidate",
             "rowIndex": transition.get("rowIndex") or index,
@@ -389,6 +453,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "hitToleranceSeconds": recipe.get("hitToleranceSeconds"),
                 "audioTreatment": "bgm_only_no_camera_voice",
             },
+            "transitionMotivation": motivation,
             "titleSubtitleAvoidance": title_avoidance,
             "motionEvidenceSatisfied": motion_is_safe(transition),
             "motionStyle": motion_row,
