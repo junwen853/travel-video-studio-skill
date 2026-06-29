@@ -1,6 +1,6 @@
 # Transition Preview Packet Engine
 
-Use this engine after transition grammar, visual-match, scene-arc, effect-palette, microstructure, pair-continuity, execution-readiness, transition-polish, bridge-application, and final-blueprint-lineage checks exist, and before `audit_transition_storyboard_contract.py`.
+Use this engine after transition grammar, visual-match, scene-arc, effect-palette, microstructure, pair-continuity, execution-readiness, transition-polish, bridge-application, and final-blueprint-lineage checks exist, and before `audit_transition_preview_quality_contract.py` and `audit_transition_storyboard_contract.py`.
 
 ## Purpose
 
@@ -43,6 +43,8 @@ The packet is ready when every selected important boundary has:
 - no failed frame extraction
 
 `ready_no_important_transitions` is acceptable only when the transition grammar has no important day/place/title/timeline-gap/ending boundaries.
+
+After the packet is ready, run `audit_transition_preview_quality_contract.py`. Do not approve storyboard, Resolve apply, final QA, maturity, or V14 baseline until the quality audit proves the generated frames decode, are not blank, and outgoing/landing evidence is not identical.
 
 ## Blockers
 

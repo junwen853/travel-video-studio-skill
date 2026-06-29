@@ -502,6 +502,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
+    transition_preview_quality = load_json(package_dir / "transition_preview_quality_contract_audit.json") or {}
     transition_storyboard = load_json(package_dir / "transition_storyboard_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
@@ -523,10 +524,11 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tep_summary = summary_of(transition_effect_palette)
     tvm_summary = summary_of(transition_visual_match)
     tpp_summary = summary_of(transition_preview_packet)
+    tpq_summary = summary_of(transition_preview_quality)
     tsb_summary = summary_of(transition_storyboard)
     add_gate(
         gates,
-        "Transition cadence, execution, scene arcs, effect palette, visual match, preview packet, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",
+        "Transition cadence, execution, scene arcs, effect palette, visual match, preview packet quality, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",
         transition_quality.get("status") == "passed"
         and shot_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
@@ -547,6 +549,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_effect_palette.get("status") == "passed"
         and transition_visual_match.get("status") == "passed"
         and transition_preview_packet.get("status") in {"ready_with_transition_preview_packet", "ready_no_important_transitions"}
+        and transition_preview_quality.get("status") == "passed"
         and transition_storyboard.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
         and as_int(sb_summary.get("blockedBoundaryCount")) == 0
@@ -664,6 +667,11 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             as_int(tsb_summary.get("importantBoundaryCount")) == 0
             or as_int(tpp_summary.get("readyPreviewRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
         )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(tpq_summary.get("previewQualityReadyRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and as_int(tpq_summary.get("blockedPreviewQualityRowCount")) == 0
         and as_int(tsb_summary.get("motionReadyRowCount")) == as_int(tsb_summary.get("motionTransitionCount"))
         and as_int(tm_summary.get("motivatedBoundaryCount")) == as_int(tm_summary.get("visualBoundaryCount"))
         and as_int(tpc_summary.get("pairContinuityPayloadCount")) == as_int(tpc_summary.get("visualBoundaryCount"))
@@ -687,6 +695,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_effect_palette.get("blockers")
         and not transition_visual_match.get("blockers")
         and not transition_preview_packet.get("blockers")
+        and not transition_preview_quality.get("blockers")
         and not transition_storyboard.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
@@ -732,6 +741,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionVisualMatchSummary": tvm_summary,
             "transitionPreviewPacketStatus": transition_preview_packet.get("status"),
             "transitionPreviewPacketSummary": tpp_summary,
+            "transitionPreviewQualityStatus": transition_preview_quality.get("status"),
+            "transitionPreviewQualitySummary": tpq_summary,
             "transitionStoryboardStatus": transition_storyboard.get("status"),
             "transitionStoryboardSummary": tsb_summary,
         },

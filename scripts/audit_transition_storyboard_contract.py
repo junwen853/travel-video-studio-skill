@@ -16,6 +16,7 @@ REPORT_SPECS = {
     "transitionEffectPalette": ("transition_effect_palette_contract_audit.json", {"passed"}),
     "transitionVisualMatch": ("transition_visual_match_contract_audit.json", {"passed"}),
     "transitionMicrostructure": ("transition_microstructure_contract_audit.json", {"passed"}),
+    "transitionPreviewQuality": ("transition_preview_quality_contract_audit.json", {"passed"}),
     "transitionPairContinuity": ("transition_pair_continuity_contract_audit.json", {"passed"}),
     "transitionExecutionReadiness": ("transition_execution_readiness_contract_audit.json", {"passed"}),
     "transitionPolishApplication": ("transition_polish_application_contract_audit.json", {"passed"}),

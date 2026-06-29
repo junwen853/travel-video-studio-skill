@@ -53,6 +53,7 @@ ACCEPTED_STATUSES = {
     "transition_effect_palette_contract_audit": {"passed"},
     "transition_visual_match_contract_audit": {"passed"},
     "transition_preview_packet": {"ready_with_transition_preview_packet", "ready_no_important_transitions"},
+    "transition_preview_quality_contract_audit": {"passed"},
     "transition_storyboard_contract_audit": {"passed"},
     "unattended_first_draft_contract_audit": {"passed", "passed_with_warnings"},
     "skill_maturity_contract_audit": {"passed", "passed_with_warnings"},
@@ -175,6 +176,8 @@ def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) ->
         return package_dir / "feedback_regression_audit" / "feedback_regression_audit.json"
     if stage == "package_integrity_audit_strict_portable":
         return package_dir / "package_integrity_audit_strict_portable.json"
+    if stage == "transition_preview_packet":
+        return package_dir / "transition_preview_packet" / "transition_preview_packet.json"
     return package_dir / f"{stage}.json"
 
 
@@ -621,6 +624,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                     str(package_dir),
                     "--extract-frames",
                     "--update-transition-grammar",
+                ],
+                False,
+            ),
+            (
+                "transition_preview_quality_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_transition_preview_quality_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
                 ],
                 False,
             ),

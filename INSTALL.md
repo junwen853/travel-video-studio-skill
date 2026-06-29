@@ -41,9 +41,9 @@ python3 scripts/install_for_agent.py \
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.50.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.50/travel-video-studio-skill-v0.1.50.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.50.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.51.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.51/travel-video-studio-skill-v0.1.51.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.51.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 ## Install From Source
@@ -100,10 +100,12 @@ test -f ~/.codex/skills/travel-video-studio/scripts/audit_effect_motion_applicat
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_reference_profile_application_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_large_source_unattended_readiness_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/prepare_transition_preview_packet.py
+test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_preview_quality_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_storyboard_contract.py
 test -f ~/.codex/skills/travel-video-studio/references/reference-profile-application-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/large-source-unattended-readiness-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-preview-packet-engine.md
+test -f ~/.codex/skills/travel-video-studio/references/transition-preview-quality-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-storyboard-contract.md
 python3 ~/.codex/skills/travel-video-studio/scripts/check_project_state.py \
   --project-dir "$VIDEO_CLAW_STUDIO_DIR"
