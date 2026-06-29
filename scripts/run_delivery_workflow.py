@@ -698,6 +698,35 @@ def summarize_transition_cadence_contract(report: dict[str, Any] | None) -> dict
     }
 
 
+def summarize_transition_microstructure_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "bgmHitBoundaryCount": summary.get("bgmHitBoundaryCount"),
+        "titleSafeBoundaryCount": summary.get("titleSafeBoundaryCount"),
+        "bgmOnlyBoundaryCount": summary.get("bgmOnlyBoundaryCount"),
+        "handleReadyBoundaryCount": summary.get("handleReadyBoundaryCount"),
+        "pairReadyBoundaryCount": summary.get("pairReadyBoundaryCount"),
+        "weakPairFitCount": summary.get("weakPairFitCount"),
+        "motionBoundaryCount": summary.get("motionBoundaryCount"),
+        "motionReadyBoundaryCount": summary.get("motionReadyBoundaryCount"),
+        "maxTransitionDurationSeconds": summary.get("maxTransitionDurationSeconds"),
+        "decorativeRepeatedRunMax": summary.get("decorativeRepeatedRunMax"),
+        "markerOnlyBlockedRowCount": summary.get("markerOnlyBlockedRowCount"),
+        "expectedBridgeBeatClipCount": summary.get("expectedBridgeBeatClipCount"),
+        "appliedBridgeBeatClipCount": summary.get("appliedBridgeBeatClipCount"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_final_source_usage_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2209,6 +2238,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_cadence_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_cadence_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_cadence_contract", transition_cadence_cmd, ok_codes={0, 2}))
 
+    transition_microstructure_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_microstructure_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_transition_microstructure_contract", transition_microstructure_cmd, ok_codes={0, 2}))
+
     final_source_usage_cmd = ["python3", str(SCRIPTS_DIR / "audit_final_source_usage_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_final_source_usage_contract", final_source_usage_cmd, ok_codes={0, 2}))
 
@@ -2330,6 +2362,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     bridge_sequence_application_summary = None
     final_blueprint_lineage_summary = None
     transition_cadence_summary = None
+    transition_microstructure_summary = None
     final_source_usage_summary = None
     creator_cut_application_summary = None
     reference_scene_grammar_summary = None
@@ -2538,6 +2571,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition cadence blocker: {item}" for item in transition_cadence_summary.get("blockers") or [])
             if transition_cadence_summary and transition_cadence_summary.get("warnings"):
                 warnings.extend(f"Transition cadence warning: {item}" for item in transition_cadence_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_microstructure_contract":
+            transition_microstructure_summary = summarize_transition_microstructure_contract(payload)
+            if transition_microstructure_summary and transition_microstructure_summary.get("status") == "blocked":
+                blockers.extend(f"Transition microstructure blocker: {item}" for item in transition_microstructure_summary.get("blockers") or [])
+            if transition_microstructure_summary and transition_microstructure_summary.get("warnings"):
+                warnings.extend(f"Transition microstructure warning: {item}" for item in transition_microstructure_summary.get("warnings") or [])
         if step["id"] == "audit_final_source_usage_contract":
             final_source_usage_summary = summarize_final_source_usage_contract(payload)
             if final_source_usage_summary and final_source_usage_summary.get("status") == "blocked":
@@ -2770,6 +2809,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_cadence_summary = summarize_transition_cadence_contract(
             load_json(package_dir / "transition_cadence_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_microstructure_contract_audit.json").exists():
+        transition_microstructure_summary = summarize_transition_microstructure_contract(
+            load_json(package_dir / "transition_microstructure_contract_audit.json")
+        )
     if package_dir and (package_dir / "final_source_usage_contract_audit.json").exists():
         final_source_usage_summary = summarize_final_source_usage_contract(
             load_json(package_dir / "final_source_usage_contract_audit.json")
@@ -2880,6 +2923,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "bridgeSequenceApplicationSummary": bridge_sequence_application_summary,
         "finalBlueprintLineageSummary": final_blueprint_lineage_summary,
         "transitionCadenceSummary": transition_cadence_summary,
+        "transitionMicrostructureSummary": transition_microstructure_summary,
         "finalSourceUsageSummary": final_source_usage_summary,
         "creatorCutApplicationSummary": creator_cut_application_summary,
         "referenceSceneGrammarSummary": reference_scene_grammar_summary,
@@ -2938,6 +2982,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review bridge_sequence_application_contract_audit.json before Resolve apply so planned 2-5 shot bridge sequences survive into the final candidate blueprint.",
             "Review final_blueprint_lineage_contract_audit.json before Resolve apply so the active final blueprint inherits the latest ready candidate chain instead of an old or partial blueprint.",
             "Review transition_cadence_contract_audit.json before Resolve apply so the finished film has full-boundary transition coverage, restrained motivated motion, no repeated-template cadence, and materialized bridge beats at important boundaries.",
+            "Review transition_microstructure_contract_audit.json before Resolve apply so every adjacent shot transition has a BGM landing, title-safe/BGM-only window, handles, pair continuity, bridge beats, and a real apply path.",
             "Review final_source_usage_contract_audit.json before Resolve apply so the final raw clips actually come from footage_select_plan hero/main/texture choices and do not reintroduce unmatched, repair, reject, or utility-dominant sources.",
             "Review creator_cut_application_contract_audit.json before Resolve apply so rejected/utility/weak creator-cut rows cannot remain active in the final candidate blueprint.",
             "Review reference_scene_grammar_contract_audit.json before Resolve apply so opening, chapters, transitions, and ending follow the Parallel World/Malta scene-function grammar.",

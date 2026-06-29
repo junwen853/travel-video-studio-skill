@@ -443,6 +443,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
     transition_cadence = load_json(package_dir / "transition_cadence_contract_audit.json") or {}
+    transition_microstructure = load_json(package_dir / "transition_microstructure_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
     timeline_variety = load_json(package_dir / "timeline_variety_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
@@ -456,6 +457,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     bsa_summary = summary_of(bridge_sequence_application)
     fbl_summary = summary_of(final_blueprint_lineage)
     tc_summary = summary_of(transition_cadence)
+    tms_summary = summary_of(transition_microstructure)
     rsg_summary = summary_of(reference_scene_grammar)
     tv_summary = summary_of(timeline_variety)
     add_gate(
@@ -472,6 +474,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and bridge_sequence_application.get("status") == "passed"
         and final_blueprint_lineage.get("status") == "passed"
         and transition_cadence.get("status") == "passed"
+        and transition_microstructure.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
         and timeline_variety.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
@@ -512,6 +515,17 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(tc_summary.get("craftedTransitionCount")) >= as_int(tc_summary.get("minimumCraftedTransitionCount"))
         and as_int(tc_summary.get("motionTransitionCount")) <= as_int(tc_summary.get("maxMotionAllowed"))
         and as_int(tc_summary.get("decorativeRepeatedRunMax")) < 4
+        and as_int(tms_summary.get("blockedCheckCount")) == 0
+        and as_int(tms_summary.get("visualBoundaryCount")) >= 1
+        and as_int(tms_summary.get("transitionRowCount")) >= as_int(tms_summary.get("visualBoundaryCount"))
+        and as_int(tms_summary.get("bgmHitBoundaryCount")) == as_int(tms_summary.get("visualBoundaryCount"))
+        and as_int(tms_summary.get("titleSafeBoundaryCount")) == as_int(tms_summary.get("visualBoundaryCount"))
+        and as_int(tms_summary.get("bgmOnlyBoundaryCount")) == as_int(tms_summary.get("visualBoundaryCount"))
+        and as_int(tms_summary.get("handleReadyBoundaryCount")) == as_int(tms_summary.get("visualBoundaryCount"))
+        and as_int(tms_summary.get("pairReadyBoundaryCount")) == as_int(tms_summary.get("visualBoundaryCount"))
+        and as_int(tms_summary.get("weakPairFitCount")) == 0
+        and as_int(tms_summary.get("markerOnlyBlockedRowCount")) == 0
+        and as_int(tms_summary.get("appliedBridgeBeatClipCount")) >= as_int(tms_summary.get("expectedBridgeBeatClipCount"))
         and as_int(rsg_summary.get("chaptersBlocked")) == 0
         and as_int(rsg_summary.get("blockerCount")) == 0
         and as_int(tv_summary.get("blockedCheckCount")) == 0
@@ -534,6 +548,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not bridge_sequence_application.get("blockers")
         and not final_blueprint_lineage.get("blockers")
         and not transition_cadence.get("blockers")
+        and not transition_microstructure.get("blockers")
         and not reference_scene_grammar.get("blockers")
         and not timeline_variety.get("blockers"),
         {
@@ -562,6 +577,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "finalBlueprintLineageSummary": fbl_summary,
             "transitionCadenceStatus": transition_cadence.get("status"),
             "transitionCadenceSummary": tc_summary,
+            "transitionMicrostructureStatus": transition_microstructure.get("status"),
+            "transitionMicrostructureSummary": tms_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": rsg_summary,
             "timelineVarietyStatus": timeline_variety.get("status"),

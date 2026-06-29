@@ -39,6 +39,7 @@ ACCEPTED_STATUSES = {
     "source_selection_coverage_contract_audit": {"passed"},
     "final_blueprint_lineage_contract_audit": {"passed"},
     "transition_cadence_contract_audit": {"passed"},
+    "transition_microstructure_contract_audit": {"passed"},
     "final_source_usage_contract_audit": {"passed"},
     "creator_cut_application_contract_audit": {"passed"},
     "reference_scene_grammar_contract_audit": {"passed"},
@@ -466,6 +467,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "audit_transition_cadence_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_microstructure_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_transition_microstructure_contract.py"),
                     "--package-dir",
                     str(package_dir),
                 ],

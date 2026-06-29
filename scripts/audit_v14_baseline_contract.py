@@ -47,6 +47,7 @@ SKILL_PATTERNS = {
     "resolve_transition_apply": "audit_resolve_transition_apply_contract.py",
     "final_blueprint_lineage": "audit_final_blueprint_lineage_contract.py",
     "transition_cadence": "audit_transition_cadence_contract.py",
+    "transition_microstructure": "audit_transition_microstructure_contract.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
@@ -109,6 +110,7 @@ REQUIRED_SCRIPTS = [
     "audit_resolve_transition_apply_contract.py",
     "audit_final_blueprint_lineage_contract.py",
     "audit_transition_cadence_contract.py",
+    "audit_transition_microstructure_contract.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
@@ -239,6 +241,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     resolve_transition_apply = load_json(package_dir / "resolve_transition_apply_contract_audit.json") or {}
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
     transition_cadence = load_json(package_dir / "transition_cadence_contract_audit.json") or {}
+    transition_microstructure = load_json(package_dir / "transition_microstructure_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
@@ -1025,6 +1028,33 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "transitionCadenceStatus": transition_cadence.get("status"),
             "transitionCadenceSummary": transition_cadence_summary,
+        },
+    )
+    transition_microstructure_summary = get_summary(transition_microstructure)
+    transition_microstructure_boundaries = int(transition_microstructure_summary.get("visualBoundaryCount") or 0)
+    add_check(
+        checks,
+        "Transition microstructure contract proves each adjacent V14 shot has a landed BGM/title-safe/BGM-only transition beat",
+        transition_microstructure.get("status") == "passed"
+        and transition_microstructure_boundaries >= 1
+        and int(transition_microstructure_summary.get("transitionRowCount") or 0) >= transition_microstructure_boundaries
+        and int(transition_microstructure_summary.get("bgmHitBoundaryCount") or 0) == transition_microstructure_boundaries
+        and int(transition_microstructure_summary.get("titleSafeBoundaryCount") or 0) == transition_microstructure_boundaries
+        and int(transition_microstructure_summary.get("bgmOnlyBoundaryCount") or 0) == transition_microstructure_boundaries
+        and int(transition_microstructure_summary.get("handleReadyBoundaryCount") or 0) == transition_microstructure_boundaries
+        and int(transition_microstructure_summary.get("pairReadyBoundaryCount") or 0) == transition_microstructure_boundaries
+        and int(transition_microstructure_summary.get("weakPairFitCount") or 0) == 0
+        and int(transition_microstructure_summary.get("motionBoundaryCount") or 0) <= int(transition_microstructure_summary.get("maxMotionAllowed") or 0)
+        and int(transition_microstructure_summary.get("motionReadyBoundaryCount") or 0) == int(transition_microstructure_summary.get("motionBoundaryCount") or 0)
+        and float(transition_microstructure_summary.get("maxTransitionDurationSeconds") or 0.0) <= 0.9
+        and int(transition_microstructure_summary.get("decorativeRepeatedRunMax") or 0) < 4
+        and int(transition_microstructure_summary.get("markerOnlyBlockedRowCount") or 0) == 0
+        and int(transition_microstructure_summary.get("appliedBridgeBeatClipCount") or 0) >= int(transition_microstructure_summary.get("expectedBridgeBeatClipCount") or 0)
+        and int(transition_microstructure_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_microstructure.get("blockers"),
+        {
+            "transitionMicrostructureStatus": transition_microstructure.get("status"),
+            "transitionMicrostructureSummary": transition_microstructure_summary,
         },
     )
     transition_quality_summary = get_summary(transition_quality)

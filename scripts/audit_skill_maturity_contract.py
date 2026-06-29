@@ -52,6 +52,7 @@ REQUIRED_SCRIPTS = {
         "audit_bridge_sequence_application_contract.py",
         "audit_final_blueprint_lineage_contract.py",
         "audit_transition_cadence_contract.py",
+        "audit_transition_microstructure_contract.py",
         "audit_final_source_usage_contract.py",
         "audit_reference_scene_grammar_contract.py",
         "audit_timeline_variety_contract.py",
@@ -123,6 +124,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bridge_sequence_application_contract_rule": "audit_bridge_sequence_application_contract.py",
     "final_blueprint_lineage_contract_rule": "audit_final_blueprint_lineage_contract.py",
     "transition_cadence_contract_rule": "audit_transition_cadence_contract.py",
+    "transition_microstructure_contract_rule": "audit_transition_microstructure_contract.py",
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
     "timeline_variety_contract_rule": "audit_timeline_variety_contract.py",
@@ -185,6 +187,7 @@ REQUIRED_SKILL_PATTERNS = {
     "resolve_transition_apply_contract_reference_rule": "resolve-transition-apply-contract.md",
     "final_blueprint_lineage_contract_reference_rule": "final-blueprint-lineage-contract.md",
     "transition_cadence_contract_reference_rule": "transition-cadence-contract.md",
+    "transition_microstructure_contract_reference_rule": "transition-microstructure-contract.md",
     "timeline_variety_contract_reference_rule": "timeline-variety-contract.md",
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
@@ -4549,6 +4552,73 @@ def transition_cadence_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_microstructure_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_microstructure_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "bgmHitBoundaryCount": summary.get("bgmHitBoundaryCount"),
+        "titleSafeBoundaryCount": summary.get("titleSafeBoundaryCount"),
+        "bgmOnlyBoundaryCount": summary.get("bgmOnlyBoundaryCount"),
+        "handleReadyBoundaryCount": summary.get("handleReadyBoundaryCount"),
+        "pairReadyBoundaryCount": summary.get("pairReadyBoundaryCount"),
+        "weakPairFitCount": summary.get("weakPairFitCount"),
+        "motionBoundaryCount": summary.get("motionBoundaryCount"),
+        "motionReadyBoundaryCount": summary.get("motionReadyBoundaryCount"),
+        "maxMotionAllowed": summary.get("maxMotionAllowed"),
+        "maxTransitionDurationSeconds": summary.get("maxTransitionDurationSeconds"),
+        "decorativeRepeatedRunMax": summary.get("decorativeRepeatedRunMax"),
+        "markerOnlyBlockedRowCount": summary.get("markerOnlyBlockedRowCount"),
+        "expectedBridgeBeatClipCount": summary.get("expectedBridgeBeatClipCount"),
+        "appliedBridgeBeatClipCount": summary.get("appliedBridgeBeatClipCount"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_microstructure_contract_ready(evidence: dict[str, Any]) -> bool:
+    visual_boundaries = int(evidence.get("visualBoundaryCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and visual_boundaries >= 1
+        and int(evidence.get("transitionRowCount") or 0) >= visual_boundaries
+        and int(evidence.get("bgmHitBoundaryCount") or 0) == visual_boundaries
+        and int(evidence.get("titleSafeBoundaryCount") or 0) == visual_boundaries
+        and int(evidence.get("bgmOnlyBoundaryCount") or 0) == visual_boundaries
+        and int(evidence.get("handleReadyBoundaryCount") or 0) == visual_boundaries
+        and int(evidence.get("pairReadyBoundaryCount") or 0) == visual_boundaries
+        and int(evidence.get("weakPairFitCount") or 0) == 0
+        and int(evidence.get("motionBoundaryCount") or 0) <= int(evidence.get("maxMotionAllowed") or 0)
+        and int(evidence.get("motionReadyBoundaryCount") or 0) == int(evidence.get("motionBoundaryCount") or 0)
+        and float(evidence.get("maxTransitionDurationSeconds") or 0.0) <= 0.9
+        and int(evidence.get("decorativeRepeatedRunMax") or 0) < 4
+        and int(evidence.get("markerOnlyBlockedRowCount") or 0) == 0
+        and int(evidence.get("appliedBridgeBeatClipCount") or 0) >= int(evidence.get("expectedBridgeBeatClipCount") or 0)
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def unattended_first_draft_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "unattended_first_draft_contract_audit.json"
     data = load_json(path) or {}
@@ -5077,6 +5147,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition cadence contract proves the whole film has restrained motivated transitions instead of bare cuts, repeated templates, or effect spam",
         transition_cadence_contract_ready(transition_cadence_evidence),
         transition_cadence_evidence,
+    )
+    transition_microstructure_evidence = transition_microstructure_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition microstructure contract proves every adjacent shot transition has a BGM landing, title-safe/BGM-only window, handles, pair continuity, bridge beats, and a real apply path",
+        transition_microstructure_contract_ready(transition_microstructure_evidence),
+        transition_microstructure_evidence,
     )
     reference_scene_grammar_evidence = reference_scene_grammar_contract_evidence(package_dir)
     add_check(
