@@ -46,6 +46,7 @@ SKILL_PATTERNS = {
     "resolve_transition_materialization": "audit_resolve_transition_materialization_contract.py",
     "resolve_transition_apply": "audit_resolve_transition_apply_contract.py",
     "final_blueprint_lineage": "audit_final_blueprint_lineage_contract.py",
+    "transition_cadence": "audit_transition_cadence_contract.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract": "audit_shot_transition_boundary_contract.py",
     "transition_motivation_contract": "audit_transition_motivation_contract.py",
@@ -106,6 +107,7 @@ REQUIRED_SCRIPTS = [
     "prepare_resolve_transition_apply_plan.py",
     "audit_resolve_transition_apply_contract.py",
     "audit_final_blueprint_lineage_contract.py",
+    "audit_transition_cadence_contract.py",
     "audit_transition_quality_contract.py",
     "audit_shot_transition_boundary_contract.py",
     "audit_transition_motivation_contract.py",
@@ -234,6 +236,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     resolve_transition_materialization = load_json(package_dir / "resolve_transition_materialization_contract_audit.json") or {}
     resolve_transition_apply = load_json(package_dir / "resolve_transition_apply_contract_audit.json") or {}
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
+    transition_cadence = load_json(package_dir / "transition_cadence_contract_audit.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
     shot_transition_boundary = load_json(package_dir / "shot_transition_boundary_contract_audit.json") or {}
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
@@ -1002,6 +1005,25 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "finalBlueprint": final_blueprint_lineage_inputs.get("finalBlueprint"),
         },
     )
+    transition_cadence_summary = get_summary(transition_cadence)
+    add_check(
+        checks,
+        "Transition cadence contract proves V14 transition polish survives as film-level rhythm instead of bare cuts or effect spam",
+        transition_cadence.get("status") == "passed"
+        and int(transition_cadence_summary.get("visualBoundaryCount") or 0) >= 1
+        and int(transition_cadence_summary.get("transitionRowCount") or 0) >= int(transition_cadence_summary.get("visualBoundaryCount") or 0)
+        and int(transition_cadence_summary.get("craftedTransitionCount") or 0) >= int(transition_cadence_summary.get("minimumCraftedTransitionCount") or 0)
+        and int(transition_cadence_summary.get("motionTransitionCount") or 0) <= int(transition_cadence_summary.get("maxMotionAllowed") or 0)
+        and int(transition_cadence_summary.get("decorativeRepeatedRunMax") or 0) < 4
+        and float(transition_cadence_summary.get("dominantStyleShare") or 0.0) <= 0.7
+        and int(transition_cadence_summary.get("appliedBridgeBeatClipCount") or 0) >= int(transition_cadence_summary.get("expectedBridgeBeatClipCount") or 0)
+        and int(transition_cadence_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_cadence.get("blockers"),
+        {
+            "transitionCadenceStatus": transition_cadence.get("status"),
+            "transitionCadenceSummary": transition_cadence_summary,
+        },
+    )
     transition_quality_summary = get_summary(transition_quality)
     transition_quality_inputs = transition_quality.get("inputs") if isinstance(transition_quality.get("inputs"), dict) else {}
     transition_quality_rows = int(transition_quality_summary.get("transitionRowCount") or 0)
@@ -1269,6 +1291,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and resolve_transition_materialization.get("status") == "passed"
         and resolve_transition_apply.get("status") == "passed"
         and final_blueprint_lineage.get("status") == "passed"
+        and transition_cadence.get("status") == "passed"
         and transition_quality.get("status") == "passed"
         and shot_transition_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
@@ -1338,6 +1361,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "resolveTransitionApplySummary": resolve_transition_apply_summary,
             "finalBlueprintLineageStatus": final_blueprint_lineage.get("status"),
             "finalBlueprintLineageSummary": final_blueprint_lineage_summary,
+            "transitionCadenceStatus": transition_cadence.get("status"),
+            "transitionCadenceSummary": transition_cadence_summary,
             "transitionQualityStatus": transition_quality.get("status"),
             "transitionQualitySummary": transition_quality_summary,
             "shotTransitionBoundaryStatus": shot_transition_boundary.get("status"),

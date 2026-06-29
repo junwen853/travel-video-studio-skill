@@ -51,6 +51,7 @@ REQUIRED_SCRIPTS = {
         "audit_resolve_transition_apply_contract.py",
         "audit_bridge_sequence_application_contract.py",
         "audit_final_blueprint_lineage_contract.py",
+        "audit_transition_cadence_contract.py",
         "audit_final_source_usage_contract.py",
         "audit_reference_scene_grammar_contract.py",
         "audit_unattended_first_draft_contract.py",
@@ -120,6 +121,7 @@ REQUIRED_SKILL_PATTERNS = {
     "resolve_transition_apply_contract_rule": "audit_resolve_transition_apply_contract.py",
     "bridge_sequence_application_contract_rule": "audit_bridge_sequence_application_contract.py",
     "final_blueprint_lineage_contract_rule": "audit_final_blueprint_lineage_contract.py",
+    "transition_cadence_contract_rule": "audit_transition_cadence_contract.py",
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
     "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
@@ -180,6 +182,7 @@ REQUIRED_SKILL_PATTERNS = {
     "resolve_transition_materialization_contract_reference_rule": "resolve-transition-materialization-contract.md",
     "resolve_transition_apply_contract_reference_rule": "resolve-transition-apply-contract.md",
     "final_blueprint_lineage_contract_reference_rule": "final-blueprint-lineage-contract.md",
+    "transition_cadence_contract_reference_rule": "transition-cadence-contract.md",
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine_rule": "transition-polish-blueprint-engine.md",
@@ -208,6 +211,7 @@ REQUIRED_STYLE_PATTERNS = {
     "resolve_transition_materialization_contract": "resolve-transition-materialization-contract.md",
     "resolve_transition_apply_contract": "resolve-transition-apply-contract.md",
     "final_blueprint_lineage_contract": "final-blueprint-lineage-contract.md",
+    "transition_cadence_contract": "transition-cadence-contract.md",
     "final_source_usage_contract": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
@@ -241,6 +245,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_polish_application_contract": "transition polish application contract",
     "resolve_transition_materialization_contract": "Resolve transition materialization contract",
     "resolve_transition_apply_contract": "Resolve transition apply contract",
+    "transition_cadence_contract": "transition cadence contract",
     "transition_quality_contract": "transition quality contract",
     "shot_transition_boundary_contract": "shot transition boundary contract",
     "transition_motif_plan": "transition motif plan",
@@ -4422,6 +4427,63 @@ def resolve_transition_apply_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_cadence_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_cadence_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "craftedTransitionCount": summary.get("craftedTransitionCount"),
+        "minimumCraftedTransitionCount": summary.get("minimumCraftedTransitionCount"),
+        "motionTransitionCount": summary.get("motionTransitionCount"),
+        "maxMotionAllowed": summary.get("maxMotionAllowed"),
+        "decorativeRepeatedRunMax": summary.get("decorativeRepeatedRunMax"),
+        "dominantStyle": summary.get("dominantStyle"),
+        "dominantStyleShare": summary.get("dominantStyleShare"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "requiredBridgeSequenceRowCount": summary.get("requiredBridgeSequenceRowCount"),
+        "expectedBridgeBeatClipCount": summary.get("expectedBridgeBeatClipCount"),
+        "appliedBridgeBeatClipCount": summary.get("appliedBridgeBeatClipCount"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_cadence_contract_ready(evidence: dict[str, Any]) -> bool:
+    visual_boundaries = int(evidence.get("visualBoundaryCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and visual_boundaries >= 1
+        and int(evidence.get("transitionRowCount") or 0) >= visual_boundaries
+        and int(evidence.get("craftedTransitionCount") or 0) >= int(evidence.get("minimumCraftedTransitionCount") or 0)
+        and int(evidence.get("motionTransitionCount") or 0) <= int(evidence.get("maxMotionAllowed") or 0)
+        and int(evidence.get("decorativeRepeatedRunMax") or 0) < 4
+        and float(evidence.get("dominantStyleShare") or 0.0) <= 0.7
+        and int(evidence.get("appliedBridgeBeatClipCount") or 0) >= int(evidence.get("expectedBridgeBeatClipCount") or 0)
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def unattended_first_draft_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "unattended_first_draft_contract_audit.json"
     data = load_json(path) or {}
@@ -4943,6 +5005,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Resolve transition apply contract proves visible transitions have an API, manual Resolve, or bridge-clip apply path instead of marker-only metadata",
         resolve_transition_apply_contract_ready(resolve_transition_apply_evidence),
         resolve_transition_apply_evidence,
+    )
+    transition_cadence_evidence = transition_cadence_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition cadence contract proves the whole film has restrained motivated transitions instead of bare cuts, repeated templates, or effect spam",
+        transition_cadence_contract_ready(transition_cadence_evidence),
+        transition_cadence_evidence,
     )
     reference_scene_grammar_evidence = reference_scene_grammar_contract_evidence(package_dir)
     add_check(
