@@ -67,7 +67,7 @@ The reference covers and hero title cards use a simple but high-impact formula:
 
 Reject covers that use black slates, low-recognition closeups, small timid text, stacked city names, long sentences, AI-looking gradient backgrounds, or title text that fights the subject.
 
-Before final-quality claims, run `audit_cover_title_contract.py --package-dir <package>` so this cover/hero formula is checked against actual title media and manifest evidence.
+Before final-quality claims, run `audit_cover_title_contract.py --package-dir <package>` so this cover title contract checks the cover/hero formula against actual title media and manifest evidence.
 
 ## Chapter Rhythm
 
@@ -133,7 +133,7 @@ Use the plan to be stricter than a normal assembly:
 
 The reference feeling comes from selective shot choice plus route evidence. Effects are secondary.
 
-After creator cut selection, run `prepare_transition_grammar_plan.py` so each adjacent pair has a specific cut/dissolve/match/whip/rotation/speed-ramp/bridge-insert decision. Then run `prepare_transition_execution_plan.py`, `prepare_transition_motif_plan.py`, `prepare_bridge_sequence_plan.py`, `prepare_bridge_sequence_blueprint.py`, `prepare_transition_execution_blueprint.py`, `prepare_bgm_phrase_blueprint.py`, and after rhythm recut `prepare_transition_polish_blueprint.py` plus `audit_transition_quality_contract.py` and `audit_shot_transition_boundary_contract.py` so the whole transition chain becomes Resolve-ready recipes, candidate transition metadata, materialized bridge sequences, selected-music phrase cues, final BGM-hit/title-safe/motion-proven transition polish metadata, visual-boundary coverage evidence, and exact from/to boundary matching instead of repeated dissolves, random motion, effects hiding weak route jumps, or one-effect city/day jumps. This is the guard against vague "add some transition" editing.
+After creator cut selection, run `prepare_transition_grammar_plan.py` so each adjacent pair has a specific cut/dissolve/match/whip/rotation/speed-ramp/bridge-insert decision. Then run `prepare_transition_execution_plan.py`, `prepare_transition_motif_plan.py`, `prepare_bridge_sequence_plan.py`, `prepare_bridge_sequence_blueprint.py`, `prepare_transition_execution_blueprint.py`, `prepare_bgm_phrase_blueprint.py`, and after rhythm recut `prepare_transition_polish_blueprint.py` plus `audit_transition_quality_contract.py`, `audit_shot_transition_boundary_contract.py`, `audit_transition_execution_readiness_contract.py`, and `audit_bridge_sequence_application_contract.py` so the whole transition chain becomes Resolve-ready recipes, candidate transition metadata, materialized bridge sequences, selected-music phrase cues, final BGM-hit/title-safe/motion-proven transition polish metadata, visual-boundary coverage evidence, exact from/to boundary matching, transition execution readiness contract proof, transition quality contract proof, shot transition boundary contract proof, and bridge sequence application contract proof instead of repeated dissolves, random motion, effects hiding weak route jumps, or one-effect city/day jumps. This is the guard against vague "add some transition" editing.
 
 After reference-style, director-intent, director-polish, or final QA checks run, use `prepare_reference_style_repair_plan.py` so every blocked check becomes a repair row with an owner script, required artifact, acceptance evidence, and post-repair audit. Do not allow "closer to the reference" to remain an unassigned note.
 
@@ -181,6 +181,8 @@ Before saying a package has learned this reference style, verify:
 - The transition polish blueprint report proves final transitions have BGM-hit timing, title/subtitle avoidance, motion-proof, and restrained keyframes before Resolve apply.
 - The bridge sequence plan proves important route/title/timeline-gap transitions have 2-5 shot bridge beats or owner-script repairs.
 - The bridge sequence blueprint report proves local bridge beats are present as video-only candidate clips before Resolve apply.
+- The bridge sequence application contract proves those planned bridge beats survive into the final candidate blueprint after rhythm, BGM, effect, and transition-polish candidate stages.
+- The transition execution readiness contract proves final transition rows are package-local, title-safe, BGM-hit timed, pair-ready, handle-ready, and Resolve-executable before Resolve apply.
 - The reference style repair plan converts blocked reference/director/QA checks into P0/P1 repair rows before the next Resolve write.
 - Effect motion rows prefer fade/dissolve/match-cut/subtle motion and reject template-heavy effects.
 - Effect motion blueprint rows prove approved effects are candidate-materialized on clips before Resolve apply.

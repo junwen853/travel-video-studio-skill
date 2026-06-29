@@ -36,6 +36,7 @@ SKILL_PATTERNS = {
     "transition_motif": "prepare_transition_motif_plan.py",
     "bridge_sequence": "prepare_bridge_sequence_plan.py",
     "bridge_sequence_blueprint": "prepare_bridge_sequence_blueprint.py",
+    "bridge_sequence_application": "audit_bridge_sequence_application_contract.py",
     "rhythm_recut_blueprint": "prepare_rhythm_recut_blueprint.py",
     "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
     "transition_quality_contract": "audit_transition_quality_contract.py",
@@ -87,6 +88,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_motif_plan.py",
     "prepare_bridge_sequence_plan.py",
     "prepare_bridge_sequence_blueprint.py",
+    "audit_bridge_sequence_application_contract.py",
     "prepare_rhythm_recut_blueprint.py",
     "prepare_transition_polish_blueprint.py",
     "audit_transition_quality_contract.py",
@@ -207,6 +209,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
     bridge_sequence_blueprint = load_json(package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json") or {}
+    bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
     rhythm_recut_blueprint = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
     transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
     transition_quality = load_json(package_dir / "transition_quality_contract_audit.json") or {}
@@ -570,6 +573,36 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,
             "candidateBlueprint": str(candidate_path),
             "bridgeInsertClipCount": len(bridge_insert_clips),
+        },
+    )
+
+    bridge_sequence_application_summary = get_summary(bridge_sequence_application)
+    bridge_sequence_application_inputs = bridge_sequence_application.get("inputs") if isinstance(bridge_sequence_application.get("inputs"), dict) else {}
+    bridge_sequence_application_rows = int(bridge_sequence_application_summary.get("requiredSequenceRowCount") or 0)
+    bridge_sequence_application_expected = int(bridge_sequence_application_summary.get("expectedBeatClipCount") or 0)
+    add_check(
+        checks,
+        "Bridge sequence application contract proves planned bridge beats survive into the final candidate blueprint",
+        bridge_sequence_application.get("status") == "passed"
+        and bridge_sequence_application_inputs.get("blueprintExists") is True
+        and bridge_sequence_application_inputs.get("blueprintInsidePackage") is True
+        and bridge_sequence_application_inputs.get("bridgeSequencePlanStatus") == "ready_with_bridge_sequence_plan"
+        and bridge_sequence_application_inputs.get("bridgeSequenceBlueprintStatus") == "ready_with_bridge_sequence_blueprint"
+        and bridge_sequence_application_rows >= 3
+        and int(bridge_sequence_application_summary.get("auditedSequenceRowCount") or 0) == bridge_sequence_application_rows
+        and int(bridge_sequence_application_summary.get("passedSequenceRowCount") or 0) == bridge_sequence_application_rows
+        and int(bridge_sequence_application_summary.get("blockedSequenceRowCount") or 0) == 0
+        and bridge_sequence_application_expected > 0
+        and int(bridge_sequence_application_summary.get("appliedBeatClipCount") or 0) >= bridge_sequence_application_expected
+        and int(bridge_sequence_application_summary.get("missingBeatClipCount") or 0) == 0
+        and int(bridge_sequence_application_summary.get("sourceAudioLeakClipCount") or 0) == 0
+        and int(bridge_sequence_application_summary.get("blockerCount") or 0) == 0
+        and not bridge_sequence_application.get("blockers"),
+        {
+            "bridgeSequenceApplicationStatus": bridge_sequence_application.get("status"),
+            "bridgeSequenceApplicationSummary": bridge_sequence_application_summary,
+            "blueprintKind": bridge_sequence_application_inputs.get("blueprintKind"),
+            "blueprint": bridge_sequence_application_inputs.get("blueprint"),
         },
     )
 

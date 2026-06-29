@@ -400,12 +400,14 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_motivation = load_json(package_dir / "transition_motivation_contract_audit.json") or {}
     transition_pair_continuity = load_json(package_dir / "transition_pair_continuity_contract_audit.json") or {}
     transition_execution_readiness = load_json(package_dir / "transition_execution_readiness_contract_audit.json") or {}
+    bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
     tpc_summary = summary_of(transition_pair_continuity)
     ter_summary = summary_of(transition_execution_readiness)
+    bsa_summary = summary_of(bridge_sequence_application)
     rsg_summary = summary_of(reference_scene_grammar)
     add_gate(
         gates,
@@ -415,6 +417,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_motivation.get("status") == "passed"
         and transition_pair_continuity.get("status") == "passed"
         and transition_execution_readiness.get("status") == "passed"
+        and bridge_sequence_application.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
         and as_int(sb_summary.get("blockedBoundaryCount")) == 0
@@ -425,6 +428,9 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(ter_summary.get("recipeReadyBoundaryCount")) == as_int(ter_summary.get("visualBoundaryCount"))
         and as_int(ter_summary.get("pairReadyBoundaryCount")) == as_int(ter_summary.get("visualBoundaryCount"))
         and as_int(ter_summary.get("handleReadyBoundaryCount")) == as_int(ter_summary.get("visualBoundaryCount"))
+        and as_int(bsa_summary.get("blockedSequenceRowCount")) == 0
+        and as_int(bsa_summary.get("missingBeatClipCount")) == 0
+        and as_int(bsa_summary.get("sourceAudioLeakClipCount")) == 0
         and as_int(rsg_summary.get("chaptersBlocked")) == 0
         and as_int(rsg_summary.get("blockerCount")) == 0
         and as_int(tm_summary.get("motivatedBoundaryCount")) == as_int(tm_summary.get("visualBoundaryCount"))
@@ -434,6 +440,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_motivation.get("blockers")
         and not transition_pair_continuity.get("blockers")
         and not transition_execution_readiness.get("blockers")
+        and not bridge_sequence_application.get("blockers")
         and not reference_scene_grammar.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
@@ -449,6 +456,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "pairContinuitySummary": tpc_summary,
             "transitionExecutionReadinessStatus": transition_execution_readiness.get("status"),
             "transitionExecutionReadinessSummary": ter_summary,
+            "bridgeSequenceApplicationStatus": bridge_sequence_application.get("status"),
+            "bridgeSequenceApplicationSummary": bsa_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": rsg_summary,
         },
