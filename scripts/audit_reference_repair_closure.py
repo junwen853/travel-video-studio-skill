@@ -48,6 +48,7 @@ POST_AUDIT_BY_AREA = {
     "route_arc": ("director_intent_contract_audit.json", "location_truth_contract_audit.json"),
     "route_bridges": (
         "transition_quality_contract_audit.json",
+        "shot_transition_boundary_contract_audit.json",
         "transition_polish_blueprint/transition_polish_blueprint_report.json",
         "transition_execution_blueprint/transition_execution_blueprint_report.json",
         "transition_bridge_plan/transition_bridge_plan.json",

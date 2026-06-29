@@ -45,6 +45,7 @@ Expected files:
 - `transition_polish_blueprint/resolve_timeline_blueprint_transition_polish.json`: non-destructive Resolve candidate containing final BGM-hit, title-safe, motion-proven transition polish metadata
 - `transition_polish_blueprint/transition_polish_blueprint_report.json` / `.md`: final transition polish summary, safety flags, and approval/follow-up instructions
 - `transition_quality_contract_audit.json` / `.md`: final transition quality gate proving visual-boundary coverage, BGM-hit timing, title/subtitle avoidance, motion evidence, and no repeated/template effects
+- `shot_transition_boundary_contract_audit.json` / `.md`: shot-to-shot boundary gate proving each adjacent from/to pair maps to transition metadata with BGM-hit, title-safe, BGM-only, and motion-evidence checks
 - `reference_style_repair_plan/reference_style_repair_plan.json` / `.md`: exact repair rows for blocked reference-style, director-intent, director-polish, or final-QA gaps
 - `reference_repair_closure_audit.json` / `.md`: closure gate proving P0 reference-style repair rows have required artifacts, post-repair audit evidence, and readback/frame evidence
 - `resolve_blueprint_preflight.json` / `.md`: no-write Resolve blueprint safety audit covering source files, source ranges, track overlaps, V1 gaps, title cards, subtitles, markers, and source audio
@@ -135,6 +136,7 @@ The package is not final until:
 - rhythm recut blueprint report exists before Resolve apply when long-shot risks exist, proving the recut started from the BGM phrase candidate and preserved transition/effect/BGM phrase metadata
 - transition polish blueprint report exists before Resolve apply, proving final transitions carry BGM-hit timing, title/subtitle avoidance, motion-evidence checks, and restrained keyframes after rhythm recut
 - transition quality contract audit passes before Resolve apply, proving the transition-polish candidate covers every visual boundary and does not hide route gaps with random/repeated effects
+- shot transition boundary contract audit passes before Resolve apply, proving every adjacent visual boundary has the correct from/to transition row instead of generic hard cuts or random rotations
 - reference style repair plan exists after rhythm recut planning or any blocked reference/director/final-QA audit, and P0 style gaps are assigned to concrete scripts/artifacts before the next Resolve write
 - reference repair closure audit exists after the repair plan; P0 rows must be closed or Resolve/final-quality claims stay blocked
 - Resolve blueprint preflight is present and not blocked before any `--apply`

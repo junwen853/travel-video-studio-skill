@@ -111,6 +111,7 @@ python3 <skill-dir>/scripts/prepare_bgm_phrase_blueprint.py --package-dir <packa
 python3 <skill-dir>/scripts/prepare_rhythm_recut_blueprint.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_transition_polish_blueprint.py --package-dir <package>
 python3 <skill-dir>/scripts/audit_transition_quality_contract.py --package-dir <package>
+python3 <skill-dir>/scripts/audit_shot_transition_boundary_contract.py --package-dir <package>
 python3 <skill-dir>/scripts/audit_cover_title_contract.py --package-dir <package>
 python3 <skill-dir>/scripts/prepare_reference_style_repair_plan.py --package-dir <package>
 python3 <skill-dir>/scripts/audit_reference_repair_closure.py --package-dir <package>

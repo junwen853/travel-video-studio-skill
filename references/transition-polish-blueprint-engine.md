@@ -44,11 +44,16 @@ Reject or mark repair-needed if:
 - `transition_polish_blueprint/transition_polish_blueprint_report.md`
 - `transition_quality_contract_audit.json`
 - `transition_quality_contract_audit.md`
+- `shot_transition_boundary_contract_audit.json`
+- `shot_transition_boundary_contract_audit.md`
 
 Before Resolve apply, run:
 
 ```bash
 python3 <skill-dir>/scripts/audit_transition_quality_contract.py \
+  --package-dir <package>
+
+python3 <skill-dir>/scripts/audit_shot_transition_boundary_contract.py \
   --package-dir <package>
 
 python3 <skill-dir>/scripts/audit_resolve_blueprint.py \
@@ -59,3 +64,5 @@ python3 <skill-dir>/scripts/audit_resolve_blueprint.py \
 ## Transition Quality Contract
 
 The quality audit must pass before a final-quality claim. It checks that the best available transition-polish candidate covers every adjacent visual boundary, carries BGM-hit timing, suppresses title/subtitle collisions, keeps BGM-only audio policy, requires motion evidence for whip/rotation/speed-ramp effects, rejects template/glitch/flash/shake styles, and blocks repeated decorative-effect chains.
+
+The shot transition boundary audit must also pass before Resolve apply. It checks each adjacent from/to visual boundary, verifies the matched transition row points to the same source pair, and blocks generic hard cuts, random rotations, missing BGM hits, unsafe title overlaps, missing BGM-only audio policy, or motion effects without route/bridge evidence.

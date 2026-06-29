@@ -71,9 +71,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.22.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.22/travel-video-studio-skill-v0.1.22.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.22.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.23.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.23/travel-video-studio-skill-v0.1.23.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.23.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -160,6 +160,7 @@ A delivery package usually contains:
 - `rhythm_recut_blueprint/rhythm_recut_blueprint_report.md`
 - `transition_polish_blueprint/transition_polish_blueprint_report.md`
 - `transition_quality_contract_audit.md`
+- `shot_transition_boundary_contract_audit.md`
 - `title_typography_plan/title_typography_plan.md`
 - `cover_title_contract_audit.md`
 - `reference_repair_closure_audit.md`
