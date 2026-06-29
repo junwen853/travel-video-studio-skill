@@ -54,6 +54,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_cadence_contract.py",
         "audit_final_source_usage_contract.py",
         "audit_reference_scene_grammar_contract.py",
+        "audit_timeline_variety_contract.py",
         "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
         "prepare_caption_story_plan.py",
@@ -124,6 +125,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_cadence_contract_rule": "audit_transition_cadence_contract.py",
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
+    "timeline_variety_contract_rule": "audit_timeline_variety_contract.py",
     "unattended_first_draft_contract_rule": "audit_unattended_first_draft_contract.py",
     "transition_bridge_plan_rule": "prepare_transition_bridge_plan.py",
     "caption_story_plan_rule": "prepare_caption_story_plan.py",
@@ -183,6 +185,7 @@ REQUIRED_SKILL_PATTERNS = {
     "resolve_transition_apply_contract_reference_rule": "resolve-transition-apply-contract.md",
     "final_blueprint_lineage_contract_reference_rule": "final-blueprint-lineage-contract.md",
     "transition_cadence_contract_reference_rule": "transition-cadence-contract.md",
+    "timeline_variety_contract_reference_rule": "timeline-variety-contract.md",
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine_rule": "transition-polish-blueprint-engine.md",
@@ -4369,6 +4372,68 @@ def reference_scene_grammar_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def timeline_variety_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "timeline_variety_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "rawSourceClipCount": summary.get("rawSourceClipCount"),
+        "globalFunctionGroupCount": summary.get("globalFunctionGroupCount"),
+        "sameSourceRunMax": summary.get("sameSourceRunMax"),
+        "sameFunctionRunMax": summary.get("sameFunctionRunMax"),
+        "movementReady": summary.get("movementReady"),
+        "textureReady": summary.get("textureReady"),
+        "payoffReady": summary.get("payoffReady"),
+        "aftertasteReady": summary.get("aftertasteReady"),
+        "chaptersNeedingVarietyOrRetime": summary.get("chaptersNeedingVarietyOrRetime"),
+        "referenceSceneChaptersBlocked": summary.get("referenceSceneChaptersBlocked"),
+        "transitionCadenceStatus": summary.get("transitionCadenceStatus"),
+        "finalBlueprintLineageStatus": summary.get("finalBlueprintLineageStatus"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def timeline_variety_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("visualClipCount") or 0) >= 3
+        and int(evidence.get("rawSourceClipCount") or 0) >= 1
+        and int(evidence.get("globalFunctionGroupCount") or 0) >= 4
+        and int(evidence.get("sameSourceRunMax") or 0) <= 3
+        and int(evidence.get("sameFunctionRunMax") or 0) <= 4
+        and evidence.get("movementReady") is True
+        and evidence.get("textureReady") is True
+        and evidence.get("payoffReady") is True
+        and evidence.get("aftertasteReady") is True
+        and int(evidence.get("chaptersNeedingVarietyOrRetime") or 0) == 0
+        and int(evidence.get("referenceSceneChaptersBlocked") or 0) == 0
+        and evidence.get("transitionCadenceStatus") == "passed"
+        and evidence.get("finalBlueprintLineageStatus") == "passed"
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def resolve_transition_apply_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "resolve_transition_apply_contract_audit.json"
     data = load_json(path) or {}
@@ -5019,6 +5084,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Reference scene grammar contract proves opening, chapters, transitions, and ending use Parallel World/Malta scene functions",
         reference_scene_grammar_contract_ready(reference_scene_grammar_evidence),
         reference_scene_grammar_evidence,
+    )
+    timeline_variety_evidence = timeline_variety_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Timeline variety contract proves the final film varies movement, texture, payoff, and aftertaste instead of hiding weak shot choice behind transitions",
+        timeline_variety_contract_ready(timeline_variety_evidence),
+        timeline_variety_evidence,
     )
     unattended_first_draft_evidence = unattended_first_draft_contract_evidence(package_dir)
     add_check(

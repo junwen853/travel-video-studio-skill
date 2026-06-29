@@ -25,9 +25,10 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Audits final source usage so final raw clips must come from footage-select hero/main/texture choices instead of unmatched, repair, reject, or utility-dominant source material.
 - Audits creator-cut application so rejected, weak, utility, or unmatched clips cannot remain active in the final candidate blueprint.
 - Audits reference scene grammar so opening, chapters, transitions, and ending use context/movement/texture/payoff/aftertaste structure instead of flat montage.
-- Audits the unattended first-draft chain before Resolve apply, connecting raw intake, story, BGM, captions, titles, rhythm, final-source usage, creator-cut application, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transitions, execution readiness, scene grammar, repair closure, and blueprint preflight into one gate.
+- Audits timeline variety so the final film has movement, lived-in texture, destination payoff, and ending aftertaste instead of hiding weak shot choice behind transitions.
+- Audits the unattended first-draft chain before Resolve apply, connecting raw intake, story, BGM, captions, titles, rhythm, final-source usage, creator-cut application, timeline-variety, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transitions, execution readiness, scene grammar, repair closure, and blueprint preflight into one gate.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
-- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, final-source usage, creator-cut application, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition pair-continuity/execution readiness, reference scene grammar, route texture, export quality, and V14 baseline maturity.
+- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, dense title-safe subtitles, final-source usage, creator-cut application, timeline-variety, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition pair-continuity/execution readiness, reference scene grammar, route texture, export quality, and V14 baseline maturity.
 
 The default finishing path is DaVinci Resolve through the Resolve Python API. GUI automation is treated as a fallback, not the normal route.
 
@@ -79,9 +80,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.38.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.38/travel-video-studio-skill-v0.1.38.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.38.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.39.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.39/travel-video-studio-skill-v0.1.39.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.39.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:

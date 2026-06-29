@@ -53,6 +53,7 @@ SKILL_PATTERNS = {
     "transition_pair_continuity_contract": "audit_transition_pair_continuity_contract.py",
     "transition_execution_readiness_contract": "audit_transition_execution_readiness_contract.py",
     "reference_scene_grammar_contract": "audit_reference_scene_grammar_contract.py",
+    "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure": "audit_reference_repair_closure.py",
@@ -114,6 +115,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_pair_continuity_contract.py",
     "audit_transition_execution_readiness_contract.py",
     "audit_reference_scene_grammar_contract.py",
+    "audit_timeline_variety_contract.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_repair_closure.py",
@@ -243,6 +245,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_pair_continuity = load_json(package_dir / "transition_pair_continuity_contract_audit.json") or {}
     transition_execution_readiness = load_json(package_dir / "transition_execution_readiness_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
+    timeline_variety = load_json(package_dir / "timeline_variety_contract_audit.json") or {}
     unattended_first_draft = load_json(package_dir / "unattended_first_draft_contract_audit.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
@@ -1206,6 +1209,31 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "referenceSceneGrammarSummary": reference_scene_grammar_summary,
             "blueprintKind": reference_scene_grammar_inputs.get("blueprintKind"),
             "blueprint": reference_scene_grammar_inputs.get("blueprint"),
+        },
+    )
+    timeline_variety_summary = get_summary(timeline_variety)
+    add_check(
+        checks,
+        "Timeline variety contract proves V14-level movement, texture, payoff, and aftertaste survive into the final candidate",
+        timeline_variety.get("status") == "passed"
+        and int(timeline_variety_summary.get("visualClipCount") or 0) >= 3
+        and int(timeline_variety_summary.get("rawSourceClipCount") or 0) >= 1
+        and int(timeline_variety_summary.get("globalFunctionGroupCount") or 0) >= 4
+        and int(timeline_variety_summary.get("sameSourceRunMax") or 0) <= 3
+        and int(timeline_variety_summary.get("sameFunctionRunMax") or 0) <= 4
+        and timeline_variety_summary.get("movementReady") is True
+        and timeline_variety_summary.get("textureReady") is True
+        and timeline_variety_summary.get("payoffReady") is True
+        and timeline_variety_summary.get("aftertasteReady") is True
+        and int(timeline_variety_summary.get("chaptersNeedingVarietyOrRetime") or 0) == 0
+        and int(timeline_variety_summary.get("referenceSceneChaptersBlocked") or 0) == 0
+        and timeline_variety_summary.get("transitionCadenceStatus") == "passed"
+        and timeline_variety_summary.get("finalBlueprintLineageStatus") == "passed"
+        and int(timeline_variety_summary.get("blockedCheckCount") or 0) == 0
+        and not timeline_variety.get("blockers"),
+        {
+            "timelineVarietyStatus": timeline_variety.get("status"),
+            "timelineVarietySummary": timeline_variety_summary,
         },
     )
     unattended_summary = get_summary(unattended_first_draft)

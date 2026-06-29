@@ -444,6 +444,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
     transition_cadence = load_json(package_dir / "transition_cadence_contract_audit.json") or {}
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
+    timeline_variety = load_json(package_dir / "timeline_variety_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
@@ -456,9 +457,10 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     fbl_summary = summary_of(final_blueprint_lineage)
     tc_summary = summary_of(transition_cadence)
     rsg_summary = summary_of(reference_scene_grammar)
+    tv_summary = summary_of(timeline_variety)
     add_gate(
         gates,
-        "Transition cadence, execution, and scene-grammar QA prove every boundary is executable, matched, restrained, and reference-like",
+        "Transition cadence, execution, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, and reference-like",
         transition_quality.get("status") == "passed"
         and shot_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
@@ -471,6 +473,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and final_blueprint_lineage.get("status") == "passed"
         and transition_cadence.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
+        and timeline_variety.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
         and as_int(sb_summary.get("blockedBoundaryCount")) == 0
         and as_int(tm_summary.get("blockedBoundaryCount")) == 0
@@ -511,6 +514,13 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(tc_summary.get("decorativeRepeatedRunMax")) < 4
         and as_int(rsg_summary.get("chaptersBlocked")) == 0
         and as_int(rsg_summary.get("blockerCount")) == 0
+        and as_int(tv_summary.get("blockedCheckCount")) == 0
+        and bool_field(tv_summary, "movementReady")
+        and bool_field(tv_summary, "textureReady")
+        and bool_field(tv_summary, "payoffReady")
+        and bool_field(tv_summary, "aftertasteReady")
+        and as_int(tv_summary.get("sameSourceRunMax")) <= 3
+        and as_int(tv_summary.get("sameFunctionRunMax")) <= 4
         and as_int(tm_summary.get("motivatedBoundaryCount")) == as_int(tm_summary.get("visualBoundaryCount"))
         and as_int(tpc_summary.get("pairContinuityPayloadCount")) == as_int(tpc_summary.get("visualBoundaryCount"))
         and not transition_quality.get("blockers")
@@ -524,7 +534,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not bridge_sequence_application.get("blockers")
         and not final_blueprint_lineage.get("blockers")
         and not transition_cadence.get("blockers")
-        and not reference_scene_grammar.get("blockers"),
+        and not reference_scene_grammar.get("blockers")
+        and not timeline_variety.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
             "transitionQualityBoundaryCount": tq_summary.get("visualBoundaryCount"),
@@ -553,6 +564,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionCadenceSummary": tc_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": rsg_summary,
+            "timelineVarietyStatus": timeline_variety.get("status"),
+            "timelineVarietySummary": tv_summary,
         },
     )
 

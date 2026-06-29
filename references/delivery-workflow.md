@@ -61,8 +61,9 @@ Expected files:
 - `transition_execution_readiness_contract_audit.json` / `.md`: execution-readiness gate proving every final transition has a package-local Resolve recipe, keyframes, BGM hit, title-safe window, pair readiness, and handle evidence
 - `creator_cut_application_contract_audit.json` / `.md`: final-candidate gate proving creator-cut hero/main/texture/reject decisions are applied instead of only planned
 - `reference_scene_grammar_contract_audit.json` / `.md`: scene-grammar gate proving opening, chapters, transitions, and ending use reference-like context/movement/texture/payoff/aftertaste functions
+- `timeline_variety_contract_audit.json` / `.md`: film-level gate proving the final timeline varies movement, lived-in texture, destination payoff, and ending aftertaste instead of hiding weak shot choice behind transitions
 - `audience_caption_contract_audit.json` / `.md`: caption/TXT gate proving final viewer text is audience-facing and does not expose edit-status, tool, QA, or version language
-- `unattended_first_draft_contract_audit.json` / `.md`: no-write first-draft gate proving raw intake, footage select, opening/chapter story, title/cover, captions, BGM, audio policy, establishing/effects, rhythm/creator cut, transition QA, reference repair closure, and Resolve preflight are connected before handoff
+- `unattended_first_draft_contract_audit.json` / `.md`: no-write first-draft gate proving raw intake, footage select, opening/chapter story, title/cover, captions, BGM, audio policy, establishing/effects, rhythm/creator cut, timeline variety, transition QA, reference repair closure, and Resolve preflight are connected before handoff
 - `reference_style_repair_plan/reference_style_repair_plan.json` / `.md`: exact repair rows for blocked reference-style, director-intent, director-polish, or final-QA gaps
 - `reference_repair_closure_audit.json` / `.md`: closure gate proving P0 reference-style repair rows have required artifacts, post-repair audit evidence, and readback/frame evidence
 - `resolve_blueprint_preflight.json` / `.md`: no-write Resolve blueprint safety audit covering source files, source ranges, track overlaps, V1 gaps, title cards, subtitles, markers, and source audio
@@ -87,7 +88,7 @@ Expected files:
 - `bgm_phrase_blueprint/bgm_phrase_blueprint_report.json` / `.md`: BGM phrase materialization summary, safety flags, and approval/follow-up instructions
 - `qa_checklist.md`: final delivery checklist
 - `delivery_audit.json` / `delivery_audit.md`: machine-readable final readiness audit
-- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, audience-caption and unattended-first-draft summaries, BGM phrase blueprint summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
+- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, audience-caption, timeline-variety, and unattended-first-draft summaries, BGM phrase blueprint summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
 
 ## Chapter Structure
 
