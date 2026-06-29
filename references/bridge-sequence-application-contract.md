@@ -4,6 +4,8 @@ Use this contract after `prepare_bridge_sequence_plan.py`, `prepare_bridge_seque
 
 The purpose is narrow: prove that planned multi-shot bridge sequences did not disappear from the final candidate blueprint. A transition can look "polished" in metadata while still dropping the actual station, street, skyline, route-motion, or title-safe bridge beats that make the edit feel like a human travel film. This audit blocks that failure.
 
+After this contract passes, run `audit_transition_bridge_visual_evidence_contract.py --package-dir <package> --extract-frames`. The application contract proves bridge beats survived; the visual evidence contract proves those beats point to real local video sources with probe/frame evidence and no source-camera audio.
+
 ## Required Inputs
 
 - `bridge_sequence_plan/bridge_sequence_plan.json`
@@ -48,3 +50,5 @@ The script writes:
 ## Usage Rule
 
 Do not treat transition polish, pair-continuity, or execution-readiness as sufficient by themselves. They prove the transition metadata can execute; this contract proves the physical bridge footage made it into the actual candidate cut.
+
+Do not treat this contract alone as final bridge approval. Pair it with `transition_bridge_visual_evidence_contract_audit.json` before final blueprint lineage, storyboard approval, Resolve apply, final QA, or external handoff.

@@ -699,6 +699,35 @@ def summarize_bridge_sequence_application_contract(report: dict[str, Any] | None
     }
 
 
+def summarize_transition_bridge_visual_evidence_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "requiredBridgeRowCount": summary.get("requiredBridgeRowCount"),
+        "passedBridgeRowCount": summary.get("passedBridgeRowCount"),
+        "blockedBridgeRowCount": summary.get("blockedBridgeRowCount"),
+        "expectedBeatClipCount": summary.get("expectedBeatClipCount"),
+        "appliedBeatClipCount": summary.get("appliedBeatClipCount"),
+        "passedBridgeVisualClipCount": summary.get("passedBridgeVisualClipCount"),
+        "blockedBridgeVisualClipCount": summary.get("blockedBridgeVisualClipCount"),
+        "missingBeatClipCount": summary.get("missingBeatClipCount"),
+        "frameEvidenceCount": summary.get("frameEvidenceCount"),
+        "videoProbeReadyCount": summary.get("videoProbeReadyCount"),
+        "distinctBridgeSourceCount": summary.get("distinctBridgeSourceCount"),
+        "sourceAudioLeakClipCount": summary.get("sourceAudioLeakClipCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "warningCount": summary.get("warningCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_final_blueprint_lineage_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2528,6 +2557,16 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     bridge_sequence_application_cmd = ["python3", str(SCRIPTS_DIR / "audit_bridge_sequence_application_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_bridge_sequence_application_contract", bridge_sequence_application_cmd, ok_codes={0, 2}))
 
+    transition_bridge_visual_evidence_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_transition_bridge_visual_evidence_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--extract-frames",
+        "--json",
+    ]
+    steps.append(run_step("audit_transition_bridge_visual_evidence_contract", transition_bridge_visual_evidence_cmd, ok_codes={0, 2}))
+
     final_blueprint_lineage_cmd = ["python3", str(SCRIPTS_DIR / "audit_final_blueprint_lineage_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_final_blueprint_lineage_contract", final_blueprint_lineage_cmd, ok_codes={0, 2}))
 
@@ -2699,6 +2738,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     resolve_transition_materialization_summary = None
     resolve_transition_apply_summary = None
     bridge_sequence_application_summary = None
+    transition_bridge_visual_evidence_summary = None
     final_blueprint_lineage_summary = None
     effect_motion_application_summary = None
     transition_cadence_summary = None
@@ -2931,6 +2971,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Bridge sequence application blocker: {item}" for item in bridge_sequence_application_summary.get("blockers") or [])
             if bridge_sequence_application_summary and bridge_sequence_application_summary.get("warnings"):
                 warnings.extend(f"Bridge sequence application warning: {item}" for item in bridge_sequence_application_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_bridge_visual_evidence_contract":
+            transition_bridge_visual_evidence_summary = summarize_transition_bridge_visual_evidence_contract(payload)
+            if transition_bridge_visual_evidence_summary and transition_bridge_visual_evidence_summary.get("status") == "blocked":
+                blockers.extend(f"Transition bridge visual evidence blocker: {item}" for item in transition_bridge_visual_evidence_summary.get("blockers") or [])
+            if transition_bridge_visual_evidence_summary and transition_bridge_visual_evidence_summary.get("warnings"):
+                warnings.extend(f"Transition bridge visual evidence warning: {item}" for item in transition_bridge_visual_evidence_summary.get("warnings") or [])
         if step["id"] == "audit_final_blueprint_lineage_contract":
             final_blueprint_lineage_summary = summarize_final_blueprint_lineage_contract(payload)
             if final_blueprint_lineage_summary and final_blueprint_lineage_summary.get("status") == "blocked":
@@ -3237,6 +3283,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         bridge_sequence_application_summary = summarize_bridge_sequence_application_contract(
             load_json(package_dir / "bridge_sequence_application_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_bridge_visual_evidence_contract_audit.json").exists():
+        transition_bridge_visual_evidence_summary = summarize_transition_bridge_visual_evidence_contract(
+            load_json(package_dir / "transition_bridge_visual_evidence_contract_audit.json")
+        )
     if package_dir and (package_dir / "final_blueprint_lineage_contract_audit.json").exists():
         final_blueprint_lineage_summary = summarize_final_blueprint_lineage_contract(
             load_json(package_dir / "final_blueprint_lineage_contract_audit.json")
@@ -3395,6 +3445,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "resolveTransitionMaterializationSummary": resolve_transition_materialization_summary,
         "resolveTransitionApplySummary": resolve_transition_apply_summary,
         "bridgeSequenceApplicationSummary": bridge_sequence_application_summary,
+        "transitionBridgeVisualEvidenceSummary": transition_bridge_visual_evidence_summary,
         "finalBlueprintLineageSummary": final_blueprint_lineage_summary,
         "effectMotionApplicationSummary": effect_motion_application_summary,
         "transitionCadenceSummary": transition_cadence_summary,
@@ -3466,6 +3517,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review resolve_transition_materialization_contract_audit.json before Resolve apply so transition recipe/effect payloads survive into Resolve markers/readback instead of remaining only as planning text.",
             "Review resolve_transition_apply_plan.json and resolve_transition_apply_contract_audit.json before Resolve apply so visible transitions are not marker-only and manual Resolve/Fusion or bridge-clip steps have readback/frame evidence.",
             "Review bridge_sequence_application_contract_audit.json before Resolve apply so planned 2-5 shot bridge sequences survive into the final candidate blueprint.",
+            "Review transition_bridge_visual_evidence_contract_audit.json before Resolve apply so bridge sequence inserts have concrete local video, probe/frame evidence, beat metadata, and no source-camera audio.",
             "Review final_blueprint_lineage_contract_audit.json before Resolve apply so the active final blueprint inherits the latest ready candidate chain instead of an old or partial blueprint.",
             "Review effect_motion_application_contract_audit.json before Resolve apply so title reveals and route-motion effects survive into the final blueprint without overusing rotation/whip/speed-ramp effects.",
             "Review transition_cadence_contract_audit.json before Resolve apply so the finished film has full-boundary transition coverage, restrained motivated motion, no repeated-template cadence, and materialized bridge beats at important boundaries.",

@@ -491,6 +491,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     resolve_transition_materialization = load_json(package_dir / "resolve_transition_materialization_contract_audit.json") or {}
     resolve_transition_apply = load_json(package_dir / "resolve_transition_apply_contract_audit.json") or {}
     bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
+    transition_bridge_visual_evidence = load_json(package_dir / "transition_bridge_visual_evidence_contract_audit.json") or {}
     final_blueprint_lineage = load_json(package_dir / "final_blueprint_lineage_contract_audit.json") or {}
     effect_motion_application = load_json(package_dir / "effect_motion_application_contract_audit.json") or {}
     transition_cadence = load_json(package_dir / "transition_cadence_contract_audit.json") or {}
@@ -513,6 +514,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     rtm_summary = summary_of(resolve_transition_materialization)
     rta_summary = summary_of(resolve_transition_apply)
     bsa_summary = summary_of(bridge_sequence_application)
+    tbv_summary = summary_of(transition_bridge_visual_evidence)
     fbl_summary = summary_of(final_blueprint_lineage)
     ema_summary = summary_of(effect_motion_application)
     tc_summary = summary_of(transition_cadence)
@@ -538,6 +540,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and resolve_transition_materialization.get("status") == "passed"
         and resolve_transition_apply.get("status") == "passed"
         and bridge_sequence_application.get("status") == "passed"
+        and transition_bridge_visual_evidence.get("status") == "passed"
         and final_blueprint_lineage.get("status") == "passed"
         and effect_motion_application.get("status") == "passed"
         and transition_cadence.get("status") == "passed"
@@ -580,6 +583,13 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(bsa_summary.get("blockedSequenceRowCount")) == 0
         and as_int(bsa_summary.get("missingBeatClipCount")) == 0
         and as_int(bsa_summary.get("sourceAudioLeakClipCount")) == 0
+        and as_int(tbv_summary.get("blockedBridgeRowCount")) == 0
+        and as_int(tbv_summary.get("blockedBridgeVisualClipCount")) == 0
+        and as_int(tbv_summary.get("missingBeatClipCount")) == 0
+        and as_int(tbv_summary.get("passedBridgeVisualClipCount")) >= as_int(tbv_summary.get("expectedBeatClipCount"))
+        and as_int(tbv_summary.get("frameEvidenceCount")) >= as_int(tbv_summary.get("expectedBeatClipCount"))
+        and as_int(tbv_summary.get("videoProbeReadyCount")) >= as_int(tbv_summary.get("expectedBeatClipCount"))
+        and as_int(tbv_summary.get("sourceAudioLeakClipCount")) == 0
         and as_int(fbl_summary.get("readyStageCount")) >= as_int(fbl_summary.get("requiredMinimumReadyStages"), 5)
         and as_int(fbl_summary.get("blockedReadyStageCount")) == 0
         and as_int(fbl_summary.get("finalPlanKeyCount")) >= as_int(fbl_summary.get("requiredMinimumReadyStages"), 5)
@@ -684,6 +694,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not resolve_transition_materialization.get("blockers")
         and not resolve_transition_apply.get("blockers")
         and not bridge_sequence_application.get("blockers")
+        and not transition_bridge_visual_evidence.get("blockers")
         and not final_blueprint_lineage.get("blockers")
         and not effect_motion_application.get("blockers")
         and not transition_cadence.get("blockers")
@@ -719,6 +730,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "resolveTransitionApplySummary": rta_summary,
             "bridgeSequenceApplicationStatus": bridge_sequence_application.get("status"),
             "bridgeSequenceApplicationSummary": bsa_summary,
+            "transitionBridgeVisualEvidenceStatus": transition_bridge_visual_evidence.get("status"),
+            "transitionBridgeVisualEvidenceSummary": tbv_summary,
             "finalBlueprintLineageStatus": final_blueprint_lineage.get("status"),
             "finalBlueprintLineageSummary": fbl_summary,
             "effectMotionApplicationStatus": effect_motion_application.get("status"),

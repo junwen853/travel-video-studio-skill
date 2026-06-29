@@ -44,6 +44,7 @@ SKILL_PATTERNS = {
     "bridge_sequence": "prepare_bridge_sequence_plan.py",
     "bridge_sequence_blueprint": "prepare_bridge_sequence_blueprint.py",
     "bridge_sequence_application": "audit_bridge_sequence_application_contract.py",
+    "transition_bridge_visual_evidence": "audit_transition_bridge_visual_evidence_contract.py",
     "rhythm_recut_blueprint": "prepare_rhythm_recut_blueprint.py",
     "rhythm_recut_application": "audit_rhythm_recut_application_contract.py",
     "transition_polish_blueprint": "prepare_transition_polish_blueprint.py",
@@ -116,6 +117,7 @@ REQUIRED_SCRIPTS = [
     "prepare_bridge_sequence_plan.py",
     "prepare_bridge_sequence_blueprint.py",
     "audit_bridge_sequence_application_contract.py",
+    "audit_transition_bridge_visual_evidence_contract.py",
     "prepare_rhythm_recut_blueprint.py",
     "audit_rhythm_recut_application_contract.py",
     "prepare_transition_polish_blueprint.py",
@@ -258,6 +260,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
     bridge_sequence_blueprint = load_json(package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json") or {}
     bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
+    transition_bridge_visual_evidence = load_json(package_dir / "transition_bridge_visual_evidence_contract_audit.json") or {}
     rhythm_recut_blueprint = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
     rhythm_recut_application = load_json(package_dir / "rhythm_recut_application_contract_audit.json") or {}
     transition_polish_blueprint = load_json(package_dir / "transition_polish_blueprint" / "transition_polish_blueprint_report.json") or {}
@@ -1081,6 +1084,34 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "resolveTransitionApplySummary": resolve_transition_apply_summary,
             "applyPlanStatus": resolve_transition_apply_inputs.get("applyPlanStatus"),
             "materializationStatus": resolve_transition_apply_inputs.get("materializationStatus"),
+        },
+    )
+    transition_bridge_visual_evidence_summary = get_summary(transition_bridge_visual_evidence)
+    transition_bridge_visual_evidence_inputs = (
+        transition_bridge_visual_evidence.get("inputs") if isinstance(transition_bridge_visual_evidence.get("inputs"), dict) else {}
+    )
+    add_check(
+        checks,
+        "Transition bridge visual evidence contract proves V14 bridge beats are real local video clips with frame evidence, not prose or effects only",
+        transition_bridge_visual_evidence.get("status") == "passed"
+        and transition_bridge_visual_evidence_inputs.get("blueprintExists") is True
+        and transition_bridge_visual_evidence_inputs.get("blueprintInsidePackage") is True
+        and transition_bridge_visual_evidence_inputs.get("bridgeSequenceApplicationStatus") == "passed"
+        and int(transition_bridge_visual_evidence_summary.get("requiredBridgeRowCount") or 0) >= 1
+        and int(transition_bridge_visual_evidence_summary.get("blockedBridgeRowCount") or 0) == 0
+        and int(transition_bridge_visual_evidence_summary.get("blockedBridgeVisualClipCount") or 0) == 0
+        and int(transition_bridge_visual_evidence_summary.get("missingBeatClipCount") or 0) == 0
+        and int(transition_bridge_visual_evidence_summary.get("passedBridgeVisualClipCount") or 0) >= int(transition_bridge_visual_evidence_summary.get("expectedBeatClipCount") or 0)
+        and int(transition_bridge_visual_evidence_summary.get("frameEvidenceCount") or 0) >= int(transition_bridge_visual_evidence_summary.get("expectedBeatClipCount") or 0)
+        and int(transition_bridge_visual_evidence_summary.get("videoProbeReadyCount") or 0) >= int(transition_bridge_visual_evidence_summary.get("expectedBeatClipCount") or 0)
+        and int(transition_bridge_visual_evidence_summary.get("sourceAudioLeakClipCount") or 0) == 0
+        and int(transition_bridge_visual_evidence_summary.get("blockerCount") or 0) == 0
+        and not transition_bridge_visual_evidence.get("blockers"),
+        {
+            "transitionBridgeVisualEvidenceStatus": transition_bridge_visual_evidence.get("status"),
+            "transitionBridgeVisualEvidenceSummary": transition_bridge_visual_evidence_summary,
+            "blueprintKind": transition_bridge_visual_evidence_inputs.get("blueprintKind"),
+            "blueprint": transition_bridge_visual_evidence_inputs.get("blueprint"),
         },
     )
     final_blueprint_lineage_summary = get_summary(final_blueprint_lineage)

@@ -51,6 +51,7 @@ REQUIRED_SCRIPTS = {
         "prepare_resolve_transition_apply_plan.py",
         "audit_resolve_transition_apply_contract.py",
         "audit_bridge_sequence_application_contract.py",
+        "audit_transition_bridge_visual_evidence_contract.py",
         "audit_final_blueprint_lineage_contract.py",
         "audit_transition_cadence_contract.py",
         "audit_transition_microstructure_contract.py",
@@ -133,6 +134,7 @@ REQUIRED_SKILL_PATTERNS = {
     "resolve_transition_materialization_contract_rule": "audit_resolve_transition_materialization_contract.py",
     "resolve_transition_apply_contract_rule": "audit_resolve_transition_apply_contract.py",
     "bridge_sequence_application_contract_rule": "audit_bridge_sequence_application_contract.py",
+    "transition_bridge_visual_evidence_contract_rule": "audit_transition_bridge_visual_evidence_contract.py",
     "final_blueprint_lineage_contract_rule": "audit_final_blueprint_lineage_contract.py",
     "transition_cadence_contract_rule": "audit_transition_cadence_contract.py",
     "transition_microstructure_contract_rule": "audit_transition_microstructure_contract.py",
@@ -206,6 +208,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract_reference_rule": "bridge-sequence-application-contract.md",
+    "transition_bridge_visual_evidence_contract_reference_rule": "transition-bridge-visual-evidence-contract.md",
     "transition_polish_application_contract_reference_rule": "transition-polish-application-contract.md",
     "resolve_transition_materialization_contract_reference_rule": "resolve-transition-materialization-contract.md",
     "resolve_transition_apply_contract_reference_rule": "resolve-transition-apply-contract.md",
@@ -246,6 +249,7 @@ REQUIRED_STYLE_PATTERNS = {
     "bridge_sequence_engine": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract": "bridge-sequence-application-contract.md",
+    "transition_bridge_visual_evidence_contract": "transition-bridge-visual-evidence-contract.md",
     "transition_polish_application_contract": "transition-polish-application-contract.md",
     "resolve_transition_materialization_contract": "resolve-transition-materialization-contract.md",
     "resolve_transition_apply_contract": "resolve-transition-apply-contract.md",
@@ -298,6 +302,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
     "bridge_sequence_application_contract": "bridge sequence application contract",
+    "transition_bridge_visual_evidence_contract": "transition bridge visual evidence contract",
     "transition_polish_application_contract": "transition polish application contract",
     "final_blueprint_lineage_contract": "final-blueprint lineage",
     "final_source_usage_contract": "final source usage",
@@ -3397,6 +3402,80 @@ def bridge_sequence_application_contract_ready(evidence: dict[str, Any]) -> bool
     )
 
 
+def transition_bridge_visual_evidence_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_bridge_visual_evidence_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprint": inputs.get("blueprint"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "bridgeSequencePlanStatus": inputs.get("bridgeSequencePlanStatus"),
+        "bridgeSequenceBlueprintStatus": inputs.get("bridgeSequenceBlueprintStatus"),
+        "bridgeSequenceApplicationStatus": inputs.get("bridgeSequenceApplicationStatus"),
+        "requiredBridgeRowCount": summary.get("requiredBridgeRowCount"),
+        "auditedBridgeRowCount": summary.get("auditedBridgeRowCount"),
+        "passedBridgeRowCount": summary.get("passedBridgeRowCount"),
+        "blockedBridgeRowCount": summary.get("blockedBridgeRowCount"),
+        "expectedBeatClipCount": summary.get("expectedBeatClipCount"),
+        "appliedBeatClipCount": summary.get("appliedBeatClipCount"),
+        "passedBridgeVisualClipCount": summary.get("passedBridgeVisualClipCount"),
+        "blockedBridgeVisualClipCount": summary.get("blockedBridgeVisualClipCount"),
+        "missingBeatClipCount": summary.get("missingBeatClipCount"),
+        "frameEvidenceCount": summary.get("frameEvidenceCount"),
+        "videoProbeReadyCount": summary.get("videoProbeReadyCount"),
+        "distinctBridgeSourceCount": summary.get("distinctBridgeSourceCount"),
+        "sourceAudioLeakClipCount": summary.get("sourceAudioLeakClipCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "warningCount": summary.get("warningCount"),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_bridge_visual_evidence_contract_ready(evidence: dict[str, Any]) -> bool:
+    required_count = int(evidence.get("requiredBridgeRowCount") or 0)
+    expected_count = int(evidence.get("expectedBeatClipCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and evidence.get("bridgeSequencePlanStatus") == "ready_with_bridge_sequence_plan"
+        and evidence.get("bridgeSequenceBlueprintStatus") == "ready_with_bridge_sequence_blueprint"
+        and evidence.get("bridgeSequenceApplicationStatus") == "passed"
+        and required_count >= 3
+        and int(evidence.get("auditedBridgeRowCount") or 0) == required_count
+        and int(evidence.get("passedBridgeRowCount") or 0) == required_count
+        and int(evidence.get("blockedBridgeRowCount") or 0) == 0
+        and expected_count > 0
+        and int(evidence.get("appliedBeatClipCount") or 0) >= expected_count
+        and int(evidence.get("passedBridgeVisualClipCount") or 0) >= expected_count
+        and int(evidence.get("blockedBridgeVisualClipCount") or 0) == 0
+        and int(evidence.get("missingBeatClipCount") or 0) == 0
+        and int(evidence.get("frameEvidenceCount") or 0) >= expected_count
+        and int(evidence.get("videoProbeReadyCount") or 0) >= expected_count
+        and int(evidence.get("sourceAudioLeakClipCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def final_blueprint_lineage_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "final_blueprint_lineage_contract_audit.json"
     data = load_json(path) or {}
@@ -5787,6 +5866,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Bridge sequence application contract proves planned 2-5 shot bridge beats survive into the final candidate blueprint",
         bridge_sequence_application_contract_ready(bridge_sequence_application),
         bridge_sequence_application,
+    )
+    transition_bridge_visual_evidence = transition_bridge_visual_evidence_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition bridge visual evidence contract proves bridge beats are real local video with frame evidence, not prose or effects only",
+        transition_bridge_visual_evidence_contract_ready(transition_bridge_visual_evidence),
+        transition_bridge_visual_evidence,
     )
     final_blueprint_lineage = final_blueprint_lineage_contract_evidence(package_dir)
     add_check(

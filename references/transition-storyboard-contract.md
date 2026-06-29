@@ -15,6 +15,7 @@ Use this contract when a travel edit needs the transition polish to feel closer 
 - `transition_execution_readiness_contract_audit.json`
 - `transition_polish_application_contract_audit.json`
 - `bridge_sequence_application_contract_audit.json`
+- `transition_bridge_visual_evidence_contract_audit.json`
 - `final_blueprint_lineage_contract_audit.json`
 
 ## Pass Criteria
@@ -30,6 +31,8 @@ Every transition row must read like a small viewer-facing storyboard, not a tool
 Whip, rotation, speed-ramp, and push transitions must cite real route movement or bridge evidence. Do not let a motion effect rescue two static or weak clips.
 
 Important transitions must be checked with frame or contact-sheet evidence before approval. Metadata-only transition approval is not enough for final handoff; if `transition_preview_packet` is `needs_frame_extraction` or blocked, or if `transition_preview_quality_contract_audit.json` is missing or blocked, do not approve the storyboard gate.
+
+For transitions with materialized bridge sequences, `transition_bridge_visual_evidence_contract_audit.json` must pass before storyboard approval. This prevents approving a viewer-purpose/outgoing/bridge/landing story when the bridge beat is only prose, marker metadata, an undecoded local file, or a clip with source-camera audio.
 
 ## Outputs
 

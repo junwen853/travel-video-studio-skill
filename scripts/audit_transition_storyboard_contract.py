@@ -17,6 +17,7 @@ REPORT_SPECS = {
     "transitionVisualMatch": ("transition_visual_match_contract_audit.json", {"passed"}),
     "transitionMicrostructure": ("transition_microstructure_contract_audit.json", {"passed"}),
     "transitionPreviewQuality": ("transition_preview_quality_contract_audit.json", {"passed"}),
+    "transitionBridgeVisualEvidence": ("transition_bridge_visual_evidence_contract_audit.json", {"passed"}),
     "transitionPairContinuity": ("transition_pair_continuity_contract_audit.json", {"passed"}),
     "transitionExecutionReadiness": ("transition_execution_readiness_contract_audit.json", {"passed"}),
     "transitionPolishApplication": ("transition_polish_application_contract_audit.json", {"passed"}),
@@ -321,6 +322,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     visual = reports["transitionVisualMatch"]["summary"]
     palette = reports["transitionEffectPalette"]["summary"]
     bridge = reports["bridgeSequenceApplication"]["summary"]
+    bridge_visual = reports["transitionBridgeVisualEvidence"]["summary"]
     polish = reports["transitionPolishApplication"]["summary"]
     lineage = reports["finalBlueprintLineage"]["summary"]
     visual_boundaries = max(
@@ -416,13 +418,18 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         and as_int(pair.get("weakPairFitCount")) == 0
         and as_int(micro.get("blockedCheckCount")) == 0
         and as_int(bridge.get("missingBeatClipCount")) == 0
-        and as_int(bridge.get("sourceAudioLeakClipCount")) == 0,
+        and as_int(bridge.get("sourceAudioLeakClipCount")) == 0
+        and as_int(bridge_visual.get("blockedBridgeRowCount")) == 0
+        and as_int(bridge_visual.get("blockedBridgeVisualClipCount")) == 0
+        and as_int(bridge_visual.get("missingBeatClipCount")) == 0
+        and as_int(bridge_visual.get("sourceAudioLeakClipCount")) == 0,
         {
             "visualBoundaryCount": visual_boundaries,
             "readinessSummary": readiness,
             "pairContinuitySummary": pair,
             "microstructureSummary": micro,
             "bridgeSequenceApplicationSummary": bridge,
+            "transitionBridgeVisualEvidenceSummary": bridge_visual,
         },
     )
     add_check(
