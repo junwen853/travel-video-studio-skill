@@ -272,6 +272,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     title_summary = summary_of(title_plan)
     cover_title = load_json(package_dir / "cover_title_contract_audit.json") or {}
     cover_summary = summary_of(cover_title)
+    title_visual_proof = load_json(package_dir / "title_visual_proof_contract_audit.json") or {}
+    title_visual_summary = summary_of(title_visual_proof)
     add_gate(
         gates,
         "Title and cover contract are clean before viewer-facing delivery",
@@ -292,6 +294,30 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "backgroundVideoReady": cover_summary.get("backgroundVideoReady"),
             "clean16x9Deliverable": cover_summary.get("clean16x9Deliverable"),
             "forbiddenHitCount": cover_summary.get("forbiddenHitCount"),
+        },
+    )
+    title_visual_row_count = as_int(title_visual_summary.get("titleVisualRowCount"))
+    add_gate(
+        gates,
+        "Title visual proof has local probe/frame evidence before first-draft trust",
+        title_visual_proof.get("status") == "passed"
+        and title_visual_row_count >= 3
+        and as_int(title_visual_summary.get("passedTitleVisualRowCount")) == title_visual_row_count
+        and as_int(title_visual_summary.get("blockedTitleVisualRowCount")) == 0
+        and as_int(title_visual_summary.get("openingRowCount")) == 1
+        and as_int(title_visual_summary.get("chapterRowCount")) >= 1
+        and as_int(title_visual_summary.get("endingRowCount")) >= 1
+        and as_int(title_visual_summary.get("rowsWithPackageLocalVideo")) == title_visual_row_count
+        and as_int(title_visual_summary.get("rowsWithProbeVideo")) == title_visual_row_count
+        and as_int(title_visual_summary.get("rowsWithThreePassedFrames")) == title_visual_row_count
+        and as_int(title_visual_summary.get("openingForbiddenHitCount")) == 0
+        and title_visual_summary.get("titleBridgeStatus") == "passed"
+        and title_visual_summary.get("coverTitleStatus") == "passed"
+        and not title_visual_proof.get("blockers"),
+        {
+            "titleVisualProofStatus": title_visual_proof.get("status"),
+            "titleVisualSummary": title_visual_summary,
+            "blockers": title_visual_proof.get("blockers"),
         },
     )
 

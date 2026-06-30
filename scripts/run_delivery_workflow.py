@@ -1881,6 +1881,30 @@ def summarize_cover_title_contract(report: dict[str, Any] | None) -> dict[str, A
     }
 
 
+def summarize_title_visual_proof_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "titleVisualRowCount": summary.get("titleVisualRowCount"),
+        "passedTitleVisualRowCount": summary.get("passedTitleVisualRowCount"),
+        "blockedTitleVisualRowCount": summary.get("blockedTitleVisualRowCount"),
+        "openingRowCount": summary.get("openingRowCount"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "endingRowCount": summary.get("endingRowCount"),
+        "rowsWithPackageLocalVideo": summary.get("rowsWithPackageLocalVideo"),
+        "rowsWithProbeVideo": summary.get("rowsWithProbeVideo"),
+        "rowsWithThreePassedFrames": summary.get("rowsWithThreePassedFrames"),
+        "rowsWithOverlayEvidence": summary.get("rowsWithOverlayEvidence"),
+        "openingForbiddenHitCount": summary.get("openingForbiddenHitCount"),
+        "titleBridgeStatus": summary.get("titleBridgeStatus"),
+        "coverTitleStatus": summary.get("coverTitleStatus"),
+        "blockers": report.get("blockers") or [],
+    }
+
+
 def summarize_route_decision_application(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2819,6 +2843,16 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     cover_title_cmd = ["python3", str(SCRIPTS_DIR / "audit_cover_title_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_cover_title_contract", cover_title_cmd, ok_codes={0, 2}))
 
+    title_visual_proof_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_title_visual_proof_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--extract-frames",
+        "--json",
+    ]
+    steps.append(run_step("audit_title_visual_proof_contract", title_visual_proof_cmd, ok_codes={0, 2}))
+
     visual_establishing_cmd = ["python3", str(SCRIPTS_DIR / "prepare_visual_establishing_plan.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_visual_establishing_plan", visual_establishing_cmd))
 
@@ -3168,6 +3202,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     audience_caption_summary = None
     title_typography_summary = None
     cover_title_summary = None
+    title_visual_proof_summary = None
     visual_establishing_summary = None
     effect_motion_summary = None
     effect_motion_blueprint_summary = None
@@ -3352,6 +3387,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             cover_title_summary = summarize_cover_title_contract(payload)
             if cover_title_summary and cover_title_summary.get("status") == "blocked":
                 blockers.extend(f"Cover title blocker: {item}" for item in cover_title_summary.get("blockers") or [])
+        if step["id"] == "audit_title_visual_proof_contract":
+            title_visual_proof_summary = summarize_title_visual_proof_contract(payload)
+            if title_visual_proof_summary and title_visual_proof_summary.get("status") == "blocked":
+                blockers.extend(f"Title visual proof blocker: {item}" for item in title_visual_proof_summary.get("blockers") or [])
         if step["id"] == "prepare_visual_establishing_plan":
             visual_establishing_summary = summarize_visual_establishing_plan(payload)
         if step["id"] == "prepare_effect_motion_plan":
@@ -3724,6 +3763,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         cover_title_summary = summarize_cover_title_contract(
             load_json(package_dir / "cover_title_contract_audit.json")
         )
+    if package_dir and (package_dir / "title_visual_proof_contract_audit.json").exists():
+        title_visual_proof_summary = summarize_title_visual_proof_contract(
+            load_json(package_dir / "title_visual_proof_contract_audit.json")
+        )
     if package_dir and (package_dir / "visual_establishing_plan" / "visual_establishing_plan.json").exists():
         visual_establishing_summary = summarize_visual_establishing_plan(
             load_json(package_dir / "visual_establishing_plan" / "visual_establishing_plan.json")
@@ -4016,6 +4059,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "audienceCaptionSummary": audience_caption_summary,
         "titleTypographySummary": title_typography_summary,
         "coverTitleSummary": cover_title_summary,
+        "titleVisualProofSummary": title_visual_proof_summary,
         "visualEstablishingSummary": visual_establishing_summary,
         "effectMotionSummary": effect_motion_summary,
         "effectMotionBlueprintSummary": effect_motion_blueprint_summary,
@@ -4106,6 +4150,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review caption_story_plan/text_only_narration_export.txt and dense SRT before subtitle overlay generation.",
             "Review audience_caption_contract_audit.json so final captions/TXT are viewer-facing travel-film text, not edit-status reports.",
             "Review title_typography_plan.json before generating or trusting title bridge media.",
+            "Review title_visual_proof_contract_audit.json before approving the opening/chapter/ending title look; it must contain package-local video probe plus nonblank 16:9 frame evidence.",
             "Review visual_establishing_plan.json before trusting opening/chapter/ending aerial, landmark, or city establishing shots.",
             "Review effect_motion_plan.json before adding Resolve title, route, or transition effects.",
             "Preflight effect_motion_blueprint/resolve_timeline_blueprint_effect_motion.json before approving title or transition motion effects for Resolve.",

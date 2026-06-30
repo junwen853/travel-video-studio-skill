@@ -80,6 +80,7 @@ REQUIRED_SCRIPTS = {
         "prepare_caption_story_plan.py",
         "audit_audience_caption_contract.py",
         "prepare_title_typography_plan.py",
+        "audit_title_visual_proof_contract.py",
         "prepare_visual_establishing_plan.py",
         "prepare_effect_motion_plan.py",
         "prepare_effect_motion_blueprint.py",
@@ -178,6 +179,7 @@ REQUIRED_SKILL_PATTERNS = {
     "audience_caption_contract_rule": "audience-facing travel-film text",
     "title_typography_plan_rule": "prepare_title_typography_plan.py",
     "cover_title_contract_rule": "audit_cover_title_contract.py",
+    "title_visual_proof_contract_rule": "audit_title_visual_proof_contract.py",
     "visual_establishing_plan_rule": "prepare_visual_establishing_plan.py",
     "effect_motion_plan_rule": "prepare_effect_motion_plan.py",
     "effect_motion_blueprint_rule": "prepare_effect_motion_blueprint.py",
@@ -1077,6 +1079,71 @@ def cover_title_contract_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("backgroundRecognitionHint") is True
         and evidence.get("clean16x9Deliverable") is True
         and int(evidence.get("forbiddenHitCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+    )
+
+
+def title_visual_proof_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "title_visual_proof_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "visualManifestExists": inputs.get("visualManifestExists"),
+        "titleVisualRowCount": summary.get("titleVisualRowCount"),
+        "passedTitleVisualRowCount": summary.get("passedTitleVisualRowCount"),
+        "blockedTitleVisualRowCount": summary.get("blockedTitleVisualRowCount"),
+        "openingRowCount": summary.get("openingRowCount"),
+        "chapterRowCount": summary.get("chapterRowCount"),
+        "endingRowCount": summary.get("endingRowCount"),
+        "rowsWithPackageLocalVideo": summary.get("rowsWithPackageLocalVideo"),
+        "rowsWithProbeVideo": summary.get("rowsWithProbeVideo"),
+        "rowsWithThreePassedFrames": summary.get("rowsWithThreePassedFrames"),
+        "rowsWithOverlayEvidence": summary.get("rowsWithOverlayEvidence"),
+        "openingForbiddenHitCount": summary.get("openingForbiddenHitCount"),
+        "titleBridgeStatus": summary.get("titleBridgeStatus"),
+        "coverTitleStatus": summary.get("coverTitleStatus"),
+        "ffmpegAvailable": summary.get("ffmpegAvailable"),
+        "ffprobeAvailable": summary.get("ffprobeAvailable"),
+        "extractedFrames": summary.get("extractedFrames"),
+        "blockerCount": len(data.get("blockers") or []),
+        "warningCount": len(data.get("warnings") or []),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+    }
+
+
+def title_visual_proof_contract_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("titleVisualRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("visualManifestExists") is True
+        and row_count >= 3
+        and int(evidence.get("passedTitleVisualRowCount") or 0) == row_count
+        and int(evidence.get("blockedTitleVisualRowCount") or 0) == 0
+        and int(evidence.get("openingRowCount") or 0) == 1
+        and int(evidence.get("chapterRowCount") or 0) >= 1
+        and int(evidence.get("endingRowCount") or 0) >= 1
+        and int(evidence.get("rowsWithPackageLocalVideo") or 0) == row_count
+        and int(evidence.get("rowsWithProbeVideo") or 0) == row_count
+        and int(evidence.get("rowsWithThreePassedFrames") or 0) == row_count
+        and int(evidence.get("openingForbiddenHitCount") or 0) == 0
+        and evidence.get("titleBridgeStatus") == "passed"
+        and evidence.get("coverTitleStatus") == "passed"
+        and evidence.get("ffmpegAvailable") is True
+        and evidence.get("ffprobeAvailable") is True
+        and evidence.get("extractedFrames") is True
         and int(evidence.get("blockerCount") or 0) == 0
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False
@@ -6646,6 +6713,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Cover title contract enforces Parallel World-style hero title without route/date clutter",
         cover_title_contract_ready(cover_title_evidence),
         cover_title_evidence,
+    )
+    title_visual_proof_evidence = title_visual_proof_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Title visual proof contract proves clean title media with actual local frames, not only manifests",
+        title_visual_proof_contract_ready(title_visual_proof_evidence),
+        title_visual_proof_evidence,
     )
     visual_plan_evidence = visual_establishing_plan_evidence(package_dir)
     add_check(

@@ -94,6 +94,7 @@ REQUIRED_SCRIPTS = [
     "audit_resolve_timeline.py",
     "prepare_scenic_title_bridges.py",
     "audit_cover_title_contract.py",
+    "audit_title_visual_proof_contract.py",
     "prepare_feedback_regression_plan.py",
     "audit_feedback_regressions.py",
     "prepare_bgm_sourcing_brief.py",
@@ -251,6 +252,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     client = load_json(package_dir / "client_delivery_rules_audit.json") or {}
     title = load_json(package_dir / "title_bridge_contract_audit.json") or {}
     cover_title = load_json(package_dir / "cover_title_contract_audit.json") or {}
+    title_visual_proof = load_json(package_dir / "title_visual_proof_contract_audit.json") or {}
     title_plan = load_json(package_dir / "title_typography_plan" / "title_typography_plan.json") or {}
     feedback_plan = load_json(package_dir / "feedback_regression_plan" / "feedback_regression_plan.json") or {}
     feedback = load_json(package_dir / "feedback_regression_audit" / "feedback_regression_audit.json") or {}
@@ -487,6 +489,31 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "coverTitleStatus": cover_title.get("status"),
             "coverTitleSummary": cover_title_summary,
+        },
+    )
+    title_visual_summary = get_summary(title_visual_proof)
+    title_visual_row_count = int(title_visual_summary.get("titleVisualRowCount") or 0)
+    add_check(
+        checks,
+        "Title visual proof shows actual clean title frames, not only manifest claims",
+        title_visual_proof.get("status") == "passed"
+        and title_visual_row_count >= 3
+        and int(title_visual_summary.get("passedTitleVisualRowCount") or 0) == title_visual_row_count
+        and int(title_visual_summary.get("blockedTitleVisualRowCount") or 0) == 0
+        and int(title_visual_summary.get("openingRowCount") or 0) == 1
+        and int(title_visual_summary.get("chapterRowCount") or 0) >= 1
+        and int(title_visual_summary.get("endingRowCount") or 0) >= 1
+        and int(title_visual_summary.get("rowsWithPackageLocalVideo") or 0) == title_visual_row_count
+        and int(title_visual_summary.get("rowsWithProbeVideo") or 0) == title_visual_row_count
+        and int(title_visual_summary.get("rowsWithThreePassedFrames") or 0) == title_visual_row_count
+        and int(title_visual_summary.get("openingForbiddenHitCount") or 0) == 0
+        and title_visual_summary.get("titleBridgeStatus") == "passed"
+        and title_visual_summary.get("coverTitleStatus") == "passed"
+        and not title_visual_proof.get("blockers"),
+        {
+            "titleVisualProofStatus": title_visual_proof.get("status"),
+            "titleVisualSummary": title_visual_summary,
+            "blockers": title_visual_proof.get("blockers"),
         },
     )
 
@@ -1993,6 +2020,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and director_intent.get("status") in {"passed", "passed_with_warnings"}
         and passed_status(director_polish)
         and cover_title.get("status") == "passed"
+        and title_visual_proof.get("status") == "passed"
         and reference_batch.get("status") in {"ready_with_reference_batch_profile", "ready_with_single_reference_profile"}
         and reference_profile_application.get("status") == "passed"
         and reference_transition_profile.get("status") == "passed"
@@ -2051,6 +2079,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "directorPolishStatus": director_polish.get("status"),
             "coverTitleStatus": cover_title.get("status"),
             "coverTitleSummary": cover_title_summary,
+            "titleVisualProofStatus": title_visual_proof.get("status"),
+            "titleVisualProofSummary": title_visual_summary,
             "referenceBatchStatus": reference_batch.get("status"),
             "referenceBatchSummary": reference_batch_summary,
             "referenceProfileApplicationStatus": reference_profile_application.get("status"),
