@@ -31,7 +31,7 @@ Web research note from the current Skill update: Bilibili search and creator-spa
 
 Director-polish note from the current Skill update: use the creator references as a quality bar for visible craft, not as assets to copy. The final Skill should prove a clean aerial/establishing opening, restrained title typography, travel-appropriate BGM mood, motivated transition effects, dense but non-invasive subtitles, and a real route texture chain. These checks now belong in `audit_director_polish_contract.py`; failing them means the cut may be technically valid but still too template-like.
 
-Reference and transition contract index for final QA: read `reference-review-completeness-contract.md`, `editorial-watchdown-repair-contract.md`, `bgm-musicality-contract.md`, `scene-flow-arc-contract.md`, `transition-continuity-rehearsal-contract.md`, `transition-effect-recipe-contract.md`, `rendered-transition-proof-contract.md`, `transition-source-coverage-contract.md`, `transition-motion-direction-contract.md`, `transition-cutpoint-contract.md`, `transition-audition-visual-proof-contract.md`, `transition-audition-role-integrity-contract.md`, and `transition-watch-reel-contract.md` before claiming Bilibili/Malta-level handoff quality.
+Reference and transition contract index for final QA: read `reference-review-completeness-contract.md`, `editorial-watchdown-repair-contract.md`, `bgm-musicality-contract.md`, `scene-flow-arc-contract.md`, `transition-continuity-rehearsal-contract.md`, `transition-effect-recipe-contract.md`, `rendered-transition-proof-contract.md`, `transition-source-coverage-contract.md`, `transition-motion-direction-contract.md`, `transition-cutpoint-contract.md`, `transition-audition-visual-proof-contract.md`, `transition-audition-role-integrity-contract.md`, `transition-watch-reel-contract.md`, and `transition-watch-reel-review-contract.md` before claiming Bilibili/Malta-level handoff quality.
 
 ## Style Target
 
@@ -136,7 +136,7 @@ Read `references/footage-select-engine.md`, `references/creator-cut-engine.md`, 
 
 For reference-style transition polish, also read `references/transition-action-anchor-contract.md` and `references/transition-sensory-continuity-contract.md`, then run `scripts/audit_transition_action_anchor_contract.py --package-dir <package>` and `scripts/audit_transition_sensory_continuity_contract.py --package-dir <package>` after cutpoint timing. Do not call a Bilibili/Malta-style transition ready when it lacks readable outgoing action, motivated bridge-or-match action, visual/BGM/caption/route-or-mood continuity, or stable landing proof.
 
-For important transition auditions, also read `references/transition-watch-reel-contract.md` and run `scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel`; do not call the transition package reference-ready unless it returns `ready_with_transition_watch_reel` or `ready_no_important_transitions`.
+For important transition auditions, also read `references/transition-watch-reel-contract.md` and `references/transition-watch-reel-review-contract.md`, then run `scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel` and `scripts/audit_transition_watch_reel_review_contract.py --package-dir <package>`; do not call the transition package reference-ready unless they return `ready_with_transition_watch_reel`/`ready_no_important_transitions` and `passed`/`passed_no_important_transitions`.
 
 After candidate review, prefer a new package fork instead of in-place replacement:
 

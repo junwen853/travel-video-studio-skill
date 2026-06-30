@@ -302,6 +302,18 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "forbiddenWorkaround": "Do not approve adjacent-shot flow from scattered JSON, screenshots, sampled frames, or per-row clips that were never reviewed together as a transition sequence.",
         "allowKeywordRoutes": False,
     },
+    "transition_watch_reel_review_contract_audit": {
+        "path": "transition_watch_reel_review_contract_audit.json",
+        "accepted": {"passed", "passed_no_important_transitions"},
+        "phase": "transition_flow",
+        "priority": "P0",
+        "ownerScript": "audit_transition_watch_reel_review_contract.py",
+        "requiredArtifact": "transition_watch_reel_review_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_transition_watch_reel_review_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun transition watch reel review and prove the ordered muted reel has no audio leakage, invalid timing, repeated template family runs, or overused high-intensity whip/rotation/speed effects.",
+        "forbiddenWorkaround": "Do not approve a transition sequence only because per-row clips exist; the ordered watch reel must pass sequence-level rhythm and effect-restraint review.",
+        "allowKeywordRoutes": False,
+    },
     "editorial_watchdown_repair_plan": {
         "path": "editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json",
         "accepted": {"ready_no_editorial_watchdown_repairs_needed"},
@@ -568,6 +580,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/prepare_transition_preview_packet.py --package-dir <package> --extract-frames --json",
             "acceptanceEvidence": "Rerun preview packet/quality audits and final QA until important boundaries have nonblank outgoing/middle/landing frame evidence.",
             "forbiddenWorkaround": "Do not approve storyboard or Resolve apply from prose when preview frames are blank, stale, missing, or identical.",
+        },
+    ),
+    (
+        ("transition_watch_reel_review", "watch reel review"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "audit_transition_watch_reel_review_contract.py",
+            "requiredArtifact": "transition_watch_reel_review_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_transition_watch_reel_review_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition watch reel review and final QA until the ordered transition reel has clean timing, no audio stream, family variety, and restrained high-intensity motion.",
+            "forbiddenWorkaround": "Do not approve reference-style transitions from scattered clips or a reel with repeated template motion, noisy audio, or effect spam.",
         },
     ),
     (
