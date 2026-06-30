@@ -290,6 +290,17 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Rerun reference review repair planning and prove every supplied reference video has full-film review evidence for opening/title, chapter rhythm, transition language, ending, BGM/audio/captions, and non-copying Skill takeaways.",
         "forbiddenWorkaround": "Do not learn from sampled-frame impressions, copied creator assets, vague style adjectives, or unreviewed contact sheets when the user supplied full reference videos.",
     },
+    "editorial_watchdown_repair_plan": {
+        "path": "editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json",
+        "accepted": {"ready_no_editorial_watchdown_repairs_needed"},
+        "phase": "final_watchdown",
+        "priority": "P0",
+        "ownerScript": "prepare_editorial_watchdown_repair_plan.py",
+        "requiredArtifact": "editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json",
+        "command": "python3 <skill-dir>/scripts/prepare_editorial_watchdown_repair_plan.py --package-dir <package> --final-output <final-mp4> --json",
+        "acceptanceEvidence": "Rerun final editorial watchdown planning and prove the current final MP4 has closed beginning-to-end viewer review rows for opening, chapters, transitions, BGM/captions, ending, and reference fit.",
+        "forbiddenWorkaround": "Do not hand off a technically passing package that nobody watched as a whole film, do not close from screenshots/contact sheets, and do not reuse stale V1/V2/V14 review notes for a new output path.",
+    },
     "resolve_blueprint_preflight": {
         "path": "resolve_blueprint_preflight.json",
         "accepted": {"ready", "ready_with_warnings"},
@@ -468,6 +479,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/prepare_reference_review_repair_plan.py --package-dir <package> --json",
             "acceptanceEvidence": "Rerun reference review repair planning until every supplied creator/reference video has complete full-film review evidence and the plan returns ready_no_reference_review_repairs_needed.",
             "forbiddenWorkaround": "Do not pass reference learning from random frames, contact sheets without observations, vague prose, copied titles/music/subtitles, or old reference notes.",
+        },
+    ),
+    (
+        ("editorial_watchdown", "watchdown", "final watch", "whole film", "viewer review"),
+        {
+            "phase": "final_watchdown",
+            "ownerScript": "prepare_editorial_watchdown_repair_plan.py",
+            "requiredArtifact": "editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_editorial_watchdown_repair_plan.py --package-dir <package> --final-output <final-mp4> --json",
+            "acceptanceEvidence": "Rerun final editorial watchdown planning until the current final MP4 has closed viewer-facing review evidence for opening, chapters, transitions, BGM/captions, ending, and reference fit.",
+            "forbiddenWorkaround": "Do not claim client/editor handoff from QA reports alone, sampled frames, stale render review, or internal workflow captions.",
         },
     ),
     (

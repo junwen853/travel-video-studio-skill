@@ -39,6 +39,7 @@ REQUIRED_SCRIPTS = {
         "analyze_reference_video.py",
         "prepare_reference_batch_profile.py",
         "prepare_reference_review_repair_plan.py",
+        "prepare_editorial_watchdown_repair_plan.py",
         "audit_reference_profile_application_contract.py",
         "audit_reference_transition_profile_contract.py",
         "prepare_bgm_sourcing_brief.py",
@@ -269,6 +270,8 @@ REQUIRED_SKILL_PATTERNS = {
     "reference_batch_profile_rule": "prepare_reference_batch_profile.py",
     "reference_review_repair_plan_rule": "prepare_reference_review_repair_plan.py",
     "reference_full_review_repair_rule": "full-film reference review evidence",
+    "editorial_watchdown_repair_plan_rule": "prepare_editorial_watchdown_repair_plan.py",
+    "editorial_watchdown_status_rule": "ready_no_editorial_watchdown_repairs_needed",
     "reference_transition_profile_contract_reference_rule": "reference-transition-profile-contract.md",
     "chapter_story_spine_contract_reference_rule": "chapter-story-spine-contract.md",
     "shot_flow_continuity_contract_reference_rule": "shot-flow-continuity-contract.md",
@@ -341,6 +344,7 @@ REQUIRED_STYLE_PATTERNS = {
     "parallel_world_profile": "parallel-world-vlog-style.md",
     "reference_batch_profile": "reference-batch-profile-engine.md",
     "reference_review_completeness_contract": "reference-review-completeness-contract.md",
+    "editorial_watchdown_contract": "editorial-watchdown-repair-contract.md",
     "reference_profile_application_contract": "reference-profile-application-contract.md",
     "reference_transition_profile_contract": "reference-transition-profile-contract.md",
     "footage_select_engine": "footage-select-engine.md",
@@ -410,6 +414,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "batch_reference_profile": "reference batch profile",
     "reference_review_repair_plan": "reference review repair plan",
     "full_reference_review_closure": "ready_no_reference_review_repairs_needed",
+    "editorial_watchdown_repair_plan": "editorial watchdown repair plan",
     "cover_title_formula": "Cover And Hero Title Style",
     "cover_title_contract": "cover title contract",
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
@@ -659,6 +664,52 @@ def reference_review_repair_plan_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("referencesWithAnalysis") or 0) == reference_count
         and int(evidence.get("referencesWithContactSheet") or 0) == reference_count
         and int(evidence.get("referencesWithOpeningMiddleEndingCoverage") or 0) == reference_count
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+    )
+
+
+def editorial_watchdown_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data, dict) and isinstance(data.get("summary"), dict) else {}
+    rows = data.get("watchRows") if isinstance(data, dict) and isinstance(data.get("watchRows"), list) else []
+    repair_rows = data.get("repairRows") if isinstance(data, dict) and isinstance(data.get("repairRows"), list) else []
+    inputs = data.get("inputs") if isinstance(data, dict) and isinstance(data.get("inputs"), dict) else {}
+    final_output = inputs.get("finalOutput") if isinstance(inputs.get("finalOutput"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status") if isinstance(data, dict) else None,
+        "watchRowCount": summary.get("watchRowCount"),
+        "closedWatchRowCount": summary.get("closedWatchRowCount"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "chapterWatchRowCount": summary.get("chapterWatchRowCount"),
+        "supportingReportIssueCount": summary.get("supportingReportIssueCount"),
+        "finalOutput": summary.get("finalOutput") or final_output.get("path"),
+        "finalOutputExists": summary.get("finalOutputExists") or final_output.get("exists"),
+        "rowCount": len(rows),
+        "openRepairRowCount": len(repair_rows),
+        "writesResolve": (data.get("safety") or {}).get("writesResolve") if isinstance(data.get("safety"), dict) else None,
+        "queuesRender": (data.get("safety") or {}).get("queuesRender") if isinstance(data.get("safety"), dict) else None,
+        "downloadsExternalAssets": (data.get("safety") or {}).get("downloadsExternalAssets") if isinstance(data.get("safety"), dict) else None,
+        "modifiesSourceFootage": (data.get("safety") or {}).get("modifiesSourceFootage") if isinstance(data.get("safety"), dict) else None,
+    }
+
+
+def editorial_watchdown_repair_plan_ready(evidence: dict[str, Any]) -> bool:
+    watch_rows = int(evidence.get("watchRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_no_editorial_watchdown_repairs_needed"
+        and watch_rows >= 5
+        and int(evidence.get("closedWatchRowCount") or 0) == watch_rows
+        and int(evidence.get("repairRowCount") or 0) == 0
+        and int(evidence.get("openRepairRowCount") or 0) == 0
+        and int(evidence.get("supportingReportIssueCount") or 0) == 0
+        and evidence.get("finalOutputExists") is True
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False
         and evidence.get("downloadsExternalAssets") is False
@@ -8160,6 +8211,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Reference review repair plan proves supplied creator/reference videos were reviewed as full films before the Skill learns from them",
         reference_review_repair_plan_ready(reference_review_repair_evidence),
         reference_review_repair_evidence,
+    )
+    editorial_watchdown_evidence = editorial_watchdown_repair_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Editorial watchdown repair plan proves the current final film was reviewed end-to-end before handoff",
+        editorial_watchdown_repair_plan_ready(editorial_watchdown_evidence),
+        editorial_watchdown_evidence,
     )
     reference_profile_application_evidence = reference_profile_application_contract_evidence(package_dir)
     add_check(

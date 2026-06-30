@@ -32,6 +32,7 @@ ACCEPTED_STATUSES = {
     "stock_aerial_closure_audit": {"passed", "passed_with_warnings"},
     "director_polish_contract_audit": {"passed", "passed_with_warnings"},
     "feedback_regression_audit": {"passed", "passed_with_warnings"},
+    "editorial_watchdown_repair_plan": {"ready_no_editorial_watchdown_repairs_needed"},
     "package_integrity_audit": {"passed"},
     "package_integrity_audit_strict_portable": {"passed"},
     "transition_pair_continuity_contract_audit": {"passed"},
@@ -229,6 +230,8 @@ def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) ->
         return package_dir / "transition_motion_accent_repair_plan" / "transition_motion_accent_repair_plan.json"
     if stage == "transition_flow_repair_plan":
         return package_dir / "transition_flow_repair_plan" / "transition_flow_repair_plan.json"
+    if stage == "editorial_watchdown_repair_plan":
+        return package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json"
     if stage == "unattended_repair_queue":
         return package_dir / "unattended_repair_queue" / "unattended_repair_queue.json"
     return package_dir / f"{stage}.json"
@@ -1058,6 +1061,17 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                     "--package-dir",
                     str(package_dir),
                 ],
+                False,
+            ),
+            (
+                "editorial_watchdown_repair_plan",
+                [
+                    sys.executable,
+                    str(scripts / "prepare_editorial_watchdown_repair_plan.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ]
+                + (["--final-output", str(output)] if output else []),
                 False,
             ),
             (

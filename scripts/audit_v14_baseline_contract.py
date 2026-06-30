@@ -97,6 +97,8 @@ SKILL_PATTERNS = {
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_repair_queue": "prepare_unattended_repair_queue.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
+    "editorial_watchdown_repair": "prepare_editorial_watchdown_repair_plan.py",
+    "editorial_watchdown_closed": "ready_no_editorial_watchdown_repairs_needed",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure": "audit_reference_repair_closure.py",
     "route_texture": "audit_route_texture_contract.py",
@@ -202,6 +204,7 @@ REQUIRED_SCRIPTS = [
     "audit_timeline_variety_contract.py",
     "prepare_unattended_repair_queue.py",
     "audit_unattended_first_draft_contract.py",
+    "prepare_editorial_watchdown_repair_plan.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_repair_closure.py",
     "audit_reference_style_alignment.py",
@@ -375,6 +378,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
     timeline_variety = load_json(package_dir / "timeline_variety_contract_audit.json") or {}
     unattended_first_draft = load_json(package_dir / "unattended_first_draft_contract_audit.json") or {}
+    editorial_watchdown = load_json(package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json") or {}
     unattended_repair_queue = load_json(package_dir / "unattended_repair_queue" / "unattended_repair_queue.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
@@ -2884,6 +2888,23 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "referenceStyleRepairSummary": reference_repair_summary,
             "referenceRepairClosureStatus": reference_repair_closure.get("status"),
             "referenceRepairClosureSummary": reference_repair_closure_summary,
+        },
+    )
+
+    editorial_watchdown_summary = get_summary(editorial_watchdown)
+    editorial_watch_rows = int(editorial_watchdown_summary.get("watchRowCount") or 0)
+    add_check(
+        checks,
+        "Editorial watchdown proves the current final MP4 was reviewed end-to-end before V14 handoff",
+        editorial_watchdown.get("status") == "ready_no_editorial_watchdown_repairs_needed"
+        and editorial_watch_rows >= 5
+        and int(editorial_watchdown_summary.get("closedWatchRowCount") or 0) == editorial_watch_rows
+        and int(editorial_watchdown_summary.get("repairRowCount") or 0) == 0
+        and int(editorial_watchdown_summary.get("supportingReportIssueCount") or 0) == 0
+        and bool(editorial_watchdown_summary.get("finalOutputExists")),
+        {
+            "editorialWatchdownStatus": editorial_watchdown.get("status"),
+            "editorialWatchdownSummary": editorial_watchdown_summary,
         },
     )
 

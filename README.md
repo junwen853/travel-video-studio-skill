@@ -98,9 +98,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.93.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.93/travel-video-studio-skill-v0.1.93.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.93.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.95.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.95/travel-video-studio-skill-v0.1.95.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.95.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -358,6 +358,10 @@ python3 ~/.codex/skills/travel-video-studio/scripts/audit_v14_baseline_contract.
 For a full final package:
 
 ```bash
+python3 ~/.codex/skills/travel-video-studio/scripts/prepare_editorial_watchdown_repair_plan.py \
+  --package-dir /path/to/delivery-package \
+  --final-output /path/to/final.mp4 \
+  --json
 python3 ~/.codex/skills/travel-video-studio/scripts/run_final_qa_suite.py \
   --package-dir /path/to/delivery-package \
   --skill-dir ~/.codex/skills/travel-video-studio

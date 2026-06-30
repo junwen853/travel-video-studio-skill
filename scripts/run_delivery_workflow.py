@@ -559,6 +559,24 @@ def summarize_reference_review_repair_plan(plan: dict[str, Any] | None) -> dict[
     }
 
 
+def summarize_editorial_watchdown_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "watchRowCount": summary.get("watchRowCount"),
+        "closedWatchRowCount": summary.get("closedWatchRowCount"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "chapterWatchRowCount": summary.get("chapterWatchRowCount"),
+        "supportingReportIssueCount": summary.get("supportingReportIssueCount"),
+        "finalOutput": summary.get("finalOutput"),
+        "finalOutputExists": summary.get("finalOutputExists"),
+        "ownerScripts": summary.get("ownerScripts"),
+    }
+
+
 def summarize_edit_rhythm_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -4008,6 +4026,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("resolve_blueprint_preflight", preflight_cmd, ok_codes={0, 2}))
 
+    editorial_watchdown_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "prepare_editorial_watchdown_repair_plan.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("prepare_editorial_watchdown_repair_plan", editorial_watchdown_cmd, ok_codes={0}))
+
     unattended_repair_queue_cmd = [
         "python3",
         str(SCRIPTS_DIR / "prepare_unattended_repair_queue.py"),
@@ -4158,6 +4185,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
+    editorial_watchdown_summary = None
     unattended_repair_queue_summary = None
     rhythm_recut_apply_summary = None
     skill_maturity_summary = None
@@ -4323,6 +4351,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             if reference_review_repair_summary and reference_review_repair_summary.get("status") != "ready_no_reference_review_repairs_needed":
                 blockers.append(
                     f"Reference review repair blocker: {reference_review_repair_summary.get('repairRowCount')} full-reference review rows remain open"
+                )
+        if step["id"] == "prepare_editorial_watchdown_repair_plan":
+            editorial_watchdown_summary = summarize_editorial_watchdown_repair_plan(payload)
+            if editorial_watchdown_summary and editorial_watchdown_summary.get("status") != "ready_no_editorial_watchdown_repairs_needed":
+                blockers.append(
+                    f"Editorial watchdown blocker: {editorial_watchdown_summary.get('repairRowCount')} final viewer-review rows remain open"
                 )
         if step["id"] == "prepare_audio_scene_policy_plan":
             audio_scene_policy_summary = summarize_audio_scene_policy_plan(payload)
@@ -4846,6 +4880,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         reference_review_repair_summary = summarize_reference_review_repair_plan(
             load_json(package_dir / "reference_review_repair_plan" / "reference_review_repair_plan.json")
         )
+    if package_dir and (package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json").exists():
+        editorial_watchdown_summary = summarize_editorial_watchdown_repair_plan(
+            load_json(package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json")
+        )
     if package_dir and (package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json").exists():
         audio_scene_policy_summary = summarize_audio_scene_policy_plan(
             load_json(package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json")
@@ -5264,6 +5302,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
+        "editorialWatchdownSummary": editorial_watchdown_summary,
         "unattendedRepairQueueSummary": unattended_repair_queue_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "skillMaturitySummary": skill_maturity_summary,
@@ -5309,6 +5348,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review feedback_regression_plan.json so original user complaints stay in pre-render audio policy, post-render feedback audit, and final QA commands.",
             "Review reference_batch_profile.json when local reference videos are supplied so rhythm/style targets are based on measured reference evidence.",
             "Review reference_review_repair_plan/reference_review_repair_plan.json when local reference videos are supplied so full-film review evidence is closed before reference learning, final QA, V14, or Skill maturity claims.",
+            "Review editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json before handoff; ready_with_editorial_watchdown_repair_plan means the current final MP4 still has open full-film viewer-review rows.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",
             "Review edit_rhythm_plan.json before Resolve apply so long raw clips, missing cutaways, and weak chapter variety are fixed before the edit feels AI-assembled.",
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",
