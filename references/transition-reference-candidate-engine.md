@@ -1,8 +1,8 @@
 # Transition Reference Candidate Engine
 
-Use this engine after `prepare_transition_grammar_plan.py` and `prepare_transition_execution_plan.py`, and before motif, bridge-sequence, choreography, preview, audition, storyboard, reference-transition-profile, unattended-first-draft, V14, maturity, final QA, or Resolve apply claims.
+Use this engine after `prepare_transition_grammar_plan.py` and `prepare_transition_execution_plan.py`, and before `prepare_transition_reference_selection.py`, motif, bridge-sequence, choreography, preview, audition, storyboard, reference-transition-profile, unattended-first-draft, V14, maturity, final QA, or Resolve apply claims.
 
-The purpose is to turn vague feedback like "make the transitions closer to Parallel World/Malta" into a row-level A/B/C candidate ladder. It does not copy a creator's exact edit. It uses the reference profile only as a non-copying balance target: clean continuity and visual matches carry most cuts, physical bridge or scenic breath carries important route/title/day changes, and whip/rotation/speed-ramp accents stay rare, motivated, and separated by stable landing footage.
+The purpose is to turn vague feedback like "make the transitions closer to Parallel World/Malta" into a row-level A/B/C candidate ladder. It does not copy a creator's exact edit. It uses the reference profile only as a non-copying balance target: clean continuity and visual matches carry most cuts, physical bridge or scenic breath carries important route/title/day changes, and whip/rotation/speed-ramp accents stay rare, motivated, and separated by stable landing footage. For unattended first drafts, run `prepare_transition_reference_selection.py` immediately afterward so every boundary has one default choice.
 
 ## Command
 
@@ -53,7 +53,7 @@ Each row must include:
 - Important boundaries have bridge, title-breath, or mood-breath candidates.
 - Motion candidates stay within the reference target and are not clustered.
 - Rows needing bridge footage are explicit as `needs_bridge_insert_before_effect`, not hidden behind flashy effects.
-- The plan is consumed by preview/audition/storyboard, reference-transition-profile, unattended-first-draft, V14, maturity, and final QA before Resolve apply.
+- The plan is consumed by transition reference selection, preview/audition/storyboard, reference-transition-profile, unattended-first-draft, V14, maturity, and final QA before Resolve apply.
 
 ## Repair Route
 

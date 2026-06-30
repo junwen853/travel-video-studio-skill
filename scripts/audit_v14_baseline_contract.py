@@ -41,6 +41,7 @@ SKILL_PATTERNS = {
     "transition_grammar": "prepare_transition_grammar_plan.py",
     "transition_execution": "prepare_transition_execution_plan.py",
     "transition_reference_candidates": "prepare_transition_reference_candidates.py",
+    "transition_reference_selection": "prepare_transition_reference_selection.py",
     "transition_execution_blueprint": "prepare_transition_execution_blueprint.py",
     "transition_motif": "prepare_transition_motif_plan.py",
     "bridge_sequence": "prepare_bridge_sequence_plan.py",
@@ -126,6 +127,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_grammar_plan.py",
     "prepare_transition_execution_plan.py",
     "prepare_transition_reference_candidates.py",
+    "prepare_transition_reference_selection.py",
     "prepare_transition_execution_blueprint.py",
     "prepare_transition_motif_plan.py",
     "prepare_bridge_sequence_plan.py",
@@ -286,6 +288,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
     transition_execution = load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json") or {}
     transition_reference_candidates = load_json(package_dir / "transition_reference_candidates" / "transition_reference_candidates.json") or {}
+    transition_reference_selection = load_json(package_dir / "transition_reference_selection" / "transition_reference_selection.json") or {}
     transition_execution_blueprint = load_json(package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json") or {}
     transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
@@ -1539,6 +1542,26 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "transitionReferenceCandidatesStatus": transition_reference_candidates.get("status"),
             "transitionReferenceCandidatesSummary": transition_reference_candidates_summary,
+        },
+    )
+    transition_reference_selection_summary = get_summary(transition_reference_selection)
+    add_check(
+        checks,
+        "Transition reference selection proves V14 first drafts auto-choose one safe default transition per boundary instead of waiting for manual A/B/C review",
+        transition_reference_selection.get("status") == "ready_with_transition_reference_selection"
+        and int(transition_reference_selection_summary.get("candidateRowCount") or 0) >= 1
+        and int(transition_reference_selection_summary.get("selectionRowCount") or 0) == int(transition_reference_selection_summary.get("candidateRowCount") or 0)
+        and int(transition_reference_selection_summary.get("selectedRowCount") or 0) == int(transition_reference_selection_summary.get("candidateRowCount") or 0)
+        and int(transition_reference_selection_summary.get("autoSelectedRowCount") or 0) == int(transition_reference_selection_summary.get("candidateRowCount") or 0)
+        and int(transition_reference_selection_summary.get("blockedSelectionRowCount") or 0) == 0
+        and int(transition_reference_selection_summary.get("motionSelectedRowCount") or 0) <= int(transition_reference_selection_summary.get("maxMotionRows") or 0)
+        and (
+            int(transition_reference_selection_summary.get("importantBoundaryCount") or 0) == 0
+            or float(transition_reference_selection_summary.get("importantBridgeOrBreathSelectionCoverage") or 0.0) >= 1.0
+        ),
+        {
+            "transitionReferenceSelectionStatus": transition_reference_selection.get("status"),
+            "transitionReferenceSelectionSummary": transition_reference_selection_summary,
         },
     )
     transition_choreography_plan_summary = get_summary(transition_choreography_plan)

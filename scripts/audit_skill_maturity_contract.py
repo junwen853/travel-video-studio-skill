@@ -99,6 +99,7 @@ REQUIRED_SCRIPTS = {
         "prepare_transition_grammar_plan.py",
         "prepare_transition_execution_plan.py",
         "prepare_transition_reference_candidates.py",
+        "prepare_transition_reference_selection.py",
         "prepare_transition_execution_blueprint.py",
         "prepare_transition_motif_plan.py",
         "prepare_bridge_sequence_plan.py",
@@ -199,6 +200,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_grammar_plan_rule": "prepare_transition_grammar_plan.py",
     "transition_execution_plan_rule": "prepare_transition_execution_plan.py",
     "transition_reference_candidates_rule": "prepare_transition_reference_candidates.py",
+    "transition_reference_selection_rule": "prepare_transition_reference_selection.py",
     "transition_execution_blueprint_rule": "prepare_transition_execution_blueprint.py",
     "transition_motif_plan_rule": "prepare_transition_motif_plan.py",
     "bridge_sequence_plan_rule": "prepare_bridge_sequence_plan.py",
@@ -234,6 +236,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_grammar_engine_rule": "transition-grammar-engine.md",
     "transition_execution_engine_rule": "transition-execution-engine.md",
     "transition_reference_candidate_engine_rule": "transition-reference-candidate-engine.md",
+    "transition_reference_selection_engine_rule": "transition-reference-selection-engine.md",
     "transition_execution_blueprint_engine_rule": "transition-execution-blueprint-engine.md",
     "transition_motif_engine_rule": "transition-motif-engine.md",
     "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
@@ -282,6 +285,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_grammar_engine": "transition-grammar-engine.md",
     "transition_execution_engine": "transition-execution-engine.md",
     "transition_reference_candidate_engine": "transition-reference-candidate-engine.md",
+    "transition_reference_selection_engine": "transition-reference-selection-engine.md",
     "transition_execution_blueprint_engine": "transition-execution-blueprint-engine.md",
     "transition_motif_engine": "transition-motif-engine.md",
     "bridge_sequence_engine": "bridge-sequence-engine.md",
@@ -332,6 +336,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "opening_route_promise": "viewer promise, destination proof",
     "transition_execution_plan": "transition execution plan",
     "transition_reference_candidates": "transition reference candidates",
+    "transition_reference_selection": "transition reference selection",
     "transition_execution_blueprint": "transition execution blueprint",
     "bgm_phrase_blueprint": "BGM phrase blueprint",
     "transition_polish_blueprint": "transition polish blueprint",
@@ -5378,6 +5383,54 @@ def transition_reference_candidates_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_reference_selection_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_reference_selection" / "transition_reference_selection.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "candidateRowCount": summary.get("candidateRowCount"),
+        "selectionRowCount": summary.get("selectionRowCount"),
+        "selectedRowCount": summary.get("selectedRowCount"),
+        "autoSelectedRowCount": summary.get("autoSelectedRowCount"),
+        "blockedSelectionRowCount": summary.get("blockedSelectionRowCount"),
+        "motionSelectedRowCount": summary.get("motionSelectedRowCount"),
+        "maxMotionRows": summary.get("maxMotionRows"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantRowsWithBridgeOrBreathSelection": summary.get("importantRowsWithBridgeOrBreathSelection"),
+        "importantBridgeOrBreathSelectionCoverage": summary.get("importantBridgeOrBreathSelectionCoverage"),
+        "selectedStyleFamilyCounts": summary.get("selectedStyleFamilyCounts"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+    }
+
+
+def transition_reference_selection_ready(evidence: dict[str, Any]) -> bool:
+    candidate_rows = int(evidence.get("candidateRowCount") or 0)
+    selection_rows = int(evidence.get("selectionRowCount") or 0)
+    important = int(evidence.get("importantBoundaryCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_with_transition_reference_selection"
+        and candidate_rows >= 1
+        and selection_rows == candidate_rows
+        and int(evidence.get("selectedRowCount") or 0) == candidate_rows
+        and int(evidence.get("autoSelectedRowCount") or 0) == candidate_rows
+        and int(evidence.get("blockedSelectionRowCount") or 0) == 0
+        and int(evidence.get("motionSelectedRowCount") or 0) <= int(evidence.get("maxMotionRows") or 0)
+        and (important == 0 or float(evidence.get("importantBridgeOrBreathSelectionCoverage") or 0.0) >= 1.0)
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+    )
+
+
 def transition_choreography_plan_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_choreography_plan" / "transition_choreography_plan.json"
     data = load_json(path) or {}
@@ -6798,6 +6851,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition reference candidates prove every boundary has non-copying A/B/C candidates with rare motion accents and bridge/breath coverage before Resolve apply",
         transition_reference_candidates_ready(transition_reference_candidates),
         transition_reference_candidates,
+    )
+    transition_reference_selection = transition_reference_selection_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition reference selection proves unattended drafts auto-select one safe default per boundary while bridge-missing rows stay blocked",
+        transition_reference_selection_ready(transition_reference_selection),
+        transition_reference_selection,
     )
     transition_choreography_plan = transition_choreography_plan_evidence(package_dir)
     add_check(

@@ -509,6 +509,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
     transition_reference_candidates = load_json(package_dir / "transition_reference_candidates" / "transition_reference_candidates.json") or {}
+    transition_reference_selection = load_json(package_dir / "transition_reference_selection" / "transition_reference_selection.json") or {}
     transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
     transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
@@ -543,6 +544,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tep_summary = summary_of(transition_effect_palette)
     tvm_summary = summary_of(transition_visual_match)
     trc_summary = summary_of(transition_reference_candidates)
+    trs_summary = summary_of(transition_reference_selection)
     tcp_summary = summary_of(transition_choreography_plan)
     tcc_summary = summary_of(transition_choreography_contract)
     tpp_summary = summary_of(transition_preview_packet)
@@ -571,6 +573,25 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         {
             "transitionReferenceCandidatesStatus": transition_reference_candidates.get("status"),
             "transitionReferenceCandidatesSummary": trc_summary,
+        },
+    )
+    add_gate(
+        gates,
+        "Transition reference selection auto-chooses one safe default transition per boundary for unattended first drafts",
+        transition_reference_selection.get("status") == "ready_with_transition_reference_selection"
+        and as_int(trs_summary.get("candidateRowCount")) >= 1
+        and as_int(trs_summary.get("selectionRowCount")) == as_int(trs_summary.get("candidateRowCount"))
+        and as_int(trs_summary.get("selectedRowCount")) == as_int(trs_summary.get("candidateRowCount"))
+        and as_int(trs_summary.get("autoSelectedRowCount")) == as_int(trs_summary.get("candidateRowCount"))
+        and as_int(trs_summary.get("blockedSelectionRowCount")) == 0
+        and as_int(trs_summary.get("motionSelectedRowCount")) <= as_int(trs_summary.get("maxMotionRows"))
+        and (
+            as_int(trs_summary.get("importantBoundaryCount")) == 0
+            or float(trs_summary.get("importantBridgeOrBreathSelectionCoverage") or 0.0) >= 1.0
+        ),
+        {
+            "transitionReferenceSelectionStatus": transition_reference_selection.get("status"),
+            "transitionReferenceSelectionSummary": trs_summary,
         },
     )
     add_gate(

@@ -54,6 +54,7 @@ ACCEPTED_STATUSES = {
     "transition_effect_palette_contract_audit": {"passed"},
     "transition_visual_match_contract_audit": {"passed"},
     "transition_reference_candidates": {"ready_with_transition_reference_candidates"},
+    "transition_reference_selection": {"ready_with_transition_reference_selection"},
     "transition_choreography_plan": {"ready_with_transition_choreography_plan"},
     "transition_choreography_contract_audit": {"passed"},
     "transition_preview_packet": {"ready_with_transition_preview_packet", "ready_no_important_transitions"},
@@ -195,6 +196,8 @@ def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) ->
         return package_dir / "transition_choreography_plan" / "transition_choreography_plan.json"
     if stage == "transition_reference_candidates":
         return package_dir / "transition_reference_candidates" / "transition_reference_candidates.json"
+    if stage == "transition_reference_selection":
+        return package_dir / "transition_reference_selection" / "transition_reference_selection.json"
     if stage == "transition_audition_packet":
         return package_dir / "transition_audition_packet" / "transition_audition_packet.json"
     if stage == "unattended_repair_queue":
@@ -652,6 +655,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "prepare_transition_reference_candidates.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_reference_selection",
+                [
+                    sys.executable,
+                    str(scripts / "prepare_transition_reference_selection.py"),
                     "--package-dir",
                     str(package_dir),
                 ],

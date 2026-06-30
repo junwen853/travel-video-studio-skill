@@ -41,9 +41,9 @@ python3 scripts/install_for_agent.py \
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.62.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.62/travel-video-studio-skill-v0.1.62.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.62.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.63.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.63/travel-video-studio-skill-v0.1.63.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.63.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 ## Install From Source
@@ -101,6 +101,7 @@ test -f ~/.codex/skills/travel-video-studio/scripts/audit_reference_profile_appl
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_reference_transition_profile_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_large_source_unattended_readiness_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/prepare_transition_reference_candidates.py
+test -f ~/.codex/skills/travel-video-studio/scripts/prepare_transition_reference_selection.py
 test -f ~/.codex/skills/travel-video-studio/scripts/prepare_transition_preview_packet.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_preview_quality_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/prepare_transition_audition_packet.py
@@ -116,6 +117,7 @@ test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_bridge_visu
 test -f ~/.codex/skills/travel-video-studio/references/reference-profile-application-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/reference-transition-profile-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-reference-candidate-engine.md
+test -f ~/.codex/skills/travel-video-studio/references/transition-reference-selection-engine.md
 test -f ~/.codex/skills/travel-video-studio/references/chapter-story-spine-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/shot-flow-continuity-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/large-source-unattended-readiness-contract.md

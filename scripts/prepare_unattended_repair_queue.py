@@ -179,6 +179,17 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Every adjacent boundary has non-copying A/B/C transition candidates, rare motion accents, bridge/breath coverage for important boundaries, and decision/readback fields.",
         "forbiddenWorkaround": "Do not approve generic hard cuts, random rotation, or template effects before candidate rows explain why the boundary should cut, bridge, breathe, dissolve, or use a rare motion accent.",
     },
+    "transition_reference_selection": {
+        "path": "transition_reference_selection/transition_reference_selection.json",
+        "accepted": {"ready_with_transition_reference_selection"},
+        "phase": "transition_flow",
+        "priority": "P0",
+        "ownerScript": "prepare_transition_reference_selection.py",
+        "requiredArtifact": "transition_reference_selection/transition_reference_selection.json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_reference_selection.py --package-dir <package> --json",
+        "acceptanceEvidence": "Every adjacent boundary has one auto-selected default transition, zero blocked selection rows, motion within reference budget, and bridge/breath selections for important boundaries.",
+        "forbiddenWorkaround": "Do not leave A/B/C choices for manual review in an unattended first draft, and do not resolve bridge-missing rows by selecting random visible effects.",
+    },
     "transition_breathing_room_contract_audit": {
         "path": "transition_breathing_room_contract_audit.json",
         "accepted": {"passed"},
