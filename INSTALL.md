@@ -41,9 +41,9 @@ python3 scripts/install_for_agent.py \
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.74.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.74/travel-video-studio-skill-v0.1.74.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.74.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.75.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.75/travel-video-studio-skill-v0.1.75.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.75.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 ## Install From Source
@@ -117,6 +117,7 @@ test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_breathing_r
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_scene_flow_arc_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_final_cut_smoothness_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_continuity_rehearsal_contract.py
+test -f ~/.codex/skills/travel-video-studio/scripts/audit_pacing_watchability_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/prepare_unattended_repair_queue.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_chapter_story_spine_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_shot_flow_continuity_contract.py
@@ -143,6 +144,7 @@ test -f ~/.codex/skills/travel-video-studio/references/transition-breathing-room
 test -f ~/.codex/skills/travel-video-studio/references/scene-flow-arc-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/final-cut-smoothness-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-continuity-rehearsal-contract.md
+test -f ~/.codex/skills/travel-video-studio/references/pacing-watchability-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/unattended-repair-queue-engine.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-bridge-visual-evidence-contract.md
 python3 ~/.codex/skills/travel-video-studio/scripts/check_project_state.py \

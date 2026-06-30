@@ -84,6 +84,7 @@ SKILL_PATTERNS = {
     "scene_flow_arc_contract": "audit_scene_flow_arc_contract.py",
     "final_cut_smoothness_contract": "audit_final_cut_smoothness_contract.py",
     "transition_continuity_rehearsal_contract": "audit_transition_continuity_rehearsal_contract.py",
+    "pacing_watchability_contract": "audit_pacing_watchability_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_repair_queue": "prepare_unattended_repair_queue.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
@@ -179,6 +180,7 @@ REQUIRED_SCRIPTS = [
     "audit_scene_flow_arc_contract.py",
     "audit_final_cut_smoothness_contract.py",
     "audit_transition_continuity_rehearsal_contract.py",
+    "audit_pacing_watchability_contract.py",
     "audit_timeline_variety_contract.py",
     "prepare_unattended_repair_queue.py",
     "audit_unattended_first_draft_contract.py",
@@ -290,6 +292,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
     transition_continuity_rehearsal = load_json(package_dir / "transition_continuity_rehearsal_contract_audit.json") or {}
+    pacing_watchability = load_json(package_dir / "pacing_watchability_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -2130,6 +2133,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     scene_flow_arc_summary = get_summary(scene_flow_arc)
     final_cut_smoothness_summary = get_summary(final_cut_smoothness)
     transition_continuity_rehearsal_summary = get_summary(transition_continuity_rehearsal)
+    pacing_watchability_summary = get_summary(pacing_watchability)
     add_check(
         checks,
         "Transition breathing-room contract proves V14 transitions land on stable footage and do not become motion-effect spam",
@@ -2226,6 +2230,29 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionContinuityRehearsalStatus": transition_continuity_rehearsal.get("status"),
             "transitionContinuityRehearsalSummary": transition_continuity_rehearsal_summary,
             "blockers": transition_continuity_rehearsal.get("blockers"),
+        },
+    )
+    add_check(
+        checks,
+        "Pacing watchability contract proves V14 final shot lengths, chapter breath, long-hold reduction, and short-clip readability",
+        pacing_watchability.get("status") == "passed"
+        and int(pacing_watchability_summary.get("visualClipCount") or 0) >= 3
+        and bool((pacing_watchability.get("inputs") or {}).get("blueprintInsidePackage"))
+        and int(pacing_watchability_summary.get("chapterCount") or 0) >= 1
+        and int(pacing_watchability_summary.get("blockedChapterCount") or 0) == 0
+        and float(pacing_watchability_summary.get("averageVisualShotSeconds") or 0.0) > 0
+        and float(pacing_watchability_summary.get("medianVisualShotSeconds") or 0.0) > 0
+        and int(pacing_watchability_summary.get("longFlatShotCount") or 0) == 0
+        and int(pacing_watchability_summary.get("veryLongShotCount") or 0) == 0
+        and int(pacing_watchability_summary.get("longFlatRunMax") or 0) <= 1
+        and int(pacing_watchability_summary.get("shortClipRunMax") or 0) <= 2
+        and int(pacing_watchability_summary.get("breathingShotCount") or 0) >= int(pacing_watchability_summary.get("chapterCount") or 0)
+        and int(pacing_watchability_summary.get("blockedCheckCount") or 0) == 0
+        and not pacing_watchability.get("blockers"),
+        {
+            "pacingWatchabilityStatus": pacing_watchability.get("status"),
+            "pacingWatchabilitySummary": pacing_watchability_summary,
+            "blockers": pacing_watchability.get("blockers"),
         },
     )
     reference_transition_profile_summary = get_summary(reference_transition_profile)
@@ -2424,10 +2451,16 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_audition_visual_proof.get("status") == "passed"
         and transition_audition_role_integrity.get("status") == "passed"
         and transition_continuity_rehearsal.get("status") == "passed"
+        and pacing_watchability.get("status") == "passed"
         and int(transition_continuity_rehearsal_summary.get("blockedRehearsalRowCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("blockedAdjacentPairCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("adjacentMotionPairCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("backToBackImportantPairCount") or 0) == 0
+        and int(pacing_watchability_summary.get("blockedChapterCount") or 0) == 0
+        and int(pacing_watchability_summary.get("longFlatShotCount") or 0) == 0
+        and int(pacing_watchability_summary.get("veryLongShotCount") or 0) == 0
+        and int(pacing_watchability_summary.get("shortClipRunMax") or 0) <= 2
+        and int(pacing_watchability_summary.get("blockedCheckCount") or 0) == 0
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("rowsWithMotionExecution") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
@@ -2545,6 +2578,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionStoryboardSummary": transition_storyboard_summary,
             "transitionContinuityRehearsalStatus": transition_continuity_rehearsal.get("status"),
             "transitionContinuityRehearsalSummary": transition_continuity_rehearsal_summary,
+            "pacingWatchabilityStatus": pacing_watchability.get("status"),
+            "pacingWatchabilitySummary": pacing_watchability_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": reference_scene_grammar_summary,
             "unattendedFirstDraftStatus": unattended_first_draft.get("status"),

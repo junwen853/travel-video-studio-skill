@@ -566,6 +566,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
     transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
     transition_continuity_rehearsal = load_json(package_dir / "transition_continuity_rehearsal_contract_audit.json") or {}
+    pacing_watchability = load_json(package_dir / "pacing_watchability_contract_audit.json") or {}
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
@@ -608,6 +609,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     sfc_summary = summary_of(shot_flow_continuity)
     tbr_summary = summary_of(transition_breathing_room)
     tcr_summary = summary_of(transition_continuity_rehearsal)
+    pw_summary = summary_of(pacing_watchability)
     sfa_summary = summary_of(scene_flow_arc)
     fcs_summary = summary_of(final_cut_smoothness)
     add_gate(
@@ -684,6 +686,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_storyboard.get("status") == "passed"
         and reference_transition_profile.get("status") == "passed"
         and transition_continuity_rehearsal.get("status") == "passed"
+        and pacing_watchability.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
         and as_int(sb_summary.get("blockedBoundaryCount")) == 0
         and as_int(tm_summary.get("blockedBoundaryCount")) == 0
@@ -832,6 +835,14 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(tcr_summary.get("adjacentMotionPairCount")) == 0
         and as_int(tcr_summary.get("backToBackImportantPairCount")) == 0
         and as_int(tcr_summary.get("highImpactPurposeRunViolationCount")) == 0
+        and as_int(pw_summary.get("visualClipCount")) >= 3
+        and as_int(pw_summary.get("blockedChapterCount")) == 0
+        and as_int(pw_summary.get("longFlatShotCount")) == 0
+        and as_int(pw_summary.get("veryLongShotCount")) == 0
+        and as_int(pw_summary.get("longFlatRunMax")) <= 1
+        and as_int(pw_summary.get("shortClipRunMax")) <= 2
+        and as_int(pw_summary.get("breathingShotCount")) >= as_int(pw_summary.get("chapterCount"))
+        and as_int(pw_summary.get("blockedCheckCount")) == 0
         and (
             as_int(tsb_summary.get("importantBoundaryCount")) == 0
             or as_int(tap_summary.get("readyAuditionRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
@@ -1016,6 +1027,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_storyboard.get("blockers")
         and not reference_transition_profile.get("blockers")
         and not scene_flow_arc.get("blockers")
+        and not pacing_watchability.get("blockers")
         and not final_cut_smoothness.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
@@ -1091,6 +1103,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "referenceTransitionProfileSummary": rtp_summary,
             "transitionContinuityRehearsalStatus": transition_continuity_rehearsal.get("status"),
             "transitionContinuityRehearsalSummary": tcr_summary,
+            "pacingWatchabilityStatus": pacing_watchability.get("status"),
+            "pacingWatchabilitySummary": pw_summary,
             "sceneFlowArcStatus": scene_flow_arc.get("status"),
             "sceneFlowArcSummary": sfa_summary,
             "finalCutSmoothnessStatus": final_cut_smoothness.get("status"),
@@ -1186,6 +1200,28 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": transition_continuity_rehearsal.get("status"),
             "summary": tcr_summary,
             "blockers": transition_continuity_rehearsal.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Pacing watchability proves reference-calibrated shot lengths, chapter breath, long-hold reduction, and short-clip readability",
+        pacing_watchability.get("status") == "passed"
+        and as_int(pw_summary.get("visualClipCount")) >= 3
+        and as_float(pw_summary.get("averageVisualShotSeconds")) > 0
+        and as_float(pw_summary.get("medianVisualShotSeconds")) > 0
+        and as_int(pw_summary.get("blockedChapterCount")) == 0
+        and as_int(pw_summary.get("longFlatShotCount")) == 0
+        and as_int(pw_summary.get("veryLongShotCount")) == 0
+        and as_int(pw_summary.get("longFlatRunMax")) <= 1
+        and as_int(pw_summary.get("shortClipRunMax")) <= 2
+        and as_int(pw_summary.get("breathingShotCount")) >= as_int(pw_summary.get("chapterCount"))
+        and as_int(pw_summary.get("blockedCheckCount")) == 0
+        and not pacing_watchability.get("blockers"),
+        {
+            "status": pacing_watchability.get("status"),
+            "summary": pw_summary,
+            "blockers": pacing_watchability.get("blockers") or [],
         },
     )
 

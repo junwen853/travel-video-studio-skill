@@ -80,6 +80,7 @@ REQUIRED_SCRIPTS = {
         "audit_scene_flow_arc_contract.py",
         "audit_final_cut_smoothness_contract.py",
         "audit_transition_continuity_rehearsal_contract.py",
+        "audit_pacing_watchability_contract.py",
         "audit_timeline_variety_contract.py",
         "prepare_unattended_repair_queue.py",
         "audit_unattended_first_draft_contract.py",
@@ -183,6 +184,7 @@ REQUIRED_SKILL_PATTERNS = {
     "scene_flow_arc_contract_rule": "audit_scene_flow_arc_contract.py",
     "final_cut_smoothness_contract_rule": "audit_final_cut_smoothness_contract.py",
     "transition_continuity_rehearsal_contract_rule": "audit_transition_continuity_rehearsal_contract.py",
+    "pacing_watchability_contract_rule": "audit_pacing_watchability_contract.py",
     "unattended_repair_queue_rule": "prepare_unattended_repair_queue.py",
     "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
     "reference_transition_profile_contract_rule": "audit_reference_transition_profile_contract.py",
@@ -245,6 +247,7 @@ REQUIRED_SKILL_PATTERNS = {
     "scene_flow_arc_contract_reference_rule": "scene-flow-arc-contract.md",
     "final_cut_smoothness_contract_reference_rule": "final-cut-smoothness-contract.md",
     "transition_continuity_rehearsal_contract_reference_rule": "transition-continuity-rehearsal-contract.md",
+    "pacing_watchability_contract_reference_rule": "pacing-watchability-contract.md",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
@@ -325,6 +328,7 @@ REQUIRED_STYLE_PATTERNS = {
     "scene_flow_arc_contract": "scene-flow-arc-contract.md",
     "final_cut_smoothness_contract": "final-cut-smoothness-contract.md",
     "transition_continuity_rehearsal_contract": "transition-continuity-rehearsal-contract.md",
+    "pacing_watchability_contract": "pacing-watchability-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
@@ -384,6 +388,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "scene_flow_arc_contract": "scene flow arc contract",
     "final_cut_smoothness_contract": "final cut smoothness contract",
     "transition_continuity_rehearsal_contract": "transition continuity rehearsal contract",
+    "pacing_watchability_contract": "pacing watchability contract",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -6317,6 +6322,86 @@ def final_cut_smoothness_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def pacing_watchability_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "pacing_watchability_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "chapterCount": summary.get("chapterCount"),
+        "blockedChapterCount": summary.get("blockedChapterCount"),
+        "averageVisualShotSeconds": summary.get("averageVisualShotSeconds"),
+        "medianVisualShotSeconds": summary.get("medianVisualShotSeconds"),
+        "targetAverageRangeSeconds": summary.get("targetAverageRangeSeconds"),
+        "targetMedianRangeSeconds": summary.get("targetMedianRangeSeconds"),
+        "shortClipCount": summary.get("shortClipCount"),
+        "shortClipRunMax": summary.get("shortClipRunMax"),
+        "longFlatShotCount": summary.get("longFlatShotCount"),
+        "longFlatRunMax": summary.get("longFlatRunMax"),
+        "veryLongShotCount": summary.get("veryLongShotCount"),
+        "breathingShotCount": summary.get("breathingShotCount"),
+        "weakOrPlaceholderClipCount": summary.get("weakOrPlaceholderClipCount"),
+        "editRhythmStatus": summary.get("editRhythmStatus"),
+        "rhythmRecutApplicationStatus": summary.get("rhythmRecutApplicationStatus"),
+        "timelineVarietyStatus": summary.get("timelineVarietyStatus"),
+        "referenceSceneGrammarStatus": summary.get("referenceSceneGrammarStatus"),
+        "finalCutSmoothnessStatus": summary.get("finalCutSmoothnessStatus"),
+        "finalBlueprintLineageStatus": summary.get("finalBlueprintLineageStatus"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def pacing_watchability_contract_ready(evidence: dict[str, Any]) -> bool:
+    chapters = int(evidence.get("chapterCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and int(evidence.get("visualClipCount") or 0) >= 3
+        and chapters >= 1
+        and int(evidence.get("blockedChapterCount") or 0) == 0
+        and float(evidence.get("averageVisualShotSeconds") or 0.0) > 0.0
+        and float(evidence.get("medianVisualShotSeconds") or 0.0) > 0.0
+        and int(evidence.get("longFlatShotCount") or 0) == 0
+        and int(evidence.get("veryLongShotCount") or 0) == 0
+        and int(evidence.get("longFlatRunMax") or 0) <= 1
+        and int(evidence.get("shortClipRunMax") or 0) <= 2
+        and int(evidence.get("breathingShotCount") or 0) >= chapters
+        and int(evidence.get("weakOrPlaceholderClipCount") or 0) == 0
+        and evidence.get("editRhythmStatus") == "ready_with_edit_rhythm_plan"
+        and evidence.get("rhythmRecutApplicationStatus") == "passed"
+        and evidence.get("timelineVarietyStatus") == "passed"
+        and evidence.get("referenceSceneGrammarStatus") == "passed"
+        and evidence.get("finalCutSmoothnessStatus") == "passed"
+        and evidence.get("finalBlueprintLineageStatus") == "passed"
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_continuity_rehearsal_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_continuity_rehearsal_contract_audit.json"
     data = load_json(path) or {}
@@ -7902,6 +7987,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         final_cut_smoothness_contract_ready(final_cut_smoothness_evidence),
         final_cut_smoothness_evidence,
     )
+    pacing_watchability_evidence = pacing_watchability_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Pacing watchability contract proves reference-calibrated final shot lengths, chapter breath, long-hold reduction, and short-clip readability",
+        pacing_watchability_contract_ready(pacing_watchability_evidence),
+        pacing_watchability_evidence,
+    )
     transition_continuity_rehearsal_evidence = transition_continuity_rehearsal_contract_evidence(package_dir)
     add_check(
         checks,
@@ -7910,12 +8002,14 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         and transition_breathing_room_contract_ready(transition_breathing_room_evidence)
         and scene_flow_arc_contract_ready(scene_flow_arc_evidence)
         and final_cut_smoothness_contract_ready(final_cut_smoothness_evidence)
+        and pacing_watchability_contract_ready(pacing_watchability_evidence)
         and transition_continuity_rehearsal_contract_ready(transition_continuity_rehearsal_evidence),
         {
             "transitionStoryboard": transition_storyboard_evidence,
             "transitionBreathingRoom": transition_breathing_room_evidence,
             "sceneFlowArc": scene_flow_arc_evidence,
             "finalCutSmoothness": final_cut_smoothness_evidence,
+            "pacingWatchability": pacing_watchability_evidence,
             "transitionContinuityRehearsal": transition_continuity_rehearsal_evidence,
         },
     )
