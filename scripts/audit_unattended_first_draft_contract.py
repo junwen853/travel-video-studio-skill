@@ -499,6 +499,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     transition_motion_direction = load_json(package_dir / "transition_motion_direction_contract_audit.json") or {}
     transition_motion_accent = load_json(package_dir / "transition_motion_accent_contract_audit.json") or {}
+    transition_effect_recipe = load_json(package_dir / "transition_effect_recipe_contract_audit.json") or {}
     transition_cutpoint = load_json(package_dir / "transition_cutpoint_contract_audit.json") or {}
     transition_action_anchor = load_json(package_dir / "transition_action_anchor_contract_audit.json") or {}
     transition_sensory = load_json(package_dir / "transition_sensory_continuity_contract_audit.json") or {}
@@ -517,6 +518,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_choreography_contract.get("status") == "passed"
         and transition_motion_direction.get("status") == "passed"
         and transition_motion_accent.get("status") == "passed"
+        and transition_effect_recipe.get("status") == "passed"
         and transition_cutpoint.get("status") == "passed"
         and transition_action_anchor.get("status") == "passed"
         and transition_sensory.get("status") == "passed"
@@ -532,6 +534,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionChoreographyPlanStatus": transition_choreography_plan.get("status"),
             "transitionChoreographyContractStatus": transition_choreography_contract.get("status"),
             "transitionMotionDirectionStatus": transition_motion_direction.get("status"),
+            "transitionMotionAccentStatus": transition_motion_accent.get("status"),
+            "transitionEffectRecipeStatus": transition_effect_recipe.get("status"),
             "transitionCutpointStatus": transition_cutpoint.get("status"),
             "transitionActionAnchorStatus": transition_action_anchor.get("status"),
             "transitionSensoryContinuityStatus": transition_sensory.get("status"),
@@ -631,6 +635,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tcc_summary = summary_of(transition_choreography_contract)
     tmd_summary = summary_of(transition_motion_direction)
     tma_summary = summary_of(transition_motion_accent)
+    tefr_summary = summary_of(transition_effect_recipe)
     tcpn_summary = summary_of(transition_cutpoint)
     taa_summary = summary_of(transition_action_anchor)
     tsc_summary = summary_of(transition_sensory)
@@ -733,6 +738,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_choreography_plan.get("status") == "ready_with_transition_choreography_plan"
         and transition_choreography_contract.get("status") == "passed"
         and transition_motion_direction.get("status") == "passed"
+        and transition_effect_recipe.get("status") == "passed"
         and transition_cutpoint.get("status") == "passed"
         and transition_action_anchor.get("status") == "passed"
         and transition_sensory.get("status") == "passed"
@@ -755,6 +761,11 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(ter_summary.get("recipeReadyBoundaryCount")) == as_int(ter_summary.get("visualBoundaryCount"))
         and as_int(ter_summary.get("pairReadyBoundaryCount")) == as_int(ter_summary.get("visualBoundaryCount"))
         and as_int(ter_summary.get("handleReadyBoundaryCount")) == as_int(ter_summary.get("visualBoundaryCount"))
+        and as_int(tefr_summary.get("blockedRecipeRowCount")) == 0
+        and as_int(tefr_summary.get("recipeRowCount")) == as_int(tefr_summary.get("transitionRowCount"))
+        and as_int(tefr_summary.get("rowsWithEasing")) >= as_int(tefr_summary.get("transitionRowCount"))
+        and as_int(tefr_summary.get("rowsWithBgmHit")) >= as_int(tefr_summary.get("transitionRowCount"))
+        and as_int(tefr_summary.get("blockerCount")) == 0
         and as_int(tpa_summary.get("blockedPolishRowCount")) == 0
         and as_int(tpa_summary.get("passedPolishRowCount")) == as_int(tpa_summary.get("sourcePolishRowCount"))
         and as_int(tpa_summary.get("bgmHitRowCount")) == as_int(tpa_summary.get("sourcePolishRowCount"))
@@ -1077,6 +1088,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_choreography_contract.get("blockers")
         and not transition_motion_direction.get("blockers")
         and not transition_motion_accent.get("blockers")
+        and not transition_effect_recipe.get("blockers")
         and not transition_sensory.get("blockers")
         and not transition_preview_packet.get("blockers")
         and not transition_preview_quality.get("blockers")
@@ -1141,6 +1153,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionMotionDirectionSummary": tmd_summary,
             "transitionMotionAccentStatus": transition_motion_accent.get("status"),
             "transitionMotionAccentSummary": tma_summary,
+            "transitionEffectRecipeStatus": transition_effect_recipe.get("status"),
+            "transitionEffectRecipeSummary": tefr_summary,
             "transitionCutpointStatus": transition_cutpoint.get("status"),
             "transitionCutpointSummary": tcpn_summary,
             "transitionActionAnchorStatus": transition_action_anchor.get("status"),
@@ -1368,6 +1382,30 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": transition_motion_accent.get("status"),
             "summary": tma_summary,
             "blockers": transition_motion_accent.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Transition effect recipe proves visible effects have executable restrained Resolve keyframes, easing, envelopes, BGM-only audio, BGM-hit timing, and landing holds",
+        transition_effect_recipe.get("status") == "passed"
+        and as_int(tefr_summary.get("transitionRowCount")) >= 1
+        and as_int(tefr_summary.get("recipeRowCount")) == as_int(tefr_summary.get("transitionRowCount"))
+        and as_int(tefr_summary.get("blockedRecipeRowCount")) == 0
+        and as_int(tefr_summary.get("rowsWithEasing")) >= as_int(tefr_summary.get("transitionRowCount"))
+        and as_int(tefr_summary.get("rowsWithBgmHit")) >= as_int(tefr_summary.get("transitionRowCount"))
+        and as_int(tefr_summary.get("rowsWithLandingHold")) >= as_int(tefr_summary.get("transitionRowCount"))
+        and as_float(tefr_summary.get("maxRotationDegreesSeen")) <= 8.0
+        and as_float(tefr_summary.get("maxTranslatePercentSeen")) <= 24.0
+        and as_float(tefr_summary.get("maxScaleSeen"), 1.0) <= 1.08
+        and as_float(tefr_summary.get("maxMotionBlurSeen")) <= 0.5
+        and as_float(tefr_summary.get("maxRetimePercentSeen"), 100.0) <= 240.0
+        and as_int(tefr_summary.get("blockerCount")) == 0
+        and not transition_effect_recipe.get("blockers"),
+        {
+            "status": transition_effect_recipe.get("status"),
+            "summary": tefr_summary,
+            "blockers": transition_effect_recipe.get("blockers") or [],
         },
     )
 

@@ -66,6 +66,7 @@ SKILL_PATTERNS = {
     "transition_choreography_contract": "audit_transition_choreography_contract.py",
     "transition_motion_direction": "audit_transition_motion_direction_contract.py",
     "transition_motion_accent": "audit_transition_motion_accent_contract.py",
+    "transition_effect_recipe": "audit_transition_effect_recipe_contract.py",
     "transition_cutpoint": "audit_transition_cutpoint_contract.py",
     "transition_action_anchor": "audit_transition_action_anchor_contract.py",
     "transition_sensory_continuity": "audit_transition_sensory_continuity_contract.py",
@@ -168,6 +169,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_choreography_contract.py",
     "audit_transition_motion_direction_contract.py",
     "audit_transition_motion_accent_contract.py",
+    "audit_transition_effect_recipe_contract.py",
     "audit_transition_cutpoint_contract.py",
     "audit_transition_action_anchor_contract.py",
     "audit_transition_sensory_continuity_contract.py",
@@ -348,6 +350,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     transition_motion_direction = load_json(package_dir / "transition_motion_direction_contract_audit.json") or {}
     transition_motion_accent = load_json(package_dir / "transition_motion_accent_contract_audit.json") or {}
+    transition_effect_recipe = load_json(package_dir / "transition_effect_recipe_contract_audit.json") or {}
     transition_cutpoint = load_json(package_dir / "transition_cutpoint_contract_audit.json") or {}
     transition_action_anchor = load_json(package_dir / "transition_action_anchor_contract_audit.json") or {}
     transition_sensory = load_json(package_dir / "transition_sensory_continuity_contract_audit.json") or {}
@@ -1914,6 +1917,31 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "blockers": transition_motion_accent.get("blockers"),
         },
     )
+    transition_effect_recipe_summary = get_summary(transition_effect_recipe)
+    transition_effect_recipe_rows = int(transition_effect_recipe_summary.get("transitionRowCount") or 0)
+    add_check(
+        checks,
+        "Transition effect recipe contract proves V14 visible effects have executable restrained Resolve keyframes, easing, envelopes, BGM-only audio, BGM-hit timing, and landing holds",
+        transition_effect_recipe.get("status") == "passed"
+        and transition_effect_recipe_rows >= 1
+        and int(transition_effect_recipe_summary.get("recipeRowCount") or 0) == transition_effect_recipe_rows
+        and int(transition_effect_recipe_summary.get("blockedRecipeRowCount") or 0) == 0
+        and int(transition_effect_recipe_summary.get("rowsWithEasing") or 0) >= transition_effect_recipe_rows
+        and int(transition_effect_recipe_summary.get("rowsWithBgmHit") or 0) >= transition_effect_recipe_rows
+        and int(transition_effect_recipe_summary.get("rowsWithLandingHold") or 0) >= transition_effect_recipe_rows
+        and float(transition_effect_recipe_summary.get("maxRotationDegreesSeen") or 0.0) <= 8.0
+        and float(transition_effect_recipe_summary.get("maxTranslatePercentSeen") or 0.0) <= 24.0
+        and float(transition_effect_recipe_summary.get("maxScaleSeen") or 1.0) <= 1.08
+        and float(transition_effect_recipe_summary.get("maxMotionBlurSeen") or 0.0) <= 0.5
+        and float(transition_effect_recipe_summary.get("maxRetimePercentSeen") or 100.0) <= 240.0
+        and int(transition_effect_recipe_summary.get("blockerCount") or 0) == 0
+        and not transition_effect_recipe.get("blockers"),
+        {
+            "transitionEffectRecipeStatus": transition_effect_recipe.get("status"),
+            "transitionEffectRecipeSummary": transition_effect_recipe_summary,
+            "blockers": transition_effect_recipe.get("blockers"),
+        },
+    )
     transition_cutpoint_summary = get_summary(transition_cutpoint)
     cutpoint_rows = int(transition_cutpoint_summary.get("transitionRowCount") or 0)
     important_cutpoint_rows = int(transition_cutpoint_summary.get("importantBoundaryCount") or 0)
@@ -2616,6 +2644,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_audition_visual_proof.get("status") == "passed"
         and transition_audition_role_integrity.get("status") == "passed"
         and transition_motion_accent.get("status") == "passed"
+        and transition_effect_recipe.get("status") == "passed"
         and transition_continuity_rehearsal.get("status") == "passed"
         and pacing_watchability.get("status") == "passed"
         and narrative_adjacency.get("status") == "passed"
@@ -2649,6 +2678,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(transition_motion_accent_summary.get("unsupportedMotionAccentCount") or 0) == 0
         and int(transition_motion_accent_summary.get("directionMismatchMotionCount") or 0) == 0
         and int(transition_motion_accent_summary.get("blockedCheckCount") or 0) == 0
+        and int(transition_effect_recipe_summary.get("blockedRecipeRowCount") or 0) == 0
+        and int(transition_effect_recipe_summary.get("blockerCount") or 0) == 0
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("rowsWithMotionExecution") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
@@ -2716,6 +2747,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionActionAnchorSummary": transition_action_anchor_summary,
             "transitionSensoryContinuityStatus": transition_sensory.get("status"),
             "transitionSensoryContinuitySummary": transition_sensory_summary,
+            "transitionEffectRecipeStatus": transition_effect_recipe.get("status"),
+            "transitionEffectRecipeSummary": transition_effect_recipe_summary,
             "transitionMotifStatus": transition_motif.get("status"),
             "transitionMotifSummary": transition_motif_summary,
             "transitionMotifCoherenceStatus": transition_motif_coherence.get("status"),

@@ -310,12 +310,32 @@ def resolve_keyframe_recipe(family: str, style: str, intensity: int, duration_fr
     duration = max(as_int(duration_frames, 0), 1)
     half = max(1, duration // 2)
     subtle = max(1, min(3, intensity + 1))
+    max_rotation_degrees = 0.0
+    max_translate_percent = 0.0
+    max_scale = 1.0
+    max_motion_blur = 0.0
+    max_retime_percent = 100.0
+    max_opacity_change = 0.0
+    easing = {
+        "curve": "cut",
+        "influence": 0.0,
+        "holdLandingFrames": 6,
+        "notes": "No visible generated transition; preserve the clean cut or visual match.",
+    }
     if family in {"scenic_title_breath", "ending_aftertaste_hold"}:
         transform = [
             {"frame": 0, "opacity": 0.92, "scale": 1.0},
             {"frame": duration, "opacity": 1.0, "scale": 1.015},
         ]
         effect = "opacity_scale_breath"
+        max_scale = 1.015
+        max_opacity_change = 0.08
+        easing = {
+            "curve": "ease_in_out_sine",
+            "influence": 0.55,
+            "holdLandingFrames": 18,
+            "notes": "Gentle scenic/title breath; no whip, flash, or template transition.",
+        }
     elif style == "rotation":
         transform = [
             {"frame": 0, "rotationDegrees": -subtle, "scale": 1.02, "motionBlur": "low"},
@@ -323,6 +343,15 @@ def resolve_keyframe_recipe(family: str, style: str, intensity: int, duration_fr
             {"frame": duration, "rotationDegrees": subtle, "scale": 1.02, "motionBlur": "low"},
         ]
         effect = "restrained_rotation_match"
+        max_rotation_degrees = float(subtle)
+        max_scale = 1.04
+        max_motion_blur = 0.25
+        easing = {
+            "curve": "ease_out_in_soft",
+            "influence": 0.45,
+            "holdLandingFrames": 18,
+            "notes": "Subtle motivated rotation only; never a spin transition.",
+        }
     elif style == "whip_pan":
         transform = [
             {"frame": 0, "translateXPercent": -8 * subtle, "scale": 1.04, "directionalBlur": "medium"},
@@ -330,6 +359,15 @@ def resolve_keyframe_recipe(family: str, style: str, intensity: int, duration_fr
             {"frame": duration, "translateXPercent": 8 * subtle, "scale": 1.04, "directionalBlur": "medium"},
         ]
         effect = "restrained_whip_pan"
+        max_translate_percent = float(8 * subtle)
+        max_scale = 1.06
+        max_motion_blur = 0.45
+        easing = {
+            "curve": "ease_in_out_cubic",
+            "influence": 0.5,
+            "holdLandingFrames": 18,
+            "notes": "Short directional whip only when source motion and landing direction agree.",
+        }
     elif style == "speed_ramp":
         transform = [
             {"frame": 0, "retime": "100%"},
@@ -337,18 +375,40 @@ def resolve_keyframe_recipe(family: str, style: str, intensity: int, duration_fr
             {"frame": duration, "retime": "100%"},
         ]
         effect = "short_speed_ramp"
+        max_retime_percent = 135.0
+        easing = {
+            "curve": "ease_in_out_speed",
+            "influence": 0.4,
+            "holdLandingFrames": 18,
+            "notes": "Short real-motion ramp only; never retime static scenic footage.",
+        }
     elif style == "push_slide":
         transform = [
             {"frame": 0, "translateXPercent": -5 * subtle, "scale": 1.02},
             {"frame": duration, "translateXPercent": 0, "scale": 1.0},
         ]
         effect = "soft_push_slide"
+        max_translate_percent = float(5 * subtle)
+        max_scale = 1.02
+        easing = {
+            "curve": "ease_out_quad",
+            "influence": 0.35,
+            "holdLandingFrames": 14,
+            "notes": "Soft push/slide only as a motivated connector.",
+        }
     elif family == "mood_dissolve_breath":
         transform = [
             {"frame": 0, "opacity": 0.0},
             {"frame": duration, "opacity": 1.0},
         ]
         effect = "short_mood_dissolve"
+        max_opacity_change = 1.0
+        easing = {
+            "curve": "linear_short_dissolve",
+            "influence": 0.2,
+            "holdLandingFrames": 12,
+            "notes": "Short mood/time/weather dissolve with enough handles.",
+        }
     else:
         transform = [{"frame": 0, "cut": True}, {"frame": duration, "holdLandingFrames": 6}]
         effect = "clean_cut_or_match"
@@ -356,12 +416,32 @@ def resolve_keyframe_recipe(family: str, style: str, intensity: int, duration_fr
         "effect": effect,
         "durationFrames": duration,
         "transformKeyframes": transform,
+        "easing": easing,
+        "parameterEnvelope": {
+            "maxRotationDegrees": max_rotation_degrees,
+            "maxTranslatePercent": max_translate_percent,
+            "maxScale": max_scale,
+            "maxMotionBlur": max_motion_blur,
+            "maxRetimePercent": max_retime_percent,
+            "maxOpacityChange": max_opacity_change,
+            "effectDurationFrames": duration,
+            "minLandingHoldFrames": easing["holdLandingFrames"],
+        },
         "retimePolicy": "short_phrase_only" if style == "speed_ramp" else "none",
         "audioKeyframes": [
             {"frame": 0, "a1a2SourceAudioDb": "-inf", "a3BgmDb": -18},
             {"frame": half, "a1a2SourceAudioDb": "-inf", "a3BgmDb": -15},
             {"frame": duration, "a1a2SourceAudioDb": "-inf", "a3BgmDb": -18},
         ],
+        "qualityControls": {
+            "templateMotionForbidden": True,
+            "phraseHitRequired": style in {"whip_pan", "rotation", "speed_ramp", "push_slide"} or family in {"scenic_title_breath", "ending_aftertaste_hold", "mood_dissolve_breath"},
+            "titleSafe": True,
+            "bgmOnlyNoSourceVoice": True,
+            "sourceMotionRequiredForVisibleEffect": style in {"whip_pan", "rotation", "speed_ramp", "push_slide"},
+            "landingHoldRequired": True,
+            "manualResolveReadbackRequired": True,
+        },
     }
 
 

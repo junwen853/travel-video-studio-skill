@@ -39,7 +39,7 @@ The script adds:
 
 Each candidate transition records the approved transition type, Resolve effect name, duration frames, selected candidate rank/type/family/intensity, selected Resolve recipe, selected preview hint, keyframe plan, BGM cue, subtitle policy, audio policy, bridge requirement, motion evidence, `transitionMotionExecution`, `transitionCutpointPlan`, `transitionActionAnchorPlan`, `transitionSensoryContinuityPlan`, and decision/readback fields.
 
-`transitionMotionExecution` must carry the choreography family, source transition style, restrained intensity, outgoing/bridge-or-motion/landing three-beat choreography, BGM phrase-hit target, caption/title quiet-zone policy, `motionDirectionPlan`, Resolve keyframe recipe, and safety checks for BGM-only/no-source-voice, title safety, direction match, and no template motion.
+`transitionMotionExecution` must carry the choreography family, source transition style, restrained intensity, outgoing/bridge-or-motion/landing three-beat choreography, BGM phrase-hit target, caption/title quiet-zone policy, `motionDirectionPlan`, Resolve keyframe recipe, and safety checks for BGM-only/no-source-voice, title safety, direction match, and no template motion. The Resolve keyframe recipe must include `effect`, `durationFrames`, monotonic `transformKeyframes`, `easing`, `parameterEnvelope`, BGM-only `audioKeyframes`, and `qualityControls`; run `audit_transition_effect_recipe_contract.py` after this blueprint is generated.
 
 `transitionCutpointPlan` must carry the boundary frame, outgoing tail frames, bridge/effect hit frames, landing hold frames, available pre/post roll, required handles, BGM hit offset/tolerance, title/subtitle quiet-zone readiness, BGM-only audio proof, and important-boundary resolution. This is the guard that makes transitions feel edited rather than merely effect-labeled.
 
@@ -78,6 +78,7 @@ Pass:
 - `rowsWithSensoryContinuityReady`, visual/audio/caption/landing sensory counts, and zero blocked sensory rows prove each transition has viewer-readable continuity channels
 - `motionExecutionFromChoreographyCount` equals execution row count and `motionExecutionDerivedCount` is zero
 - transition objects, clip annotations, and markers carry the selected candidate type/family plus ready `transitionMotionExecution`, and transition objects carry ready `transitionCutpointPlan`, `transitionActionAnchorPlan`, and `transitionSensoryContinuityPlan`
+- `audit_transition_effect_recipe_contract.py` passes, proving visible effects have executable restrained keyframes, easing, parameter envelopes, BGM-only audio keyframes, BGM-hit timing, and stable landing holds
 - every transition row has decision fields
 - adjacent clips have in/out transition metadata
 - bridge-required rows are not marked ready until bridge sequences are materialized

@@ -64,6 +64,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_choreography_contract.py",
         "audit_transition_motion_direction_contract.py",
         "audit_transition_motion_accent_contract.py",
+        "audit_transition_effect_recipe_contract.py",
         "audit_transition_cutpoint_contract.py",
         "audit_transition_action_anchor_contract.py",
         "audit_transition_sensory_continuity_contract.py",
@@ -174,6 +175,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_choreography_contract_rule": "audit_transition_choreography_contract.py",
     "transition_motion_direction_contract_rule": "audit_transition_motion_direction_contract.py",
     "transition_motion_accent_contract_rule": "audit_transition_motion_accent_contract.py",
+    "transition_effect_recipe_contract_rule": "audit_transition_effect_recipe_contract.py",
     "transition_cutpoint_contract_rule": "audit_transition_cutpoint_contract.py",
     "transition_action_anchor_contract_rule": "audit_transition_action_anchor_contract.py",
     "transition_sensory_continuity_contract_rule": "audit_transition_sensory_continuity_contract.py",
@@ -292,6 +294,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_choreography_engine_reference_rule": "transition-choreography-engine.md",
     "transition_choreography_contract_reference_rule": "transition-choreography-contract.md",
     "transition_motion_direction_contract_reference_rule": "transition-motion-direction-contract.md",
+    "transition_effect_recipe_contract_reference_rule": "transition-effect-recipe-contract.md",
     "transition_cutpoint_contract_reference_rule": "transition-cutpoint-contract.md",
     "transition_action_anchor_contract_reference_rule": "transition-action-anchor-contract.md",
     "transition_sensory_continuity_contract_reference_rule": "transition-sensory-continuity-contract.md",
@@ -352,6 +355,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_viewer_orientation_contract": "transition-viewer-orientation-contract.md",
     "transition_scene_settlement_contract": "transition-scene-settlement-contract.md",
     "transition_motion_accent_contract": "transition-motion-accent-contract.md",
+    "transition_effect_recipe_contract": "transition-effect-recipe-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
@@ -418,6 +422,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_viewer_orientation_contract": "transition viewer orientation",
     "transition_scene_settlement_contract": "transition scene settlement",
     "transition_motion_accent_contract": "transition motion accent",
+    "transition_effect_recipe_contract": "transition effect recipe",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -6174,6 +6179,76 @@ def transition_motion_accent_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_effect_recipe_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_effect_recipe_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "recipeRowCount": summary.get("recipeRowCount"),
+        "visibleEffectRowCount": summary.get("visibleEffectRowCount"),
+        "blockedRecipeRowCount": summary.get("blockedRecipeRowCount"),
+        "rowsWithEasing": summary.get("rowsWithEasing"),
+        "rowsWithBgmHit": summary.get("rowsWithBgmHit"),
+        "rowsWithLandingHold": summary.get("rowsWithLandingHold"),
+        "maxRotationDegreesSeen": summary.get("maxRotationDegreesSeen"),
+        "maxTranslatePercentSeen": summary.get("maxTranslatePercentSeen"),
+        "maxScaleSeen": summary.get("maxScaleSeen"),
+        "maxMotionBlurSeen": summary.get("maxMotionBlurSeen"),
+        "maxRetimePercentSeen": summary.get("maxRetimePercentSeen"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "requiresExecutableResolveKeyframeRecipe": policy.get("requiresExecutableResolveKeyframeRecipe"),
+        "requiresEasingAndParameterEnvelope": policy.get("requiresEasingAndParameterEnvelope"),
+        "requiresBgmOnlyAudioKeyframes": policy.get("requiresBgmOnlyAudioKeyframes"),
+        "requiresBgmHitAndLandingHoldForVisibleEffects": policy.get("requiresBgmHitAndLandingHoldForVisibleEffects"),
+        "requiresRestrainedTransformLimits": policy.get("requiresRestrainedTransformLimits"),
+        "forbidsTemplateAndRandomEffects": policy.get("forbidsTemplateAndRandomEffects"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_effect_recipe_contract_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("transitionRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and row_count >= 1
+        and int(evidence.get("recipeRowCount") or 0) == row_count
+        and int(evidence.get("blockedRecipeRowCount") or 0) == 0
+        and int(evidence.get("rowsWithEasing") or 0) >= row_count
+        and int(evidence.get("rowsWithBgmHit") or 0) >= row_count
+        and int(evidence.get("rowsWithLandingHold") or 0) >= row_count
+        and float(evidence.get("maxRotationDegreesSeen") or 0.0) <= 8.0
+        and float(evidence.get("maxTranslatePercentSeen") or 0.0) <= 24.0
+        and float(evidence.get("maxScaleSeen") or 1.0) <= 1.08
+        and float(evidence.get("maxMotionBlurSeen") or 0.0) <= 0.5
+        and float(evidence.get("maxRetimePercentSeen") or 100.0) <= 240.0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("requiresExecutableResolveKeyframeRecipe") is True
+        and evidence.get("requiresEasingAndParameterEnvelope") is True
+        and evidence.get("requiresBgmOnlyAudioKeyframes") is True
+        and evidence.get("requiresBgmHitAndLandingHoldForVisibleEffects") is True
+        and evidence.get("requiresRestrainedTransformLimits") is True
+        and evidence.get("forbidsTemplateAndRandomEffects") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_cutpoint_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_cutpoint_contract_audit.json"
     data = load_json(path) or {}
@@ -8377,6 +8452,19 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
             "transitionActionAnchor": transition_action_anchor_evidence,
             "transitionSensoryContinuity": transition_sensory_continuity_evidence,
             "transitionMotionAccent": transition_motion_accent_evidence,
+        },
+    )
+    transition_effect_recipe_evidence = transition_effect_recipe_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition effect recipe contract proves visible effects have executable restrained Resolve keyframes, easing, envelopes, BGM-only audio, BGM-hit timing, and landing holds",
+        transition_choreography_plan_ready(transition_choreography_plan)
+        and transition_motion_accent_contract_ready(transition_motion_accent_evidence)
+        and transition_effect_recipe_contract_ready(transition_effect_recipe_evidence),
+        {
+            "transitionChoreographyPlan": transition_choreography_plan,
+            "transitionMotionAccent": transition_motion_accent_evidence,
+            "transitionEffectRecipe": transition_effect_recipe_evidence,
         },
     )
     transition_preview_packet = transition_preview_packet_evidence(package_dir)

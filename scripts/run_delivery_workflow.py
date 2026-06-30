@@ -1716,6 +1716,30 @@ def summarize_transition_motion_accent_contract(report: dict[str, Any] | None) -
     }
 
 
+def summarize_transition_effect_recipe_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "visibleEffectRowCount": summary.get("visibleEffectRowCount"),
+        "blockedRecipeRowCount": summary.get("blockedRecipeRowCount"),
+        "rowsWithEasing": summary.get("rowsWithEasing"),
+        "rowsWithBgmHit": summary.get("rowsWithBgmHit"),
+        "rowsWithLandingHold": summary.get("rowsWithLandingHold"),
+        "maxRotationDegreesSeen": summary.get("maxRotationDegreesSeen"),
+        "maxTranslatePercentSeen": summary.get("maxTranslatePercentSeen"),
+        "maxScaleSeen": summary.get("maxScaleSeen"),
+        "maxMotionBlurSeen": summary.get("maxMotionBlurSeen"),
+        "maxRetimePercentSeen": summary.get("maxRetimePercentSeen"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_transition_storyboard_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -3023,6 +3047,20 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Max transition duration: {readiness.get('maxTransitionDurationSeconds')}",
             ]
         )
+    if report.get("transitionEffectRecipeSummary"):
+        recipe = report["transitionEffectRecipeSummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Effect Recipe Contract",
+                f"- Exists: `{recipe.get('exists')}`",
+                f"- Status: `{recipe.get('status')}`",
+                f"- Transition rows / visible effects: {recipe.get('transitionRowCount')} / {recipe.get('visibleEffectRowCount')}",
+                f"- Blocked recipe rows / blockers: {recipe.get('blockedRecipeRowCount')} / {recipe.get('blockerCount')}",
+                f"- Easing/BGM-hit/landing rows: {recipe.get('rowsWithEasing')} / {recipe.get('rowsWithBgmHit')} / {recipe.get('rowsWithLandingHold')}",
+                f"- Max rotation/translate/scale/blur/retime: {recipe.get('maxRotationDegreesSeen')} / {recipe.get('maxTranslatePercentSeen')} / {recipe.get('maxScaleSeen')} / {recipe.get('maxMotionBlurSeen')} / {recipe.get('maxRetimePercentSeen')}",
+            ]
+        )
     if report.get("creatorCutApplicationSummary"):
         application = report["creatorCutApplicationSummary"]
         lines.extend(
@@ -3597,6 +3635,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_transition_motion_accent_contract", transition_motion_accent_cmd, ok_codes={0, 2}))
 
+    transition_effect_recipe_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_transition_effect_recipe_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_transition_effect_recipe_contract", transition_effect_recipe_cmd, ok_codes={0, 2}))
+
     transition_storyboard_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_storyboard_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_storyboard_contract", transition_storyboard_cmd, ok_codes={0, 2}))
 
@@ -3849,6 +3896,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_audition_visual_proof_summary = None
     transition_audition_role_integrity_summary = None
     transition_motion_accent_summary = None
+    transition_effect_recipe_summary = None
     transition_storyboard_summary = None
     reference_transition_profile_summary = None
     chapter_story_spine_summary = None
@@ -4268,6 +4316,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition motion accent blocker: {item}" for item in transition_motion_accent_summary.get("blockers") or [])
             if transition_motion_accent_summary and transition_motion_accent_summary.get("warnings"):
                 warnings.extend(f"Transition motion accent warning: {item}" for item in transition_motion_accent_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_effect_recipe_contract":
+            transition_effect_recipe_summary = summarize_transition_effect_recipe_contract(payload)
+            if transition_effect_recipe_summary and transition_effect_recipe_summary.get("status") == "blocked":
+                blockers.extend(f"Transition effect recipe blocker: {item}" for item in transition_effect_recipe_summary.get("blockers") or [])
+            if transition_effect_recipe_summary and transition_effect_recipe_summary.get("warnings"):
+                warnings.extend(f"Transition effect recipe warning: {item}" for item in transition_effect_recipe_summary.get("warnings") or [])
         if step["id"] == "audit_transition_storyboard_contract":
             transition_storyboard_summary = summarize_transition_storyboard_contract(payload)
             if transition_storyboard_summary and transition_storyboard_summary.get("status") == "blocked":
@@ -4682,6 +4736,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_motion_accent_summary = summarize_transition_motion_accent_contract(
             load_json(package_dir / "transition_motion_accent_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_effect_recipe_contract_audit.json").exists():
+        transition_effect_recipe_summary = summarize_transition_effect_recipe_contract(
+            load_json(package_dir / "transition_effect_recipe_contract_audit.json")
+        )
     if package_dir and (package_dir / "transition_storyboard_contract_audit.json").exists():
         transition_storyboard_summary = summarize_transition_storyboard_contract(
             load_json(package_dir / "transition_storyboard_contract_audit.json")
@@ -4860,6 +4918,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionAuditionVisualProofSummary": transition_audition_visual_proof_summary,
         "transitionAuditionRoleIntegritySummary": transition_audition_role_integrity_summary,
         "transitionMotionAccentSummary": transition_motion_accent_summary,
+        "transitionEffectRecipeSummary": transition_effect_recipe_summary,
         "transitionStoryboardSummary": transition_storyboard_summary,
         "referenceTransitionProfileSummary": reference_transition_profile_summary,
         "chapterStorySpineSummary": chapter_story_spine_summary,
@@ -4897,6 +4956,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Select and verify BGM/stock/aerial licenses.",
             "Review bgm_selection_package.json before Resolve apply so the selected BGM bed is local, license-traceable, target-duration-covering, and referenced by the active blueprint.",
             "Review bgm_musicality_contract_audit.json before Resolve apply so the BGM bed is real music with dynamics and multi-band energy, not a hum, tone, silence, or placeholder.",
+            "Review transition_effect_recipe_contract_audit.json before Resolve apply so visible transitions have restrained keyframes, easing, envelopes, BGM-only audio, BGM-hit timing, and landing holds instead of marker-only or template effects.",
             "Review footage_select_plan.json before trusting first assembly; repair/reject rows should not lead the cut.",
             "Review raw_intake_completeness_audit.json before trusting any large unordered source folder; every active source video must be indexed, recognized, routed exactly once, and scored before first assembly.",
             "Review source_selection_repair_plan.json before opening/chapter/transition work; every chapter needs ready local movement, lived-in texture, and payoff coverage before effects or stock fallback.",
