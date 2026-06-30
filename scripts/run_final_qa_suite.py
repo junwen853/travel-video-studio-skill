@@ -89,6 +89,7 @@ ACCEPTED_STATUSES = {
     "narrative_adjacency_contract_audit": {"passed"},
     "transition_viewer_orientation_contract_audit": {"passed"},
     "transition_scene_settlement_contract_audit": {"passed"},
+    "transition_flow_repair_plan": {"ready_no_transition_flow_repairs_needed"},
     "unattended_repair_queue": {"ready_no_unattended_repairs_needed"},
     "unattended_first_draft_contract_audit": {"passed", "passed_with_warnings"},
     "skill_maturity_contract_audit": {"passed", "passed_with_warnings"},
@@ -225,6 +226,8 @@ def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) ->
         return package_dir / "transition_audition_packet" / "transition_audition_packet.json"
     if stage == "transition_motion_accent_repair_plan":
         return package_dir / "transition_motion_accent_repair_plan" / "transition_motion_accent_repair_plan.json"
+    if stage == "transition_flow_repair_plan":
+        return package_dir / "transition_flow_repair_plan" / "transition_flow_repair_plan.json"
     if stage == "unattended_repair_queue":
         return package_dir / "unattended_repair_queue" / "unattended_repair_queue.json"
     return package_dir / f"{stage}.json"
@@ -1031,6 +1034,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "audit_transition_scene_settlement_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_flow_repair_plan",
+                [
+                    sys.executable,
+                    str(scripts / "prepare_transition_flow_repair_plan.py"),
                     "--package-dir",
                     str(package_dir),
                 ],
