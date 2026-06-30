@@ -290,6 +290,18 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Rerun reference review repair planning and prove every supplied reference video has full-film review evidence for opening/title, chapter rhythm, transition language, ending, BGM/audio/captions, and non-copying Skill takeaways.",
         "forbiddenWorkaround": "Do not learn from sampled-frame impressions, copied creator assets, vague style adjectives, or unreviewed contact sheets when the user supplied full reference videos.",
     },
+    "transition_watch_reel": {
+        "path": "transition_watch_reel/transition_watch_reel.json",
+        "accepted": {"ready_with_transition_watch_reel", "ready_no_important_transitions"},
+        "phase": "transition_flow",
+        "priority": "P0",
+        "ownerScript": "prepare_transition_watch_reel.py",
+        "requiredArtifact": "transition_watch_reel/transition_watch_reel.json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel --json",
+        "acceptanceEvidence": "Rerun transition watch reel generation and prove all important transition audition MP4s are package-local, muted, ordered, and concatenated into transition_watch_reel/transition_watch_reel.mp4 for review.",
+        "forbiddenWorkaround": "Do not approve adjacent-shot flow from scattered JSON, screenshots, sampled frames, or per-row clips that were never reviewed together as a transition sequence.",
+        "allowKeywordRoutes": False,
+    },
     "editorial_watchdown_repair_plan": {
         "path": "editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json",
         "accepted": {"ready_no_editorial_watchdown_repairs_needed"},
@@ -559,14 +571,25 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
         },
     ),
     (
+        ("transition_watch_reel", "watch reel"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_watch_reel.py",
+            "requiredArtifact": "transition_watch_reel/transition_watch_reel.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel --json",
+            "acceptanceEvidence": "Rerun transition watch reel generation, transition audition quality, storyboard, and final QA until all important transitions can be reviewed as one ordered muted reel.",
+            "forbiddenWorkaround": "Do not approve transition flow from scattered per-row clips, static JSON, screenshots, or marker metadata that was never reviewed in sequence.",
+        },
+    ),
+    (
         ("transition_audition",),
         {
             "phase": "transition_flow",
             "ownerScript": "prepare_transition_audition_packet.py",
             "requiredArtifact": "transition_audition_packet/transition_audition_packet.json",
             "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
-            "acceptanceEvidence": "Rerun audition packet/quality/visual-proof/role-integrity audits and final QA until important transitions have playable muted MP4 previews with ordered roles.",
-            "forbiddenWorkaround": "Do not claim a transition is watchable without playable local audition clips and endpoint/middle-motion frame proof.",
+            "acceptanceEvidence": "Rerun audition packet/quality/visual-proof/role-integrity/watch-reel audits and final QA until important transitions have playable muted MP4 previews with ordered roles and one sequence review reel.",
+            "forbiddenWorkaround": "Do not claim a transition is watchable without playable local audition clips, endpoint/middle-motion frame proof, and ordered watch-reel review.",
         },
     ),
     (
