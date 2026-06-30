@@ -223,6 +223,18 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Rerun audit_final_cut_smoothness_contract.py and prove final adjacent joins have bridge, match, breathing, stable landing, and rare motion-effect proof.",
         "forbiddenWorkaround": "Do not cover rough hard joins, payoff-to-payoff jumps, or weak boundary clips with flashier effects.",
     },
+    "resolve_transition_apply_contract_audit": {
+        "path": "resolve_transition_apply_contract_audit.json",
+        "accepted": {"passed"},
+        "phase": "transition_flow",
+        "priority": "P0",
+        "ownerScript": "prepare_resolve_transition_apply_plan.py",
+        "requiredArtifact": "resolve_transition_apply_plan/resolve_transition_apply_plan.json",
+        "command": "python3 <skill-dir>/scripts/prepare_resolve_transition_apply_plan.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun audit_resolve_transition_apply_contract.py and prove pendingManualVisibleEffectRowCount is 0, blockedRowCount is 0, and every visible transition is an API-supported cut, a materialized bridge clip, or has completed Resolve readback plus frame-sample evidence.",
+        "forbiddenWorkaround": "Do not use --allow-planned-manual-visible-effects for unattended delivery, do not treat marker customData or manual instructions as applied effects, and do not hide missing bridge evidence with rotation, whip, flash, or speed-ramp effects.",
+        "allowKeywordRoutes": False,
+    },
     "reference_repair_closure_audit": {
         "path": "reference_repair_closure_audit.json",
         "accepted": {"passed", "passed_with_evidence_warnings"},
@@ -348,6 +360,8 @@ def route_for(spec: dict[str, Any], blocker: str) -> dict[str, Any]:
         "acceptanceEvidence": spec["acceptanceEvidence"],
         "forbiddenWorkaround": spec["forbiddenWorkaround"],
     }
+    if spec.get("allowKeywordRoutes") is False:
+        return route
     lowered = blocker.lower()
     for keywords, override in KEYWORD_ROUTES:
         if any(keyword in lowered for keyword in keywords):
@@ -491,6 +505,13 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     unactionable = [row for row in rows if row.get("actionable") is not True]
     missing_reports = [row for row in report_rows if not row["exists"]]
     blocked_reports = [row for row in report_rows if row["exists"] and not row["accepted"]]
+    resolve_apply_rows = [row for row in rows if row.get("sourceReport") == "resolve_transition_apply_contract_audit"]
+    pending_manual_resolve_apply_rows = [
+        row
+        for row in resolve_apply_rows
+        if "pending_manual_visible_effect" in str(row.get("blocker") or "").lower()
+        or "manual visible" in str(row.get("blocker") or "").lower()
+    ]
     if not rows:
         status = "ready_no_unattended_repairs_needed"
     elif not unactionable:
@@ -526,6 +547,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "rowsWithCommand": len([row for row in rows if row.get("command")]),
             "rowsWithAcceptanceEvidence": len([row for row in rows if row.get("acceptanceEvidence")]),
             "rowsWithForbiddenWorkaround": len([row for row in rows if row.get("forbiddenWorkaround")]),
+            "resolveTransitionApplyRepairRowCount": len(resolve_apply_rows),
+            "pendingManualTransitionApplyRepairRowCount": len(pending_manual_resolve_apply_rows),
             "phaseCounts": phase_counts,
             "priorityCounts": priority_counts,
         },

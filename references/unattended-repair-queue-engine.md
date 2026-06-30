@@ -37,6 +37,7 @@ This queue turns a large set of blockers into ordered, machine-readable repair w
 - Fix title and establishing evidence before cover/title or director-polish claims.
 - Fix creator cut and final source usage before adding stronger effects.
 - Fix bridge, match, breathing-room, choreography, storyboard, and final-cut smoothness before adding whip, rotation, speed-ramp, flash, or zoom effects.
+- Fix Resolve transition apply blockers before handoff: pending manual visible effects must become API-supported cuts, materialized bridge clips, or completed Resolve readback plus frame-sample evidence. `--allow-planned-manual-visible-effects` is never an unattended repair.
 - Fix reference-style rows with artifacts and closure evidence instead of repeating "make it closer to the reference."
 - Never use an effect, stock insert, black card, generic title, or stale QA report to hide a blocker from a lower phase.
 
