@@ -32,6 +32,7 @@ Expected files:
 - `chapter_arc_plan/chapter_arc_plan.json` / `.md`: per-chapter context, movement, lived-in texture, payoff, and aftertaste/handoff planning with owner-script repair rows
 - `chapter_story_spine_contract_audit.json` / `.md`: no-write audit proving those chapter beats survive into rhythm, creator-cut, selected source usage, scene grammar, timeline variety, and transition support
 - `shot_flow_continuity_contract_audit.json` / `.md`: no-write audit proving each chapter's final clip order progresses through movement, texture, payoff, and aftertaste/handoff instead of random jumps hidden by effects
+- `scene_flow_arc_contract_audit.json` / `.md`: no-write audit proving chapters and chapter handoffs form setup, movement, lived-in texture, payoff, and aftertaste arcs instead of landmark stacks or effect-hidden jumps
 - `long_form_structure.md`: 20-minute chapter and pacing structure
 - `voiceover_script.txt`: approved or draft narration
 - `narration_text_only_v4.txt`: required when the user rejects rendered voiceover audio
@@ -81,7 +82,7 @@ Expected files:
 - `reference_profile_application_contract_audit.json` / `.md`: reference-profile application gate proving the batch reference profile reaches opening, chapter, rhythm, creator-cut, transition, caption, audio, scene-grammar, and style gates
 - `timeline_variety_contract_audit.json` / `.md`: film-level gate proving the final timeline varies movement, lived-in texture, destination payoff, and ending aftertaste instead of hiding weak shot choice behind transitions
 - `audience_caption_contract_audit.json` / `.md`: caption/TXT gate proving final viewer text is audience-facing and does not expose edit-status, tool, QA, or version language
-- `unattended_first_draft_contract_audit.json` / `.md`: no-write first-draft gate proving raw intake, footage select, opening/chapter story, title/cover, captions, BGM, audio policy, establishing/effects, rhythm/creator cut, chapter-story-spine, shot-flow continuity, timeline variety, transition QA, reference repair closure, and Resolve preflight are connected before handoff
+- `unattended_first_draft_contract_audit.json` / `.md`: no-write first-draft gate proving raw intake, footage select, opening/chapter story, title/cover, captions, BGM, audio policy, establishing/effects, rhythm/creator cut, chapter-story-spine, shot-flow continuity, scene-flow arc, timeline variety, transition QA, reference repair closure, and Resolve preflight are connected before handoff
 - `reference_style_repair_plan/reference_style_repair_plan.json` / `.md`: exact repair rows for blocked reference-style, director-intent, director-polish, or final-QA gaps
 - `reference_repair_closure_audit.json` / `.md`: closure gate proving P0 reference-style repair rows have required artifacts, post-repair audit evidence, and readback/frame evidence
 - `resolve_blueprint_preflight.json` / `.md`: no-write Resolve blueprint safety audit covering source files, source ranges, track overlaps, V1 gaps, title cards, subtitles, markers, and source audio
@@ -108,7 +109,7 @@ Expected files:
 - `rhythm_recut_application_contract_audit.json` / `.md`: final-candidate gate proving rhythm-recut main segments and existing-footage cutaways survived into the final candidate blueprint
 - `qa_checklist.md`: final delivery checklist
 - `delivery_audit.json` / `delivery_audit.md`: machine-readable final readiness audit
-- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, audience-caption, large-source unattended-readiness, transition-microstructure, transition-bridge visual evidence, transition-preview-packet, transition-storyboard, transition-breathing-room, chapter-story-spine, shot-flow-continuity, timeline-variety, and unattended-first-draft summaries, BGM phrase blueprint summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
+- `workflow_run_report.json` / `.md`: safe local workflow report with command outcomes, project-state summary, Resolve API summary, route decision summary, route decision application summary, asset decision summary, audience-caption, large-source unattended-readiness, transition-microstructure, transition-bridge visual evidence, transition-preview-packet, transition-storyboard, transition-breathing-room, scene-flow-arc, chapter-story-spine, shot-flow-continuity, timeline-variety, and unattended-first-draft summaries, BGM phrase blueprint summary, Resolve dry-run summary, Resolve apply contract summary, render-plan summary, audit status, safety flags, and remaining blockers
 
 ## Chapter Structure
 

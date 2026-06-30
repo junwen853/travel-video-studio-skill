@@ -73,6 +73,7 @@ SKILL_PATTERNS = {
     "chapter_story_spine_contract": "audit_chapter_story_spine_contract.py",
     "shot_flow_continuity_contract": "audit_shot_flow_continuity_contract.py",
     "transition_breathing_room_contract": "audit_transition_breathing_room_contract.py",
+    "scene_flow_arc_contract": "audit_scene_flow_arc_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
@@ -155,6 +156,7 @@ REQUIRED_SCRIPTS = [
     "audit_chapter_story_spine_contract.py",
     "audit_shot_flow_continuity_contract.py",
     "audit_transition_breathing_room_contract.py",
+    "audit_scene_flow_arc_contract.py",
     "audit_timeline_variety_contract.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
@@ -261,6 +263,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
     shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
     transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
+    scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -1606,6 +1609,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         },
     )
     transition_breathing_room_summary = get_summary(transition_breathing_room)
+    scene_flow_arc_summary = get_summary(scene_flow_arc)
     add_check(
         checks,
         "Transition breathing-room contract proves V14 transitions land on stable footage and do not become motion-effect spam",
@@ -1624,6 +1628,34 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "transitionBreathingRoomStatus": transition_breathing_room.get("status"),
             "transitionBreathingRoomSummary": transition_breathing_room_summary,
+        },
+    )
+    add_check(
+        checks,
+        "Scene flow arc contract proves V14 chapters read as travel sequences instead of landmark stacks",
+        scene_flow_arc.get("status") == "passed"
+        and int(scene_flow_arc_summary.get("visualClipCount") or 0) >= 5
+        and int(scene_flow_arc_summary.get("chapterCount") or 0) >= 1
+        and int(scene_flow_arc_summary.get("chaptersPassed") or 0) == int(scene_flow_arc_summary.get("chapterCount") or -1)
+        and int(scene_flow_arc_summary.get("chaptersBlocked") or 0) == 0
+        and int(scene_flow_arc_summary.get("blockedWindowCount") or 0) == 0
+        and int(scene_flow_arc_summary.get("blockedHandoffCount") or 0) == 0
+        and int(scene_flow_arc_summary.get("weakOrUnclassifiedClipCount") or 0) == 0
+        and int(scene_flow_arc_summary.get("sameBeatRunMax") or 0) <= 3
+        and int(scene_flow_arc_summary.get("payoffRunMax") or 0) <= 2
+        and scene_flow_arc_summary.get("chapterStorySpineStatus") == "passed"
+        and scene_flow_arc_summary.get("shotFlowContinuityStatus") == "passed"
+        and scene_flow_arc_summary.get("timelineVarietyStatus") == "passed"
+        and scene_flow_arc_summary.get("referenceSceneGrammarStatus") == "passed"
+        and scene_flow_arc_summary.get("transitionSceneArcStatus") == "passed"
+        and scene_flow_arc_summary.get("transitionBreathingRoomStatus") == "passed"
+        and int(scene_flow_arc_summary.get("blockedCheckCount") or 0) == 0
+        and int(scene_flow_arc_summary.get("blockerCount") or 0) == 0
+        and not scene_flow_arc.get("blockers"),
+        {
+            "sceneFlowArcStatus": scene_flow_arc.get("status"),
+            "sceneFlowArcSummary": scene_flow_arc_summary,
+            "blockers": scene_flow_arc.get("blockers"),
         },
     )
     reference_transition_profile_summary = get_summary(reference_transition_profile)

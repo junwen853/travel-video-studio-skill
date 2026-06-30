@@ -519,6 +519,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
     shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
     transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
+    scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
@@ -550,6 +551,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     css_summary = summary_of(chapter_story_spine)
     sfc_summary = summary_of(shot_flow_continuity)
     tbr_summary = summary_of(transition_breathing_room)
+    sfa_summary = summary_of(scene_flow_arc)
     add_gate(
         gates,
         "Transition cadence, execution, scene arcs, effect palette, visual match, preview packet quality, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",
@@ -762,7 +764,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_audition_packet.get("blockers")
         and not transition_audition_quality.get("blockers")
         and not transition_storyboard.get("blockers")
-        and not reference_transition_profile.get("blockers"),
+        and not reference_transition_profile.get("blockers")
+        and not scene_flow_arc.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
             "transitionQualityBoundaryCount": tq_summary.get("visualBoundaryCount"),
@@ -823,6 +826,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionStoryboardSummary": tsb_summary,
             "referenceTransitionProfileStatus": reference_transition_profile.get("status"),
             "referenceTransitionProfileSummary": rtp_summary,
+            "sceneFlowArcStatus": scene_flow_arc.get("status"),
+            "sceneFlowArcSummary": sfa_summary,
         },
     )
 
@@ -893,6 +898,35 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": transition_breathing_room.get("status"),
             "summary": tbr_summary,
             "blockers": transition_breathing_room.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Scene flow arc proves each chapter reads like a travel sequence, not a landmark stack",
+        scene_flow_arc.get("status") == "passed"
+        and as_int(sfa_summary.get("visualClipCount")) >= 5
+        and as_int(sfa_summary.get("chapterCount")) >= 1
+        and as_int(sfa_summary.get("chaptersPassed")) == as_int(sfa_summary.get("chapterCount"))
+        and as_int(sfa_summary.get("chaptersBlocked")) == 0
+        and as_int(sfa_summary.get("blockedWindowCount")) == 0
+        and as_int(sfa_summary.get("blockedHandoffCount")) == 0
+        and as_int(sfa_summary.get("weakOrUnclassifiedClipCount")) == 0
+        and as_int(sfa_summary.get("sameBeatRunMax")) <= 3
+        and as_int(sfa_summary.get("payoffRunMax")) <= 2
+        and sfa_summary.get("chapterStorySpineStatus") == "passed"
+        and sfa_summary.get("shotFlowContinuityStatus") == "passed"
+        and sfa_summary.get("timelineVarietyStatus") == "passed"
+        and sfa_summary.get("referenceSceneGrammarStatus") == "passed"
+        and sfa_summary.get("transitionSceneArcStatus") == "passed"
+        and sfa_summary.get("transitionBreathingRoomStatus") == "passed"
+        and as_int(sfa_summary.get("blockedCheckCount")) == 0
+        and as_int(sfa_summary.get("blockerCount")) == 0
+        and not scene_flow_arc.get("blockers"),
+        {
+            "status": scene_flow_arc.get("status"),
+            "summary": sfa_summary,
+            "blockers": scene_flow_arc.get("blockers") or [],
         },
     )
 

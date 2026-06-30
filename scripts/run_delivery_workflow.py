@@ -1512,6 +1512,33 @@ def summarize_transition_breathing_room_contract(report: dict[str, Any] | None) 
     }
 
 
+def summarize_scene_flow_arc_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "chapterCount": summary.get("chapterCount"),
+        "chaptersPassed": summary.get("chaptersPassed"),
+        "chaptersBlocked": summary.get("chaptersBlocked"),
+        "blockedWindowCount": summary.get("blockedWindowCount"),
+        "blockedHandoffCount": summary.get("blockedHandoffCount"),
+        "weakOrUnclassifiedClipCount": summary.get("weakOrUnclassifiedClipCount"),
+        "sameBeatRunMax": summary.get("sameBeatRunMax"),
+        "payoffRunMax": summary.get("payoffRunMax"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_transition_preview_packet(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2895,6 +2922,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_transition_breathing_room_contract", transition_breathing_room_cmd, ok_codes={0, 2}))
 
+    scene_flow_arc_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_scene_flow_arc_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_scene_flow_arc_contract", scene_flow_arc_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -3029,6 +3065,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     chapter_story_spine_summary = None
     shot_flow_continuity_summary = None
     transition_breathing_room_summary = None
+    scene_flow_arc_summary = None
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
@@ -3399,6 +3436,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition breathing-room blocker: {item}" for item in transition_breathing_room_summary.get("blockers") or [])
             if transition_breathing_room_summary and transition_breathing_room_summary.get("warnings"):
                 warnings.extend(f"Transition breathing-room warning: {item}" for item in transition_breathing_room_summary.get("warnings") or [])
+        if step["id"] == "audit_scene_flow_arc_contract":
+            scene_flow_arc_summary = summarize_scene_flow_arc_contract(payload)
+            if scene_flow_arc_summary and scene_flow_arc_summary.get("status") == "blocked":
+                blockers.extend(f"Scene flow arc blocker: {item}" for item in scene_flow_arc_summary.get("blockers") or [])
+            if scene_flow_arc_summary and scene_flow_arc_summary.get("warnings"):
+                warnings.extend(f"Scene flow arc warning: {item}" for item in scene_flow_arc_summary.get("warnings") or [])
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -3707,6 +3750,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_breathing_room_summary = summarize_transition_breathing_room_contract(
             load_json(package_dir / "transition_breathing_room_contract_audit.json")
         )
+    if package_dir and (package_dir / "scene_flow_arc_contract_audit.json").exists():
+        scene_flow_arc_summary = summarize_scene_flow_arc_contract(
+            load_json(package_dir / "scene_flow_arc_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -3826,6 +3873,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "chapterStorySpineSummary": chapter_story_spine_summary,
         "shotFlowContinuitySummary": shot_flow_continuity_summary,
         "transitionBreathingRoomSummary": transition_breathing_room_summary,
+        "sceneFlowArcSummary": scene_flow_arc_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
@@ -3897,6 +3945,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review transition_choreography_plan/transition_choreography_plan.md and transition_choreography_contract_audit.json before preview/storyboard so every important boundary has outgoing, bridge-or-motion, landing, BGM-hit, and caption-quiet choreography.",
             "Review transition_preview_packet/transition_preview_packet.md, transition_preview_quality_contract_audit.json, transition_audition_packet/transition_audition_packet.md, transition_audition_quality_contract_audit.json, and transition_storyboard_contract_audit.json before Resolve apply so important route/title/day-change transitions have generated nonblank frame evidence plus playable muted outgoing/bridge/landing MP4 proof.",
             "Review transition_breathing_room_contract_audit.json before Resolve apply so motion accents are rare, separated by calm boundaries, and important transitions land on stable readable footage without title/subtitle collision.",
+            "Review scene_flow_arc_contract_audit.json before Resolve apply so chapters form setup, movement, lived-in texture, payoff, and aftertaste/handoff arcs instead of landmark stacks or effect-hidden jumps.",
             "Review reference_transition_profile_contract_audit.json before Resolve apply so the current film's transition language matches the learned reference bridge, breath, match, and restrained-motion profile.",
             "Review chapter_story_spine_contract_audit.json before Resolve apply so every chapter executes context, movement, lived-in texture, payoff, and aftertaste instead of becoming title-only or effect-masked.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
