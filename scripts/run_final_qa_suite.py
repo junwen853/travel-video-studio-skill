@@ -87,7 +87,7 @@ ACCEPTED_STATUSES = {
     "narrative_adjacency_contract_audit": {"passed"},
     "transition_viewer_orientation_contract_audit": {"passed"},
     "transition_scene_settlement_contract_audit": {"passed"},
-    "unattended_repair_queue": {"ready_no_unattended_repairs_needed", "ready_with_unattended_repair_queue"},
+    "unattended_repair_queue": {"ready_no_unattended_repairs_needed"},
     "unattended_first_draft_contract_audit": {"passed", "passed_with_warnings"},
     "skill_maturity_contract_audit": {"passed", "passed_with_warnings"},
     "v14_baseline_contract_audit": {"passed"},
