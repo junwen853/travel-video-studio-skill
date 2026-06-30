@@ -567,6 +567,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
     transition_continuity_rehearsal = load_json(package_dir / "transition_continuity_rehearsal_contract_audit.json") or {}
     pacing_watchability = load_json(package_dir / "pacing_watchability_contract_audit.json") or {}
+    narrative_adjacency = load_json(package_dir / "narrative_adjacency_contract_audit.json") or {}
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
@@ -610,6 +611,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tbr_summary = summary_of(transition_breathing_room)
     tcr_summary = summary_of(transition_continuity_rehearsal)
     pw_summary = summary_of(pacing_watchability)
+    na_summary = summary_of(narrative_adjacency)
     sfa_summary = summary_of(scene_flow_arc)
     fcs_summary = summary_of(final_cut_smoothness)
     add_gate(
@@ -1222,6 +1224,27 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": pacing_watchability.get("status"),
             "summary": pw_summary,
             "blockers": pacing_watchability.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Narrative adjacency proves the first draft does not stack random shots without a viewer-readable reason",
+        narrative_adjacency.get("status") == "passed"
+        and as_int(na_summary.get("adjacentPairCount")) >= 1
+        and as_int(na_summary.get("blockedPairCount")) == 0
+        and as_int(na_summary.get("unmotivatedPairCount")) == 0
+        and as_int(na_summary.get("blockedChapterHandoffCount")) == 0
+        and as_int(na_summary.get("payoffJumpWithoutBridgeCount")) == 0
+        and as_int(na_summary.get("genericPairCount")) == 0
+        and as_float(na_summary.get("unknownFunctionRatio")) <= 0.25
+        and as_int(na_summary.get("functionRunMax")) <= 4
+        and as_int(na_summary.get("blockedCheckCount")) == 0
+        and not narrative_adjacency.get("blockers"),
+        {
+            "status": narrative_adjacency.get("status"),
+            "summary": na_summary,
+            "blockers": narrative_adjacency.get("blockers") or [],
         },
     )
 

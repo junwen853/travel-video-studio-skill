@@ -81,6 +81,7 @@ REQUIRED_SCRIPTS = {
         "audit_final_cut_smoothness_contract.py",
         "audit_transition_continuity_rehearsal_contract.py",
         "audit_pacing_watchability_contract.py",
+        "audit_narrative_adjacency_contract.py",
         "audit_timeline_variety_contract.py",
         "prepare_unattended_repair_queue.py",
         "audit_unattended_first_draft_contract.py",
@@ -185,6 +186,7 @@ REQUIRED_SKILL_PATTERNS = {
     "final_cut_smoothness_contract_rule": "audit_final_cut_smoothness_contract.py",
     "transition_continuity_rehearsal_contract_rule": "audit_transition_continuity_rehearsal_contract.py",
     "pacing_watchability_contract_rule": "audit_pacing_watchability_contract.py",
+    "narrative_adjacency_contract_rule": "audit_narrative_adjacency_contract.py",
     "unattended_repair_queue_rule": "prepare_unattended_repair_queue.py",
     "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
     "reference_transition_profile_contract_rule": "audit_reference_transition_profile_contract.py",
@@ -248,6 +250,7 @@ REQUIRED_SKILL_PATTERNS = {
     "final_cut_smoothness_contract_reference_rule": "final-cut-smoothness-contract.md",
     "transition_continuity_rehearsal_contract_reference_rule": "transition-continuity-rehearsal-contract.md",
     "pacing_watchability_contract_reference_rule": "pacing-watchability-contract.md",
+    "narrative_adjacency_contract_reference_rule": "narrative-adjacency-contract.md",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
@@ -329,6 +332,7 @@ REQUIRED_STYLE_PATTERNS = {
     "final_cut_smoothness_contract": "final-cut-smoothness-contract.md",
     "transition_continuity_rehearsal_contract": "transition-continuity-rehearsal-contract.md",
     "pacing_watchability_contract": "pacing-watchability-contract.md",
+    "narrative_adjacency_contract": "narrative-adjacency-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
@@ -389,6 +393,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "final_cut_smoothness_contract": "final cut smoothness contract",
     "transition_continuity_rehearsal_contract": "transition continuity rehearsal contract",
     "pacing_watchability_contract": "pacing watchability contract",
+    "narrative_adjacency_contract": "narrative adjacency contract",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -6402,6 +6407,87 @@ def pacing_watchability_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def narrative_adjacency_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "narrative_adjacency_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "adjacentPairCount": summary.get("adjacentPairCount"),
+        "motivatedPairCount": summary.get("motivatedPairCount"),
+        "unmotivatedPairCount": summary.get("unmotivatedPairCount"),
+        "blockedPairCount": summary.get("blockedPairCount"),
+        "blockedChapterHandoffCount": summary.get("blockedChapterHandoffCount"),
+        "payoffJumpWithoutBridgeCount": summary.get("payoffJumpWithoutBridgeCount"),
+        "genericPairCount": summary.get("genericPairCount"),
+        "unknownFunctionRatio": summary.get("unknownFunctionRatio"),
+        "functionRunMax": summary.get("functionRunMax"),
+        "shotFlowContinuityStatus": summary.get("shotFlowContinuityStatus"),
+        "sceneFlowArcStatus": summary.get("sceneFlowArcStatus"),
+        "finalCutSmoothnessStatus": summary.get("finalCutSmoothnessStatus"),
+        "transitionBreathingRoomStatus": summary.get("transitionBreathingRoomStatus"),
+        "transitionPairContinuityStatus": summary.get("transitionPairContinuityStatus"),
+        "transitionMotivationStatus": summary.get("transitionMotivationStatus"),
+        "transitionStoryboardStatus": summary.get("transitionStoryboardStatus"),
+        "transitionContinuityRehearsalStatus": summary.get("transitionContinuityRehearsalStatus"),
+        "pacingWatchabilityStatus": summary.get("pacingWatchabilityStatus"),
+        "finalBlueprintLineageStatus": summary.get("finalBlueprintLineageStatus"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def narrative_adjacency_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and int(evidence.get("visualClipCount") or 0) >= 3
+        and int(evidence.get("adjacentPairCount") or 0) >= 1
+        and int(evidence.get("blockedPairCount") or 0) == 0
+        and int(evidence.get("unmotivatedPairCount") or 0) == 0
+        and int(evidence.get("blockedChapterHandoffCount") or 0) == 0
+        and int(evidence.get("payoffJumpWithoutBridgeCount") or 0) == 0
+        and int(evidence.get("genericPairCount") or 0) == 0
+        and float(evidence.get("unknownFunctionRatio") or 0.0) <= 0.25
+        and int(evidence.get("functionRunMax") or 0) <= 4
+        and evidence.get("shotFlowContinuityStatus") == "passed"
+        and evidence.get("sceneFlowArcStatus") == "passed"
+        and evidence.get("finalCutSmoothnessStatus") == "passed"
+        and evidence.get("transitionBreathingRoomStatus") == "passed"
+        and evidence.get("transitionPairContinuityStatus") == "passed"
+        and evidence.get("transitionMotivationStatus") == "passed"
+        and evidence.get("transitionStoryboardStatus") == "passed"
+        and evidence.get("transitionContinuityRehearsalStatus") == "passed"
+        and evidence.get("pacingWatchabilityStatus") == "passed"
+        and evidence.get("finalBlueprintLineageStatus") == "passed"
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_continuity_rehearsal_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_continuity_rehearsal_contract_audit.json"
     data = load_json(path) or {}
@@ -7994,6 +8080,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         pacing_watchability_contract_ready(pacing_watchability_evidence),
         pacing_watchability_evidence,
     )
+    narrative_adjacency_evidence = narrative_adjacency_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Narrative adjacency contract proves adjacent visual shots are story-motivated instead of random stacks",
+        narrative_adjacency_contract_ready(narrative_adjacency_evidence),
+        narrative_adjacency_evidence,
+    )
     transition_continuity_rehearsal_evidence = transition_continuity_rehearsal_contract_evidence(package_dir)
     add_check(
         checks,
@@ -8003,6 +8096,7 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         and scene_flow_arc_contract_ready(scene_flow_arc_evidence)
         and final_cut_smoothness_contract_ready(final_cut_smoothness_evidence)
         and pacing_watchability_contract_ready(pacing_watchability_evidence)
+        and narrative_adjacency_contract_ready(narrative_adjacency_evidence)
         and transition_continuity_rehearsal_contract_ready(transition_continuity_rehearsal_evidence),
         {
             "transitionStoryboard": transition_storyboard_evidence,
@@ -8010,6 +8104,7 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
             "sceneFlowArc": scene_flow_arc_evidence,
             "finalCutSmoothness": final_cut_smoothness_evidence,
             "pacingWatchability": pacing_watchability_evidence,
+            "narrativeAdjacency": narrative_adjacency_evidence,
             "transitionContinuityRehearsal": transition_continuity_rehearsal_evidence,
         },
     )

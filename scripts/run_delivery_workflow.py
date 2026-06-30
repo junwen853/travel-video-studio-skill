@@ -1751,6 +1751,33 @@ def summarize_pacing_watchability_contract(report: dict[str, Any] | None) -> dic
     }
 
 
+def summarize_narrative_adjacency_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    inputs = report.get("inputs") if isinstance(report.get("inputs"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "adjacentPairCount": summary.get("adjacentPairCount"),
+        "motivatedPairCount": summary.get("motivatedPairCount"),
+        "unmotivatedPairCount": summary.get("unmotivatedPairCount"),
+        "blockedPairCount": summary.get("blockedPairCount"),
+        "blockedChapterHandoffCount": summary.get("blockedChapterHandoffCount"),
+        "payoffJumpWithoutBridgeCount": summary.get("payoffJumpWithoutBridgeCount"),
+        "genericPairCount": summary.get("genericPairCount"),
+        "unknownFunctionRatio": summary.get("unknownFunctionRatio"),
+        "functionRunMax": summary.get("functionRunMax"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_scene_flow_arc_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -3481,6 +3508,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_pacing_watchability_contract", pacing_watchability_cmd, ok_codes={0, 2}))
 
+    narrative_adjacency_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_narrative_adjacency_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_narrative_adjacency_contract", narrative_adjacency_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -3635,6 +3671,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_breathing_room_summary = None
     transition_continuity_rehearsal_summary = None
     pacing_watchability_summary = None
+    narrative_adjacency_summary = None
     scene_flow_arc_summary = None
     final_cut_smoothness_summary = None
     unattended_first_draft_summary = None
@@ -4080,6 +4117,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Pacing watchability blocker: {item}" for item in pacing_watchability_summary.get("blockers") or [])
             if pacing_watchability_summary and pacing_watchability_summary.get("warnings"):
                 warnings.extend(f"Pacing watchability warning: {item}" for item in pacing_watchability_summary.get("warnings") or [])
+        if step["id"] == "audit_narrative_adjacency_contract":
+            narrative_adjacency_summary = summarize_narrative_adjacency_contract(payload)
+            if narrative_adjacency_summary and narrative_adjacency_summary.get("status") == "blocked":
+                blockers.extend(f"Narrative adjacency blocker: {item}" for item in narrative_adjacency_summary.get("blockers") or [])
+            if narrative_adjacency_summary and narrative_adjacency_summary.get("warnings"):
+                warnings.extend(f"Narrative adjacency warning: {item}" for item in narrative_adjacency_summary.get("warnings") or [])
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -4446,6 +4489,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         pacing_watchability_summary = summarize_pacing_watchability_contract(
             load_json(package_dir / "pacing_watchability_contract_audit.json")
         )
+    if package_dir and (package_dir / "narrative_adjacency_contract_audit.json").exists():
+        narrative_adjacency_summary = summarize_narrative_adjacency_contract(
+            load_json(package_dir / "narrative_adjacency_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -4582,6 +4629,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "finalCutSmoothnessSummary": final_cut_smoothness_summary,
         "transitionContinuityRehearsalSummary": transition_continuity_rehearsal_summary,
         "pacingWatchabilitySummary": pacing_watchability_summary,
+        "narrativeAdjacencySummary": narrative_adjacency_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
@@ -4662,6 +4710,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review final_cut_smoothness_contract_audit.json before Resolve apply so the final candidate's adjacent shots have bridge, match, breathing, stable landing, and rare motion-effect proof instead of rough hard joins.",
             "Review transition_continuity_rehearsal_contract_audit.json before Resolve apply so row-to-row transition landings carry into the next outgoing shot and motion accents do not stack without stable buffer.",
             "Review pacing_watchability_contract_audit.json before Resolve apply so reference-calibrated shot lengths, chapter breathing, long-hold reduction, and short-clip readability are proven in the final candidate.",
+            "Review narrative_adjacency_contract_audit.json before Resolve apply so every adjacent visual shot has a viewer-readable route, place, story-function, bridge, BGM, title, or transition reason instead of random clip stacking.",
             "Review reference_transition_profile_contract_audit.json before Resolve apply so the current film's transition language matches the learned reference bridge, breath, match, and restrained-motion profile.",
             "Review chapter_story_spine_contract_audit.json before Resolve apply so every chapter executes context, movement, lived-in texture, payoff, and aftertaste instead of becoming title-only or effect-masked.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",

@@ -85,6 +85,7 @@ SKILL_PATTERNS = {
     "final_cut_smoothness_contract": "audit_final_cut_smoothness_contract.py",
     "transition_continuity_rehearsal_contract": "audit_transition_continuity_rehearsal_contract.py",
     "pacing_watchability_contract": "audit_pacing_watchability_contract.py",
+    "narrative_adjacency_contract": "audit_narrative_adjacency_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_repair_queue": "prepare_unattended_repair_queue.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
@@ -181,6 +182,7 @@ REQUIRED_SCRIPTS = [
     "audit_final_cut_smoothness_contract.py",
     "audit_transition_continuity_rehearsal_contract.py",
     "audit_pacing_watchability_contract.py",
+    "audit_narrative_adjacency_contract.py",
     "audit_timeline_variety_contract.py",
     "prepare_unattended_repair_queue.py",
     "audit_unattended_first_draft_contract.py",
@@ -293,6 +295,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
     transition_continuity_rehearsal = load_json(package_dir / "transition_continuity_rehearsal_contract_audit.json") or {}
     pacing_watchability = load_json(package_dir / "pacing_watchability_contract_audit.json") or {}
+    narrative_adjacency = load_json(package_dir / "narrative_adjacency_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -2134,6 +2137,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     final_cut_smoothness_summary = get_summary(final_cut_smoothness)
     transition_continuity_rehearsal_summary = get_summary(transition_continuity_rehearsal)
     pacing_watchability_summary = get_summary(pacing_watchability)
+    narrative_adjacency_summary = get_summary(narrative_adjacency)
     add_check(
         checks,
         "Transition breathing-room contract proves V14 transitions land on stable footage and do not become motion-effect spam",
@@ -2253,6 +2257,37 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "pacingWatchabilityStatus": pacing_watchability.get("status"),
             "pacingWatchabilitySummary": pacing_watchability_summary,
             "blockers": pacing_watchability.get("blockers"),
+        },
+    )
+    add_check(
+        checks,
+        "Narrative adjacency contract proves V14 adjacent shots are story-motivated instead of random clip stacks",
+        narrative_adjacency.get("status") == "passed"
+        and int(narrative_adjacency_summary.get("adjacentPairCount") or 0) >= 1
+        and int(narrative_adjacency_summary.get("blockedPairCount") or 0) == 0
+        and int(narrative_adjacency_summary.get("unmotivatedPairCount") or 0) == 0
+        and int(narrative_adjacency_summary.get("blockedChapterHandoffCount") or 0) == 0
+        and int(narrative_adjacency_summary.get("payoffJumpWithoutBridgeCount") or 0) == 0
+        and int(narrative_adjacency_summary.get("genericPairCount") or 0) == 0
+        and float(narrative_adjacency_summary.get("unknownFunctionRatio") or 0.0) <= 0.25
+        and int(narrative_adjacency_summary.get("functionRunMax") or 0) <= 4
+        and narrative_adjacency_summary.get("shotFlowContinuityStatus") == "passed"
+        and narrative_adjacency_summary.get("sceneFlowArcStatus") == "passed"
+        and narrative_adjacency_summary.get("finalCutSmoothnessStatus") == "passed"
+        and narrative_adjacency_summary.get("transitionBreathingRoomStatus") == "passed"
+        and narrative_adjacency_summary.get("transitionPairContinuityStatus") == "passed"
+        and narrative_adjacency_summary.get("transitionMotivationStatus") == "passed"
+        and narrative_adjacency_summary.get("transitionStoryboardStatus") == "passed"
+        and narrative_adjacency_summary.get("transitionContinuityRehearsalStatus") == "passed"
+        and narrative_adjacency_summary.get("pacingWatchabilityStatus") == "passed"
+        and narrative_adjacency_summary.get("finalBlueprintLineageStatus") == "passed"
+        and int(narrative_adjacency_summary.get("blockedCheckCount") or 0) == 0
+        and int(narrative_adjacency_summary.get("blockerCount") or 0) == 0
+        and not narrative_adjacency.get("blockers"),
+        {
+            "narrativeAdjacencyStatus": narrative_adjacency.get("status"),
+            "narrativeAdjacencySummary": narrative_adjacency_summary,
+            "blockers": narrative_adjacency.get("blockers"),
         },
     )
     reference_transition_profile_summary = get_summary(reference_transition_profile)
@@ -2452,6 +2487,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_audition_role_integrity.get("status") == "passed"
         and transition_continuity_rehearsal.get("status") == "passed"
         and pacing_watchability.get("status") == "passed"
+        and narrative_adjacency.get("status") == "passed"
         and int(transition_continuity_rehearsal_summary.get("blockedRehearsalRowCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("blockedAdjacentPairCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("adjacentMotionPairCount") or 0) == 0
@@ -2461,6 +2497,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(pacing_watchability_summary.get("veryLongShotCount") or 0) == 0
         and int(pacing_watchability_summary.get("shortClipRunMax") or 0) <= 2
         and int(pacing_watchability_summary.get("blockedCheckCount") or 0) == 0
+        and int(narrative_adjacency_summary.get("blockedPairCount") or 0) == 0
+        and int(narrative_adjacency_summary.get("unmotivatedPairCount") or 0) == 0
+        and int(narrative_adjacency_summary.get("payoffJumpWithoutBridgeCount") or 0) == 0
+        and int(narrative_adjacency_summary.get("blockedCheckCount") or 0) == 0
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("rowsWithMotionExecution") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
@@ -2580,6 +2620,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionContinuityRehearsalSummary": transition_continuity_rehearsal_summary,
             "pacingWatchabilityStatus": pacing_watchability.get("status"),
             "pacingWatchabilitySummary": pacing_watchability_summary,
+            "narrativeAdjacencyStatus": narrative_adjacency.get("status"),
+            "narrativeAdjacencySummary": narrative_adjacency_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": reference_scene_grammar_summary,
             "unattendedFirstDraftStatus": unattended_first_draft.get("status"),
