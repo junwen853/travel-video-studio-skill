@@ -595,6 +595,24 @@ def summarize_final_viewer_friction_contract(report: dict[str, Any] | None) -> d
     }
 
 
+def summarize_first_draft_satisfaction_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "requiredReportCount": summary.get("requiredReportCount"),
+        "passedReportCount": summary.get("passedReportCount"),
+        "satisfactionRowCount": summary.get("satisfactionRowCount"),
+        "p0SatisfactionRowCount": summary.get("p0SatisfactionRowCount"),
+        "p1SatisfactionRowCount": summary.get("p1SatisfactionRowCount"),
+        "categoryCounts": summary.get("categoryCounts"),
+        "ownerScripts": summary.get("ownerScripts"),
+        "blockers": [row.get("repairId") for row in report.get("satisfactionRows") or []],
+    }
+
+
 def summarize_transition_reference_readiness_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -4159,6 +4177,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_final_viewer_friction_contract", final_viewer_friction_cmd, ok_codes={0, 2}))
 
+    first_draft_satisfaction_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_first_draft_satisfaction_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_first_draft_satisfaction_contract", first_draft_satisfaction_cmd, ok_codes={0, 2}))
+
     unattended_repair_queue_cmd = [
         "python3",
         str(SCRIPTS_DIR / "prepare_unattended_repair_queue.py"),
@@ -4314,6 +4341,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     reference_repair_closure_summary = None
     editorial_watchdown_summary = None
     final_viewer_friction_summary = None
+    first_draft_satisfaction_summary = None
     unattended_repair_queue_summary = None
     rhythm_recut_apply_summary = None
     skill_maturity_summary = None
@@ -4878,6 +4906,13 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                     f"Final viewer friction blocker: {item}"
                     for item in final_viewer_friction_summary.get("blockers") or []
                 )
+        if step["id"] == "audit_first_draft_satisfaction_contract":
+            first_draft_satisfaction_summary = summarize_first_draft_satisfaction_contract(payload)
+            if first_draft_satisfaction_summary and str(first_draft_satisfaction_summary.get("status") or "").startswith("blocked"):
+                blockers.extend(
+                    f"First draft satisfaction blocker: {item}"
+                    for item in first_draft_satisfaction_summary.get("blockers") or []
+                )
         if step["id"] == "prepare_unattended_repair_queue":
             unattended_repair_queue_summary = summarize_unattended_repair_queue(payload)
             if unattended_repair_queue_summary and unattended_repair_queue_summary.get("status") == "blocked_unactionable_repair_queue":
@@ -5043,6 +5078,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "final_viewer_friction_contract_audit.json").exists():
         final_viewer_friction_summary = summarize_final_viewer_friction_contract(
             load_json(package_dir / "final_viewer_friction_contract_audit.json")
+        )
+    if package_dir and (package_dir / "first_draft_satisfaction_contract_audit.json").exists():
+        first_draft_satisfaction_summary = summarize_first_draft_satisfaction_contract(
+            load_json(package_dir / "first_draft_satisfaction_contract_audit.json")
         )
     if package_dir and (package_dir / "transition_reference_readiness_contract_audit.json").exists():
         transition_reference_readiness_summary = summarize_transition_reference_readiness_contract(
@@ -5479,6 +5518,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "referenceRepairClosureSummary": reference_repair_closure_summary,
         "editorialWatchdownSummary": editorial_watchdown_summary,
         "finalViewerFrictionSummary": final_viewer_friction_summary,
+        "firstDraftSatisfactionSummary": first_draft_satisfaction_summary,
         "unattendedRepairQueueSummary": unattended_repair_queue_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "skillMaturitySummary": skill_maturity_summary,
@@ -5526,6 +5566,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review reference_review_repair_plan/reference_review_repair_plan.json when local reference videos are supplied so full-film review evidence is closed before reference learning, final QA, V14, or Skill maturity claims.",
             "Review editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json before handoff; ready_with_editorial_watchdown_repair_plan means the current final MP4 still has open full-film viewer-review rows.",
             "Review final_viewer_friction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_final_viewer_friction means title, BGM, caption, source, story, transition, reference-fit, route-texture, or whole-film watchdown issues still need owner-script repairs.",
+            "Review first_draft_satisfaction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_first_draft_satisfaction means the first serious draft still has source, opening, BGM, caption, story, rhythm, transition, reference-fit, route-texture, or watchdown rows that must be repaired through owner scripts.",
             "Review transition_reference_readiness_contract_audit.json before final viewer friction, final QA, V14, or handoff; blocked_transition_reference_readiness means the transition chain still has open craft/report/watch-reel/rendered-proof/repair-closure rows.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",
             "Review edit_rhythm_plan.json before Resolve apply so long raw clips, missing cutaways, and weak chapter variety are fixed before the edit feels AI-assembled.",

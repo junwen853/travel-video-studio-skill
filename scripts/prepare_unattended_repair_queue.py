@@ -349,6 +349,18 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "forbiddenWorkaround": "Do not hand off a technically passing package while the aggregation gate still has P0/P1 viewer-facing rows or owner-script repairs.",
         "allowKeywordRoutes": False,
     },
+    "first_draft_satisfaction_contract_audit": {
+        "path": "first_draft_satisfaction_contract_audit.json",
+        "accepted": {"passed"},
+        "phase": "final_watchdown",
+        "priority": "P0",
+        "ownerScript": "audit_first_draft_satisfaction_contract.py",
+        "requiredArtifact": "first_draft_satisfaction_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_first_draft_satisfaction_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun first-draft satisfaction aggregation and prove source, opening, BGM, captions, story, rhythm, transitions, reference fit, route texture, and watchdown have zero open satisfaction rows.",
+        "forbiddenWorkaround": "Do not claim the first serious draft is V14/Malta/reference-level while this aggregate gate still has open rows.",
+        "allowKeywordRoutes": False,
+    },
     "resolve_blueprint_preflight": {
         "path": "resolve_blueprint_preflight.json",
         "accepted": {"ready", "ready_with_warnings"},
@@ -363,6 +375,17 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
 }
 
 KEYWORD_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
+    (
+        ("first draft satisfaction", "first_draft_satisfaction", "satisfaction"),
+        {
+            "phase": "final_watchdown",
+            "ownerScript": "audit_first_draft_satisfaction_contract.py",
+            "requiredArtifact": "first_draft_satisfaction_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_first_draft_satisfaction_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "First-draft satisfaction contract passes with zero source, opening, BGM, caption, story, rhythm, transition, reference-fit, route-texture, or watchdown rows.",
+            "forbiddenWorkaround": "Do not use final QA, V14, or Skill maturity as a substitute for closing first-draft satisfaction rows.",
+        },
+    ),
     (
         ("viewer friction", "final viewer", "viewer-facing", "观众", "观感"),
         {
@@ -441,6 +464,17 @@ FINAL_QA_META_STAGES = {
 }
 
 FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
+    (
+        ("first_draft_satisfaction", "first draft satisfaction", "satisfaction"),
+        {
+            "phase": "final_watchdown",
+            "ownerScript": "audit_first_draft_satisfaction_contract.py",
+            "requiredArtifact": "first_draft_satisfaction_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_first_draft_satisfaction_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun first-draft satisfaction aggregation and final QA until this stage passes with zero satisfaction rows.",
+            "forbiddenWorkaround": "Do not claim a first draft is reference-level while source, opening, BGM, captions, story, rhythm, transition, reference, route, or watchdown rows remain open.",
+        },
+    ),
     (
         ("transition_reference_readiness", "transition readiness"),
         {

@@ -1,13 +1,13 @@
 # Unattended Repair Queue Engine
 
-Use `scripts/prepare_unattended_repair_queue.py --package-dir <package>` after the core planning, transition, reference-repair, and Resolve preflight reports exist, and before `audit_unattended_first_draft_contract.py`, `audit_v14_baseline_contract.py`, `audit_skill_maturity_contract.py`, or final handoff.
+Use `scripts/prepare_unattended_repair_queue.py --package-dir <package>` after the core planning, transition, reference-repair, final viewer friction, first draft satisfaction, and Resolve preflight reports exist, and before `audit_unattended_first_draft_contract.py`, `audit_v14_baseline_contract.py`, `audit_skill_maturity_contract.py`, or final handoff.
 
 The engine does not edit Resolve, queue renders, download assets, modify source footage, or write to mounted source drives. It reads package reports and writes:
 
 - `unattended_repair_queue/unattended_repair_queue.json`
 - `unattended_repair_queue/unattended_repair_queue.md`
 
-If `final_qa_suite_report.json` already exists, the queue also reads its blocked stages and creates extra repair rows for untracked final-QA failures. This is not a dependency cycle: the queue does not require final QA to exist, and it skips summary/meta stages such as V14 baseline or Skill maturity so the agent repairs the underlying blocked reports first.
+If `final_qa_suite_report.json` already exists, the queue also reads its blocked stages and creates extra repair rows for untracked final-QA failures. This is not a dependency cycle: the queue does not require final QA to exist, and it skips summary/meta stages such as V14 baseline or Skill maturity so the agent repairs the underlying blocked reports first. If `first_draft_satisfaction_contract_audit.json` is missing or blocked, the queue routes it through `audit_first_draft_satisfaction_contract.py` instead of letting final QA hide the aggregate issue.
 
 ## Purpose
 
@@ -29,7 +29,7 @@ This queue turns a large set of blockers into ordered, machine-readable repair w
 - `ready_with_unattended_repair_queue`: blockers or missing reports exist, but every row has an executable repair route.
 - `blocked_unactionable_repair_queue`: at least one row is missing an owner script, command, artifact, acceptance evidence, forbidden workaround, or no-write safety proof.
 
-`ready_with_unattended_repair_queue` is not a delivery pass. It only means the next agent has a usable repair route. The package remains blocked until the source audits, unattended first-draft audit, V14 baseline, and final QA pass.
+`ready_with_unattended_repair_queue` is not a delivery pass. It only means the next agent has a usable repair route. The package remains blocked until the source audits, first-draft satisfaction audit, unattended first-draft audit, V14 baseline, and final QA pass.
 
 ## Repair Principles
 
@@ -54,6 +54,7 @@ Then run:
 
 ```bash
 python3 <skill-dir>/scripts/audit_unattended_first_draft_contract.py --package-dir <package> --json
+python3 <skill-dir>/scripts/audit_first_draft_satisfaction_contract.py --package-dir <package> --json
 python3 <skill-dir>/scripts/audit_v14_baseline_contract.py --package-dir <package> --json
 python3 <skill-dir>/scripts/run_final_qa_suite.py --package-dir <package>
 ```
