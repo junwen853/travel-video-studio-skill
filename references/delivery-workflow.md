@@ -45,7 +45,7 @@ Expected files:
 - `resolve_timeline_enrichment.json`: subtitle cues, voiceover/BGM mix plan, stock/aerial placeholders, transition cues, and Resolve timeline markers
 - `resolve_timeline_blueprint.json`: input for DaVinci Resolve API timeline creation
 - `transition_execution_plan/transition_execution_plan.json` / `.md`: Resolve-ready transition recipes for adjacent-pair cuts, dissolves, whip/rotation/speed ramps, bridge inserts, BGM cues, and readback evidence
-- `transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json`: non-destructive Resolve candidate containing transition execution metadata, selected reference-candidate payloads, markers, and clip in/out transition annotations
+- `transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json`: non-destructive Resolve candidate containing transition execution metadata, selected reference-candidate payloads, three-beat `transitionMotionExecution`, markers, and clip in/out transition annotations
 - `transition_execution_blueprint/transition_execution_blueprint_report.json` / `.md`: transition materialization summary, safety flags, and approval/follow-up instructions
 - `transition_motif_plan/transition_motif_plan.json` / `.md`: film-level transition motif audit for repeated dissolves, random motion effects, BGM phrase cues, title-zone safety, and owner-script repairs
 - `bridge_sequence_plan/bridge_sequence_plan.json` / `.md`: 2-5 shot route/title bridge sequence plan for important transitions that cannot be solved by a single effect
@@ -175,6 +175,7 @@ The package is not final until:
 - Resolve timeline blueprint and delivery plan both record `used_for_first_assembly_sort` before rhythm, transition, or opening-story work is trusted
 - transition execution plan exists before Resolve apply when transition grammar exists; bridge-missing rows must remain blocked until real bridge footage is inserted
 - transition reference candidates exist before motif, choreography, preview, storyboard, or Resolve apply, proving every boundary has non-copying A/B/C choices and important boundaries have bridge/breath coverage instead of generic hard cuts or random effects
+- transition choreography exists before transition execution blueprint, motif, preview, storyboard, or Resolve apply, proving every boundary has outgoing/bridge-or-motion/landing, BGM-hit, caption/title quiet-zone, and restrained intensity metadata that can be carried into Resolve candidate transitions
 - transition reference selection exists before motif, choreography, preview, storyboard, or Resolve apply, proving every boundary has one unattended-safe default choice and bridge-missing rows stay blocked instead of becoming random visible effects
 - transition execution blueprint report exists before Resolve apply, proving approved transition recipes became candidate `transitions[]`, clip in/out metadata, and timeline markers without mutating the active blueprint by default
 - transition motif plan exists after transition execution and before Resolve apply, proving repeated/template transitions, missing BGM cues, title-zone risk, and unmotivated motion effects are repaired or explicitly assigned

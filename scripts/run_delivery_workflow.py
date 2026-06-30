@@ -652,6 +652,14 @@ def summarize_transition_execution_blueprint(report: dict[str, Any] | None) -> d
         "rowsWithAppliedReferenceSelection": summary.get("rowsWithAppliedReferenceSelection"),
         "blockedReferenceSelectionRowCount": summary.get("blockedReferenceSelectionRowCount"),
         "selectedStyleFamilyCounts": summary.get("selectedStyleFamilyCounts"),
+        "rowsWithChoreographyPlan": summary.get("rowsWithChoreographyPlan"),
+        "rowsWithMotionExecution": summary.get("rowsWithMotionExecution"),
+        "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
+        "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
+        "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
+        "motionExecutionFromChoreographyCount": summary.get("motionExecutionFromChoreographyCount"),
+        "blockedMotionExecutionRowCount": summary.get("blockedMotionExecutionRowCount"),
+        "choreographyFamilyCounts": summary.get("choreographyFamilyCounts"),
         "candidateTransitionCount": summary.get("candidateTransitionCount"),
         "candidateBlueprint": outputs.get("candidateBlueprint"),
         "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
@@ -2372,6 +2380,9 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Candidate transitions: {execution_blueprint.get('candidateTransitionCount')}",
                 f"- Reference selections applied: {execution_blueprint.get('rowsWithAppliedReferenceSelection')} / {execution_blueprint.get('executionRowCount')}",
                 f"- Selection blockers: {execution_blueprint.get('blockedReferenceSelectionRowCount')}",
+                f"- Motion execution applied: {execution_blueprint.get('rowsWithMotionExecution')} / {execution_blueprint.get('executionRowCount')}",
+                f"- Three-beat/BGM/title-safe rows: {execution_blueprint.get('rowsWithThreeBeatMotion')} / {execution_blueprint.get('rowsWithBgmHitMotion')} / {execution_blueprint.get('rowsWithCaptionQuietMotion')}",
+                f"- Motion blockers: {execution_blueprint.get('blockedMotionExecutionRowCount')}",
                 f"- Blocked rows: {execution_blueprint.get('blockedRowCount')}",
                 f"- Missing clip matches: {execution_blueprint.get('rowsMissingClipMatch')}",
             ]
@@ -2848,6 +2859,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     bridge_sequence_blueprint_cmd = ["python3", str(SCRIPTS_DIR / "prepare_bridge_sequence_blueprint.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_bridge_sequence_blueprint", bridge_sequence_blueprint_cmd, ok_codes={0, 2}))
 
+    transition_choreography_plan_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "prepare_transition_choreography_plan.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("prepare_transition_choreography_plan", transition_choreography_plan_cmd, ok_codes={0, 2}))
+
     transition_execution_blueprint_cmd = ["python3", str(SCRIPTS_DIR / "prepare_transition_execution_blueprint.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_transition_execution_blueprint", transition_execution_blueprint_cmd, ok_codes={0, 2}))
 
@@ -2941,15 +2961,6 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
 
     transition_visual_match_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_visual_match_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_visual_match_contract", transition_visual_match_cmd, ok_codes={0, 2}))
-
-    transition_choreography_plan_cmd = [
-        "python3",
-        str(SCRIPTS_DIR / "prepare_transition_choreography_plan.py"),
-        "--package-dir",
-        str(package_dir),
-        "--json",
-    ]
-    steps.append(run_step("prepare_transition_choreography_plan", transition_choreography_plan_cmd, ok_codes={0, 2}))
 
     transition_choreography_contract_cmd = [
         "python3",

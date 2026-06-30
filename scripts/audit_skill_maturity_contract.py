@@ -2914,6 +2914,10 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
     transition_rows_bridge_safe = 0
     transition_rows_motion_safe = 0
     transition_rows_with_reference_selection = 0
+    transition_rows_with_motion_execution = 0
+    transition_rows_with_three_beat_motion = 0
+    transition_rows_with_bgm_hit_motion = 0
+    transition_rows_with_caption_quiet_motion = 0
     for transition in transitions:
         if not isinstance(transition, dict):
             continue
@@ -2928,8 +2932,44 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
             transition_rows_motion_safe += 1
         if transition.get("referenceSelectionApplied") is True and transition.get("selectedCandidateType") and transition.get("selectedStyleFamily"):
             transition_rows_with_reference_selection += 1
+        motion_execution = transition.get("transitionMotionExecution") if isinstance(transition.get("transitionMotionExecution"), dict) else {}
+        if motion_execution.get("status") == "ready_with_transition_motion_execution":
+            transition_rows_with_motion_execution += 1
+        if len(motion_execution.get("threeBeatChoreography") or []) >= 3:
+            transition_rows_with_three_beat_motion += 1
+        bgm = motion_execution.get("bgmChoreography") if isinstance(motion_execution.get("bgmChoreography"), dict) else {}
+        if bgm.get("target") == "cut_or_effect_on_bgm_phrase_hit" and bgm.get("allowOffPhrase") is False:
+            transition_rows_with_bgm_hit_motion += 1
+        caption = motion_execution.get("captionAndTitlePolicy") if isinstance(motion_execution.get("captionAndTitlePolicy"), dict) else {}
+        if caption.get("avoidTitleCollision") is True and caption.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True:
+            transition_rows_with_caption_quiet_motion += 1
     annotated_out = sum(len(clip.get("transitionExecutionOut") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionOut"), list))
     annotated_in = sum(len(clip.get("transitionExecutionIn") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionIn"), list))
+    annotated_out_motion = sum(
+        1
+        for clip in clips
+        if isinstance(clip, dict)
+        for item in (clip.get("transitionExecutionOut") or [])
+        if isinstance(item, dict)
+        and isinstance(item.get("transitionMotionExecution"), dict)
+        and item["transitionMotionExecution"].get("status") == "ready_with_transition_motion_execution"
+    )
+    annotated_in_motion = sum(
+        1
+        for clip in clips
+        if isinstance(clip, dict)
+        for item in (clip.get("transitionExecutionIn") or [])
+        if isinstance(item, dict)
+        and isinstance(item.get("transitionMotionExecution"), dict)
+        and item["transitionMotionExecution"].get("status") == "ready_with_transition_motion_execution"
+    )
+    marker_motion = sum(
+        1
+        for marker in markers
+        if isinstance(marker.get("payload"), dict)
+        and marker["payload"].get("transitionMotionExecutionStatus") == "ready_with_transition_motion_execution"
+        and marker["payload"].get("choreographyFamily")
+    )
     plan = candidate.get("transitionExecutionBlueprintPlan") if isinstance(candidate.get("transitionExecutionBlueprintPlan"), dict) else {}
     return {
         "path": str(path),
@@ -2952,8 +2992,19 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         "rowsWithAppliedReferenceSelection": summary.get("rowsWithAppliedReferenceSelection"),
         "blockedReferenceSelectionRowCount": summary.get("blockedReferenceSelectionRowCount"),
         "selectedStyleFamilyCounts": summary.get("selectedStyleFamilyCounts"),
+        "choreographyRowCount": summary.get("choreographyRowCount"),
+        "rowsWithChoreographyPlan": summary.get("rowsWithChoreographyPlan"),
+        "rowsWithMotionExecution": summary.get("rowsWithMotionExecution"),
+        "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
+        "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
+        "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
+        "motionExecutionFromChoreographyCount": summary.get("motionExecutionFromChoreographyCount"),
+        "motionExecutionDerivedCount": summary.get("motionExecutionDerivedCount"),
+        "blockedMotionExecutionRowCount": summary.get("blockedMotionExecutionRowCount"),
+        "choreographyFamilyCounts": summary.get("choreographyFamilyCounts"),
         "candidateTransitionCount": summary.get("candidateTransitionCount"),
         "candidatePlanHasReferenceSelection": bool(plan.get("sourceTransitionReferenceSelection")),
+        "candidatePlanHasChoreography": bool(plan.get("sourceTransitionChoreographyPlan")),
         "rowCount": len(rows),
         "rowsMaterializedByRow": rows_materialized,
         "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
@@ -2962,11 +3013,18 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         "candidateMarkers": len(markers),
         "annotatedOutClipCount": annotated_out,
         "annotatedInClipCount": annotated_in,
+        "annotatedOutMotionExecutionCount": annotated_out_motion,
+        "annotatedInMotionExecutionCount": annotated_in_motion,
         "transitionRowsWithDecisionFields": transition_rows_with_decisions,
         "transitionRowsWithoutForbiddenHits": transition_rows_without_forbidden,
         "transitionRowsBridgeSafe": transition_rows_bridge_safe,
         "transitionRowsMotionSafe": transition_rows_motion_safe,
         "transitionRowsWithReferenceSelectionApplied": transition_rows_with_reference_selection,
+        "transitionRowsWithMotionExecution": transition_rows_with_motion_execution,
+        "transitionRowsWithThreeBeatMotion": transition_rows_with_three_beat_motion,
+        "transitionRowsWithBgmHitMotion": transition_rows_with_bgm_hit_motion,
+        "transitionRowsWithCaptionQuietMotion": transition_rows_with_caption_quiet_motion,
+        "markerMotionExecutionCount": marker_motion,
         "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
         "writesResolve": safety.get("writesResolve"),
         "queuesRender": safety.get("queuesRender"),
@@ -3003,14 +3061,31 @@ def transition_execution_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("rowsWithReferenceSelection") or 0) == row_count
         and int(evidence.get("rowsWithAppliedReferenceSelection") or 0) == row_count
         and int(evidence.get("blockedReferenceSelectionRowCount") or 0) == 0
+        and int(evidence.get("choreographyRowCount") or 0) >= row_count
+        and int(evidence.get("rowsWithChoreographyPlan") or 0) == row_count
+        and int(evidence.get("rowsWithMotionExecution") or 0) == row_count
+        and int(evidence.get("rowsWithThreeBeatMotion") or 0) == row_count
+        and int(evidence.get("rowsWithBgmHitMotion") or 0) == row_count
+        and int(evidence.get("rowsWithCaptionQuietMotion") or 0) == row_count
+        and int(evidence.get("motionExecutionFromChoreographyCount") or 0) == row_count
+        and int(evidence.get("motionExecutionDerivedCount") or 0) == 0
+        and int(evidence.get("blockedMotionExecutionRowCount") or 0) == 0
         and int(evidence.get("annotatedOutClipCount") or 0) >= row_count
         and int(evidence.get("annotatedInClipCount") or 0) >= row_count
+        and int(evidence.get("annotatedOutMotionExecutionCount") or 0) >= row_count
+        and int(evidence.get("annotatedInMotionExecutionCount") or 0) >= row_count
         and int(evidence.get("transitionRowsWithDecisionFields") or 0) == row_count
         and int(evidence.get("transitionRowsWithoutForbiddenHits") or 0) == row_count
         and int(evidence.get("transitionRowsBridgeSafe") or 0) == row_count
         and int(evidence.get("transitionRowsMotionSafe") or 0) == row_count
         and int(evidence.get("transitionRowsWithReferenceSelectionApplied") or 0) == row_count
+        and int(evidence.get("transitionRowsWithMotionExecution") or 0) == row_count
+        and int(evidence.get("transitionRowsWithThreeBeatMotion") or 0) == row_count
+        and int(evidence.get("transitionRowsWithBgmHitMotion") or 0) == row_count
+        and int(evidence.get("transitionRowsWithCaptionQuietMotion") or 0) == row_count
+        and int(evidence.get("markerMotionExecutionCount") or 0) == row_count
         and evidence.get("candidatePlanHasReferenceSelection") is True
+        and evidence.get("candidatePlanHasChoreography") is True
         and evidence.get("activeBlueprintUpdated") is False
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False

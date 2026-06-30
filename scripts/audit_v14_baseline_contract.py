@@ -911,6 +911,31 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition.get("selectedCandidateType")
         and transition.get("selectedStyleFamily")
     )
+    motion_execution_count = 0
+    three_beat_motion_count = 0
+    bgm_hit_motion_count = 0
+    caption_quiet_motion_count = 0
+    for transition in transition_candidates:
+        if not isinstance(transition, dict):
+            continue
+        motion_execution = transition.get("transitionMotionExecution") if isinstance(transition.get("transitionMotionExecution"), dict) else {}
+        if motion_execution.get("status") == "ready_with_transition_motion_execution":
+            motion_execution_count += 1
+        if len(motion_execution.get("threeBeatChoreography") or []) >= 3:
+            three_beat_motion_count += 1
+        bgm = motion_execution.get("bgmChoreography") if isinstance(motion_execution.get("bgmChoreography"), dict) else {}
+        if bgm.get("target") == "cut_or_effect_on_bgm_phrase_hit" and bgm.get("allowOffPhrase") is False:
+            bgm_hit_motion_count += 1
+        caption = motion_execution.get("captionAndTitlePolicy") if isinstance(motion_execution.get("captionAndTitlePolicy"), dict) else {}
+        if caption.get("avoidTitleCollision") is True and caption.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True:
+            caption_quiet_motion_count += 1
+    motion_marker_count = sum(
+        1
+        for marker in transition_markers
+        if isinstance(marker.get("payload"), dict)
+        and marker["payload"].get("transitionMotionExecutionStatus") == "ready_with_transition_motion_execution"
+        and marker["payload"].get("choreographyFamily")
+    )
     transition_execution_plan = (
         transition_candidate.get("transitionExecutionBlueprintPlan")
         if isinstance(transition_candidate.get("transitionExecutionBlueprintPlan"), dict)
@@ -918,7 +943,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     )
     add_check(
         checks,
-        "Transition execution blueprint materializes selected reference transitions into candidate transition metadata",
+        "Transition execution blueprint materializes selected reference transitions and three-beat motion execution into candidate metadata",
         transition_execution_blueprint.get("status") == "ready_with_transition_execution_blueprint"
         and transition_execution_blueprint_rows >= 3
         and int(transition_execution_blueprint_summary.get("materializedTransitionCount") or 0) == transition_execution_blueprint_rows
@@ -928,6 +953,14 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(transition_execution_blueprint_summary.get("rowsWithReferenceSelection") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("rowsWithAppliedReferenceSelection") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("blockedReferenceSelectionRowCount") or 0) == 0
+        and int(transition_execution_blueprint_summary.get("rowsWithChoreographyPlan") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithMotionExecution") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithThreeBeatMotion") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithBgmHitMotion") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithCaptionQuietMotion") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("motionExecutionFromChoreographyCount") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("motionExecutionDerivedCount") or 0) == 0
+        and int(transition_execution_blueprint_summary.get("blockedMotionExecutionRowCount") or 0) == 0
         and int(transition_execution_blueprint_summary.get("blockedRowCount") or 0) == 0
         and int(transition_execution_blueprint_summary.get("rowsMissingClipMatch") or 0) == 0
         and int(transition_execution_blueprint_summary.get("motionEffectRowsWithEvidence") or 0) == int(transition_execution_blueprint_summary.get("motionEffectRowCount") or 0)
@@ -935,8 +968,14 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_candidate_path.exists()
         and isinstance(transition_candidate.get("transitionExecutionBlueprintPlan"), dict)
         and bool(transition_execution_plan.get("sourceTransitionReferenceSelection"))
+        and bool(transition_execution_plan.get("sourceTransitionChoreographyPlan"))
         and selected_transition_count == transition_execution_blueprint_rows
+        and motion_execution_count == transition_execution_blueprint_rows
+        and three_beat_motion_count == transition_execution_blueprint_rows
+        and bgm_hit_motion_count == transition_execution_blueprint_rows
+        and caption_quiet_motion_count == transition_execution_blueprint_rows
         and len(transition_markers) == transition_execution_blueprint_rows
+        and motion_marker_count == transition_execution_blueprint_rows
         and annotated_out >= transition_execution_blueprint_rows
         and annotated_in >= transition_execution_blueprint_rows,
         {
@@ -945,7 +984,12 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "candidateBlueprint": str(transition_candidate_path),
             "candidateTransitionCount": len(transition_candidates),
             "selectedTransitionCount": selected_transition_count,
+            "motionExecutionCount": motion_execution_count,
+            "threeBeatMotionCount": three_beat_motion_count,
+            "bgmHitMotionCount": bgm_hit_motion_count,
+            "captionQuietMotionCount": caption_quiet_motion_count,
             "markerCount": len(transition_markers),
+            "motionMarkerCount": motion_marker_count,
             "annotatedOutClipCount": annotated_out,
             "annotatedInClipCount": annotated_in,
         },

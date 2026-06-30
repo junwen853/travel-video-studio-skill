@@ -160,6 +160,20 @@ def reference_selection_plan(package_dir: Path) -> tuple[dict[str, Any], dict[in
     return data, out
 
 
+def transition_choreography_plan(package_dir: Path) -> tuple[dict[str, Any], dict[int, dict[str, Any]]]:
+    path = package_dir / "transition_choreography_plan" / "transition_choreography_plan.json"
+    data = load_json(path) or {}
+    rows = data.get("choreographyRows") if isinstance(data.get("choreographyRows"), list) else []
+    out: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        index = as_int(row.get("rowIndex"), -1)
+        if index >= 0:
+            out[index] = row
+    return data, out
+
+
 def selected_candidate(selection_row: dict[str, Any] | None) -> dict[str, Any]:
     if not isinstance(selection_row, dict):
         return {}
@@ -192,6 +206,187 @@ def resolve_effect_from_selection(candidate: dict[str, Any], fallback: Any) -> s
             return "Speed Ramp"
         return "Restrained Transform Motion"
     return str(fallback or "")
+
+
+def derived_choreography_family(row: dict[str, Any], selected: dict[str, Any]) -> str:
+    category = str(row.get("boundaryCategory") or "")
+    family = str(selected.get("styleFamily") or "")
+    candidate_type = str(selected.get("candidateType") or "").lower()
+    if category == "title_boundary" or family == "title_breath":
+        return "scenic_title_breath"
+    if category == "ending_transition":
+        return "ending_aftertaste_hold"
+    if family == "physical_bridge":
+        return "route_bridge_triptych"
+    if family == "visual_match":
+        return "visual_match_cut"
+    if family == "mood_dissolve":
+        return "mood_dissolve_breath"
+    if family == "motion_accent" or any(term in candidate_type for term in ("whip", "rotation", "speed", "ramp", "push")):
+        return "motivated_motion_accent"
+    if category in {"chapter_boundary", "timeline_gap"}:
+        return "texture_bridge_cutaway"
+    return "clean_continuity_cut"
+
+
+def derived_source_style(selected: dict[str, Any]) -> str:
+    text = " ".join(str(selected.get(key) or "").lower() for key in ("candidateType", "resolveRecipe", "ffmpegPreviewHint"))
+    if "whip" in text:
+        return "whip_pan"
+    if "rotation" in text or "rotate" in text:
+        return "rotation"
+    if "speed" in text or "ramp" in text:
+        return "speed_ramp"
+    if "push" in text or "slide" in text:
+        return "push_slide"
+    if "dissolve" in text:
+        return "dissolve"
+    if "match" in text:
+        return "match_cut"
+    if "bridge" in text:
+        return "bridge_insert"
+    return "clean_cut"
+
+
+def default_three_beats(row: dict[str, Any], family: str, intensity: int) -> list[dict[str, Any]]:
+    outgoing = source_name(candidate_source_path(row.get("fromClip") if isinstance(row.get("fromClip"), dict) else {}))
+    landing = source_name(candidate_source_path(row.get("toClip") if isinstance(row.get("toClip"), dict) else {}))
+    bridge_action = {
+        "route_bridge_triptych": "insert 1-3 short route texture shots before the location/day handoff",
+        "scenic_title_breath": "hold the title-safe scenic frame, suppress subtitles, then hand off on a clean BGM phrase",
+        "ending_aftertaste_hold": "slow down into an aftertaste hold without new route information or decorative motion",
+        "visual_match_cut": "cut on shared shape, direction, color, object, water, road, skyline, sign, food, or gesture",
+        "mood_dissolve_breath": "use a short mood/time/weather dissolve that breathes with the BGM phrase",
+        "motivated_motion_accent": "use one restrained motion accent only on real source motion or verified bridge footage",
+        "texture_bridge_cutaway": "insert one lived-in texture beat before landing",
+    }.get(family, "keep the cut invisible unless stronger bridge or motion evidence exists")
+    return [
+        {
+            "role": "outgoing",
+            "durationFrames": 10 if intensity else 6,
+            "action": f"leave on a readable last action or scenic edge from {outgoing or 'the outgoing shot'}",
+        },
+        {
+            "role": "bridge_or_motion",
+            "durationFrames": 12 + max(0, intensity) * 4,
+            "action": bridge_action,
+        },
+        {
+            "role": "landing",
+            "durationFrames": 10 if family in {"scenic_title_breath", "ending_aftertaste_hold"} else 6,
+            "action": f"land on a stable first readable moment from {landing or 'the landing shot'} and hold long enough for orientation",
+        },
+    ]
+
+
+def resolve_keyframe_recipe(family: str, style: str, intensity: int, duration_frames: int) -> dict[str, Any]:
+    duration = max(as_int(duration_frames, 0), 1)
+    half = max(1, duration // 2)
+    subtle = max(1, min(3, intensity + 1))
+    if family in {"scenic_title_breath", "ending_aftertaste_hold"}:
+        transform = [
+            {"frame": 0, "opacity": 0.92, "scale": 1.0},
+            {"frame": duration, "opacity": 1.0, "scale": 1.015},
+        ]
+        effect = "opacity_scale_breath"
+    elif style == "rotation":
+        transform = [
+            {"frame": 0, "rotationDegrees": -subtle, "scale": 1.02, "motionBlur": "low"},
+            {"frame": half, "rotationDegrees": 0, "scale": 1.04, "motionBlur": "low"},
+            {"frame": duration, "rotationDegrees": subtle, "scale": 1.02, "motionBlur": "low"},
+        ]
+        effect = "restrained_rotation_match"
+    elif style == "whip_pan":
+        transform = [
+            {"frame": 0, "translateXPercent": -8 * subtle, "scale": 1.04, "directionalBlur": "medium"},
+            {"frame": half, "translateXPercent": 0, "scale": 1.06, "directionalBlur": "medium"},
+            {"frame": duration, "translateXPercent": 8 * subtle, "scale": 1.04, "directionalBlur": "medium"},
+        ]
+        effect = "restrained_whip_pan"
+    elif style == "speed_ramp":
+        transform = [
+            {"frame": 0, "retime": "100%"},
+            {"frame": max(1, half - 2), "retime": "135%"},
+            {"frame": duration, "retime": "100%"},
+        ]
+        effect = "short_speed_ramp"
+    elif style == "push_slide":
+        transform = [
+            {"frame": 0, "translateXPercent": -5 * subtle, "scale": 1.02},
+            {"frame": duration, "translateXPercent": 0, "scale": 1.0},
+        ]
+        effect = "soft_push_slide"
+    elif family == "mood_dissolve_breath":
+        transform = [
+            {"frame": 0, "opacity": 0.0},
+            {"frame": duration, "opacity": 1.0},
+        ]
+        effect = "short_mood_dissolve"
+    else:
+        transform = [{"frame": 0, "cut": True}, {"frame": duration, "holdLandingFrames": 6}]
+        effect = "clean_cut_or_match"
+    return {
+        "effect": effect,
+        "durationFrames": duration,
+        "transformKeyframes": transform,
+        "retimePolicy": "short_phrase_only" if style == "speed_ramp" else "none",
+        "audioKeyframes": [
+            {"frame": 0, "a1a2SourceAudioDb": "-inf", "a3BgmDb": -18},
+            {"frame": half, "a1a2SourceAudioDb": "-inf", "a3BgmDb": -15},
+            {"frame": duration, "a1a2SourceAudioDb": "-inf", "a3BgmDb": -18},
+        ],
+    }
+
+
+def motion_execution_payload(
+    row: dict[str, Any],
+    *,
+    selected: dict[str, Any],
+    choreography_row: dict[str, Any] | None,
+    duration_frames: int,
+) -> dict[str, Any]:
+    if isinstance(choreography_row, dict) and choreography_row:
+        family = str(choreography_row.get("choreographyFamily") or derived_choreography_family(row, selected))
+        style = str(choreography_row.get("sourceTransitionStyle") or derived_source_style(selected))
+        intensity = as_int(choreography_row.get("intensity"), as_int(selected.get("intensity"), 0))
+        beats = choreography_row.get("threeBeatChoreography") if isinstance(choreography_row.get("threeBeatChoreography"), list) else []
+        bgm = choreography_row.get("bgmChoreography") if isinstance(choreography_row.get("bgmChoreography"), dict) else {}
+        caption = choreography_row.get("captionAndTitlePolicy") if isinstance(choreography_row.get("captionAndTitlePolicy"), dict) else {}
+        source = "transition_choreography_plan"
+        status = str(choreography_row.get("status") or "")
+    else:
+        family = derived_choreography_family(row, selected)
+        style = derived_source_style(selected)
+        intensity = as_int(selected.get("intensity"), 0)
+        beats = default_three_beats(row, family, intensity)
+        bgm = {"target": "cut_or_effect_on_bgm_phrase_hit", "hitToleranceSeconds": 0.35, "allowOffPhrase": False}
+        caption = {
+            "quietZoneBeforeSeconds": 0.35,
+            "quietZoneAfterSeconds": 0.35,
+            "avoidTitleCollision": True,
+            "suppressSubtitlesDuringHeroTitleOrFastMotion": True,
+        }
+        source = "derived_from_reference_selection"
+        status = "ready_with_derived_transition_motion_execution"
+    return {
+        "status": "ready_with_transition_motion_execution" if status in {"ready_with_transition_choreography", "ready_with_derived_transition_motion_execution"} else "needs_transition_motion_execution_repair",
+        "source": source,
+        "choreographyFamily": family,
+        "sourceTransitionStyle": style,
+        "intensity": intensity,
+        "threeBeatChoreography": beats,
+        "bgmChoreography": bgm,
+        "captionAndTitlePolicy": caption,
+        "resolveKeyframeRecipe": resolve_keyframe_recipe(family, style, intensity, duration_frames),
+        "safetyChecks": {
+            "requiresBgmHit": True,
+            "requiresCaptionQuietZone": True,
+            "titleSafe": bool(caption.get("avoidTitleCollision", True)),
+            "bgmOnlyNoSourceVoice": True,
+            "forbidTemplateMotion": True,
+            "rotationSubtleOnly": style != "rotation" or intensity <= 1,
+        },
+    }
 
 
 def forbidden_hits(row: dict[str, Any], selection_row: dict[str, Any] | None = None) -> list[str]:
@@ -256,6 +451,7 @@ def transition_payload(
     boundary: float,
     bridge_satisfied: bool,
     selection_row: dict[str, Any] | None,
+    choreography_row: dict[str, Any] | None,
 ) -> dict[str, Any]:
     recipe = row.get("executionRecipe") if isinstance(row.get("executionRecipe"), dict) else {}
     decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
@@ -275,6 +471,7 @@ def transition_payload(
         if selection_applied
         else decision.get("approvedTransitionType") or recipe.get("style") or (row.get("grammarRecommendation") or {}).get("recommendedTransitionType")
     )
+    motion_execution = motion_execution_payload(row, selected=selected, choreography_row=choreography_row, duration_frames=duration_frames)
     return {
         "role": "transition_execution_candidate",
         "rowIndex": row.get("rowIndex"),
@@ -309,6 +506,7 @@ def transition_payload(
         "selectedResolveRecipe": selected.get("resolveRecipe") if selection_applied else "",
         "selectedPreviewHint": selected.get("ffmpegPreviewHint") if selection_applied else "",
         "referenceSelectionDecision": auto_decision if selection_applied else {},
+        "transitionMotionExecution": motion_execution,
         "decision": dict(DECISION_FIELDS),
     }
 
@@ -325,6 +523,9 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     selection_plan, selection_rows = reference_selection_plan(package_dir)
     selection_plan_path = package_dir / "transition_reference_selection" / "transition_reference_selection.json"
     selection_ready = selection_plan.get("status") == "ready_with_transition_reference_selection"
+    choreography_plan, choreography_rows = transition_choreography_plan(package_dir)
+    choreography_plan_path = package_dir / "transition_choreography_plan" / "transition_choreography_plan.json"
+    choreography_ready = choreography_plan.get("status") == "ready_with_transition_choreography_plan"
 
     if not isinstance(base_blueprint, dict) or not isinstance(plan, dict):
         report = {
@@ -368,6 +569,15 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     rows_with_applied_reference_selection = 0
     blocked_reference_selection_rows = 0
     selected_family_counts: dict[str, int] = {}
+    rows_with_choreography_plan = 0
+    rows_with_motion_execution = 0
+    rows_with_three_beat_motion = 0
+    rows_with_bgm_hit_motion = 0
+    rows_with_caption_quiet_motion = 0
+    motion_execution_from_choreography = 0
+    motion_execution_derived = 0
+    blocked_motion_execution_rows = 0
+    choreography_family_counts: dict[str, int] = {}
 
     for row in sorted(rows, key=boundary_seconds):
         boundary = boundary_seconds(row)
@@ -375,8 +585,10 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         requires_bridge = row.get("requiresBridgeInsert") is True
         bridge_satisfied = (not requires_bridge) or row_index in satisfied_bridge_rows
         selection_row = selection_rows.get(row_index)
+        choreography_row = choreography_rows.get(row_index)
         selected = selected_candidate(selection_row)
         selection_status = str((selection_row or {}).get("selectionStatus") or "")
+        choreography_status = str((choreography_row or {}).get("status") or "")
         if selection_row:
             rows_with_reference_selection += 1
         if selection_ready and selection_status == "auto_selected" and selected:
@@ -386,7 +598,36 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 selected_family_counts[family] = selected_family_counts.get(family, 0) + 1
         else:
             blocked_reference_selection_rows += 1
-        payload = transition_payload(row, fps=fps, boundary=boundary, bridge_satisfied=bridge_satisfied, selection_row=selection_row)
+        if choreography_row:
+            rows_with_choreography_plan += 1
+        payload = transition_payload(
+            row,
+            fps=fps,
+            boundary=boundary,
+            bridge_satisfied=bridge_satisfied,
+            selection_row=selection_row,
+            choreography_row=choreography_row,
+        )
+        motion_execution = payload.get("transitionMotionExecution") if isinstance(payload.get("transitionMotionExecution"), dict) else {}
+        if motion_execution.get("status") == "ready_with_transition_motion_execution":
+            rows_with_motion_execution += 1
+        else:
+            blocked_motion_execution_rows += 1
+        if len(motion_execution.get("threeBeatChoreography") or []) >= 3:
+            rows_with_three_beat_motion += 1
+        bgm_choreography = motion_execution.get("bgmChoreography") if isinstance(motion_execution.get("bgmChoreography"), dict) else {}
+        if bgm_choreography.get("target") == "cut_or_effect_on_bgm_phrase_hit" and bgm_choreography.get("allowOffPhrase") is False:
+            rows_with_bgm_hit_motion += 1
+        caption_policy = motion_execution.get("captionAndTitlePolicy") if isinstance(motion_execution.get("captionAndTitlePolicy"), dict) else {}
+        if caption_policy.get("avoidTitleCollision") is True and caption_policy.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True:
+            rows_with_caption_quiet_motion += 1
+        if motion_execution.get("source") == "transition_choreography_plan":
+            motion_execution_from_choreography += 1
+        if motion_execution.get("source") == "derived_from_reference_selection":
+            motion_execution_derived += 1
+        choreography_family = str(motion_execution.get("choreographyFamily") or "")
+        if choreography_family:
+            choreography_family_counts[choreography_family] = choreography_family_counts.get(choreography_family, 0) + 1
         transitions.append(payload)
 
         from_index = select_clip_index(clips, row.get("fromClip") if isinstance(row.get("fromClip"), dict) else {}, boundary, side="from")
@@ -412,6 +653,9 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             row.get("status") != "ready_with_transition_execution_recipe"
             or not selection_ready
             or selection_status != "auto_selected"
+            or not choreography_ready
+            or choreography_status != "ready_with_transition_choreography"
+            or motion_execution.get("status") != "ready_with_transition_motion_execution"
             or not bridge_satisfied
             or bool(payload.get("forbiddenRecipeHits"))
             or (payload.get("motionStyle") and not payload.get("motionHasEvidence"))
@@ -431,6 +675,15 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "selectedCandidateRank": payload.get("selectedCandidateRank"),
                 "selectedCandidateType": payload.get("selectedCandidateType"),
                 "selectedStyleFamily": payload.get("selectedStyleFamily"),
+                "transitionMotionExecutionStatus": motion_execution.get("status"),
+                "motionExecutionSource": motion_execution.get("source"),
+                "choreographyFamily": motion_execution.get("choreographyFamily"),
+                "choreographyIntensity": motion_execution.get("intensity"),
+                "threeBeatChoreographyCount": len(motion_execution.get("threeBeatChoreography") or []),
+                "bgmHitChoreographyReady": bgm_choreography.get("target") == "cut_or_effect_on_bgm_phrase_hit"
+                and bgm_choreography.get("allowOffPhrase") is False,
+                "captionQuietZoneReady": caption_policy.get("avoidTitleCollision") is True
+                and caption_policy.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True,
                 "fromClipMatched": from_index is not None,
                 "toClipMatched": to_index is not None,
                 "requiresBridgeInsert": requires_bridge,
@@ -452,6 +705,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         "baseBlueprintKind": base_kind,
         "sourceTransitionExecutionPlan": str(plan_path),
         "sourceTransitionReferenceSelection": str(selection_plan_path),
+        "sourceTransitionChoreographyPlan": str(choreography_plan_path),
         "report": str(report_path),
         "candidateBlueprint": str(candidate_path),
         "fps": fps,
@@ -475,6 +729,15 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                         "referenceSelectionApplied": transition.get("referenceSelectionApplied"),
                         "selectedCandidateType": transition.get("selectedCandidateType"),
                         "selectedStyleFamily": transition.get("selectedStyleFamily"),
+                        "transitionMotionExecutionStatus": (transition.get("transitionMotionExecution") or {}).get("status")
+                        if isinstance(transition.get("transitionMotionExecution"), dict)
+                        else "",
+                        "choreographyFamily": (transition.get("transitionMotionExecution") or {}).get("choreographyFamily")
+                        if isinstance(transition.get("transitionMotionExecution"), dict)
+                        else "",
+                        "choreographyIntensity": (transition.get("transitionMotionExecution") or {}).get("intensity")
+                        if isinstance(transition.get("transitionMotionExecution"), dict)
+                        else "",
                     },
                 }
             )
@@ -492,6 +755,8 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "transitionExecutionPlan": str(plan_path),
             "transitionReferenceSelectionPlan": str(selection_plan_path),
             "transitionReferenceSelectionStatus": selection_plan.get("status"),
+            "transitionChoreographyPlan": str(choreography_plan_path),
+            "transitionChoreographyStatus": choreography_plan.get("status"),
             "bridgeSequenceBlueprintRowsSatisfied": sorted(satisfied_bridge_rows),
         },
         "outputs": {
@@ -515,6 +780,16 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "rowsWithAppliedReferenceSelection": rows_with_applied_reference_selection,
             "blockedReferenceSelectionRowCount": blocked_reference_selection_rows,
             "selectedStyleFamilyCounts": selected_family_counts,
+            "choreographyRowCount": len(choreography_rows),
+            "rowsWithChoreographyPlan": rows_with_choreography_plan,
+            "rowsWithMotionExecution": rows_with_motion_execution,
+            "rowsWithThreeBeatMotion": rows_with_three_beat_motion,
+            "rowsWithBgmHitMotion": rows_with_bgm_hit_motion,
+            "rowsWithCaptionQuietMotion": rows_with_caption_quiet_motion,
+            "motionExecutionFromChoreographyCount": motion_execution_from_choreography,
+            "motionExecutionDerivedCount": motion_execution_derived,
+            "blockedMotionExecutionRowCount": blocked_motion_execution_rows,
+            "choreographyFamilyCounts": choreography_family_counts,
             "candidateClipCount": len(clips),
             "candidateTransitionCount": len(transitions),
         },
@@ -523,6 +798,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "pass": [
                 "Every transition execution row becomes a candidate transition object in the blueprint.",
                 "Every transition execution row consumes the auto-selected reference candidate when transition reference selection is ready.",
+                "Every transition execution row consumes a ready choreography row and carries transitionMotionExecution metadata.",
                 "Adjacent source clips are annotated with in/out transition execution metadata.",
                 "Motion effects are present only when the execution plan recorded route or two-sided motion evidence.",
                 "Bridge-required transitions are not marked ready until bridge sequence rows are materialized.",
@@ -530,6 +806,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "reject": [
                 "Transition recipes remain prose-only and do not appear in the candidate blueprint.",
                 "Reference selection exists but selected candidates are not present in transitions, clip annotations, or markers.",
+                "Choreography exists but three-beat/BGM-hit/title-safe motion execution is not present in transitions, clip annotations, or markers.",
                 "A random spin, flash, glitch, shake, or template effect appears in a candidate row.",
                 "A bridge-required row is marked ready without a materialized bridge sequence.",
                 "The script writes Resolve, queues render, downloads assets, or mutates source footage.",
@@ -538,6 +815,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         "safety": safety_policy(),
         "nextActions": [
             f"Run audit_resolve_blueprint.py --blueprint {candidate_path} --package-dir {package_dir} before using this candidate.",
+            "Run or repair prepare_transition_choreography_plan.py first if motion execution coverage is below executionRowCount.",
             "Review transition_execution_blueprint_report.json and fill decision.approveCandidateBlueprint before Resolve apply.",
             "If approved, use a package fork or explicit --update-blueprint path so stale final QA is not reused.",
         ],
@@ -583,6 +861,8 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Resolve effect: `{row.get('resolveEffectName')}`",
                 f"- Duration: {row.get('durationFrames')} frames",
                 f"- Reference selection: {row.get('referenceSelectionStatus')} / {row.get('selectedCandidateType')} / {row.get('selectedStyleFamily')}",
+                f"- Motion execution: {row.get('transitionMotionExecutionStatus')} / {row.get('choreographyFamily')} / intensity={row.get('choreographyIntensity')}",
+                f"- Three-beat/BGM/title-safe: {row.get('threeBeatChoreographyCount')} / {row.get('bgmHitChoreographyReady')} / {row.get('captionQuietZoneReady')}",
                 f"- Clip match: from={row.get('fromClipMatched')} to={row.get('toClipMatched')}",
                 f"- Bridge satisfied: {row.get('bridgeSequenceSatisfied')}",
                 f"- Motion evidence: {row.get('motionStyle')} / {row.get('motionHasEvidence')}",
