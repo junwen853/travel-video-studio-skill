@@ -520,6 +520,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
     transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
+    final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
@@ -552,6 +553,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     sfc_summary = summary_of(shot_flow_continuity)
     tbr_summary = summary_of(transition_breathing_room)
     sfa_summary = summary_of(scene_flow_arc)
+    fcs_summary = summary_of(final_cut_smoothness)
     add_gate(
         gates,
         "Transition cadence, execution, scene arcs, effect palette, visual match, preview packet quality, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",
@@ -765,7 +767,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_audition_quality.get("blockers")
         and not transition_storyboard.get("blockers")
         and not reference_transition_profile.get("blockers")
-        and not scene_flow_arc.get("blockers"),
+        and not scene_flow_arc.get("blockers")
+        and not final_cut_smoothness.get("blockers"),
         {
             "transitionQualityStatus": transition_quality.get("status"),
             "transitionQualityBoundaryCount": tq_summary.get("visualBoundaryCount"),
@@ -828,6 +831,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "referenceTransitionProfileSummary": rtp_summary,
             "sceneFlowArcStatus": scene_flow_arc.get("status"),
             "sceneFlowArcSummary": sfa_summary,
+            "finalCutSmoothnessStatus": final_cut_smoothness.get("status"),
+            "finalCutSmoothnessSummary": fcs_summary,
         },
     )
 
@@ -927,6 +932,37 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": scene_flow_arc.get("status"),
             "summary": sfa_summary,
             "blockers": scene_flow_arc.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Final cut smoothness proves adjacent shots land cleanly instead of rough hard joins or effect-hidden jumps",
+        final_cut_smoothness.get("status") == "passed"
+        and as_int(fcs_summary.get("visualClipCount")) >= 4
+        and as_int(fcs_summary.get("visualBoundaryCount")) >= 3
+        and as_int(fcs_summary.get("blockedBoundaryCount")) == 0
+        and as_int(fcs_summary.get("blockedImportantBoundaryCount")) == 0
+        and as_int(fcs_summary.get("unsupportedMotionEffectCount")) == 0
+        and as_int(fcs_summary.get("unstableLandingCount")) == 0
+        and as_int(fcs_summary.get("highIntensityRunMax")) <= 1
+        and as_int(fcs_summary.get("payoffJumpCount")) == 0
+        and as_int(fcs_summary.get("hardCutJumpCount")) == 0
+        and as_int(fcs_summary.get("weakBoundaryClipCount")) == 0
+        and fcs_summary.get("finalBlueprintLineageStatus") == "passed"
+        and fcs_summary.get("transitionBreathingRoomStatus") == "passed"
+        and fcs_summary.get("sceneFlowArcStatus") == "passed"
+        and fcs_summary.get("shotFlowContinuityStatus") == "passed"
+        and fcs_summary.get("transitionVisualMatchStatus") == "passed"
+        and fcs_summary.get("transitionChoreographyStatus") == "passed"
+        and fcs_summary.get("transitionStoryboardStatus") == "passed"
+        and as_int(fcs_summary.get("blockedCheckCount")) == 0
+        and as_int(fcs_summary.get("blockerCount")) == 0
+        and not final_cut_smoothness.get("blockers"),
+        {
+            "status": final_cut_smoothness.get("status"),
+            "summary": fcs_summary,
+            "blockers": final_cut_smoothness.get("blockers") or [],
         },
     )
 

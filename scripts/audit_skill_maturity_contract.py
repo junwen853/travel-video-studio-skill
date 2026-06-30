@@ -72,6 +72,7 @@ REQUIRED_SCRIPTS = {
         "audit_shot_flow_continuity_contract.py",
         "audit_transition_breathing_room_contract.py",
         "audit_scene_flow_arc_contract.py",
+        "audit_final_cut_smoothness_contract.py",
         "audit_timeline_variety_contract.py",
         "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
@@ -163,6 +164,7 @@ REQUIRED_SKILL_PATTERNS = {
     "shot_flow_continuity_contract_rule": "audit_shot_flow_continuity_contract.py",
     "transition_breathing_room_contract_rule": "audit_transition_breathing_room_contract.py",
     "scene_flow_arc_contract_rule": "audit_scene_flow_arc_contract.py",
+    "final_cut_smoothness_contract_rule": "audit_final_cut_smoothness_contract.py",
     "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
     "reference_transition_profile_contract_rule": "audit_reference_transition_profile_contract.py",
     "timeline_variety_contract_rule": "audit_timeline_variety_contract.py",
@@ -219,6 +221,7 @@ REQUIRED_SKILL_PATTERNS = {
     "shot_flow_continuity_contract_reference_rule": "shot-flow-continuity-contract.md",
     "transition_breathing_room_contract_reference_rule": "transition-breathing-room-contract.md",
     "scene_flow_arc_contract_reference_rule": "scene-flow-arc-contract.md",
+    "final_cut_smoothness_contract_reference_rule": "final-cut-smoothness-contract.md",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
@@ -286,6 +289,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_storyboard_contract": "transition-storyboard-contract.md",
     "transition_breathing_room_contract": "transition-breathing-room-contract.md",
     "scene_flow_arc_contract": "scene-flow-arc-contract.md",
+    "final_cut_smoothness_contract": "final-cut-smoothness-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_preview_packet_engine": "transition-preview-packet-engine.md",
@@ -333,6 +337,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_storyboard_contract": "transition storyboard contract",
     "transition_breathing_room_contract": "transition breathing-room contract",
     "scene_flow_arc_contract": "scene flow arc contract",
+    "final_cut_smoothness_contract": "final cut smoothness contract",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -5565,6 +5570,87 @@ def scene_flow_arc_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def final_cut_smoothness_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "final_cut_smoothness_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "blueprintKind": inputs.get("blueprintKind"),
+        "blueprintExists": inputs.get("blueprintExists"),
+        "blueprintInsidePackage": inputs.get("blueprintInsidePackage"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "blockedBoundaryCount": summary.get("blockedBoundaryCount"),
+        "blockedImportantBoundaryCount": summary.get("blockedImportantBoundaryCount"),
+        "motionEffectBoundaryCount": summary.get("motionEffectBoundaryCount"),
+        "unsupportedMotionEffectCount": summary.get("unsupportedMotionEffectCount"),
+        "unstableLandingCount": summary.get("unstableLandingCount"),
+        "highIntensityRunMax": summary.get("highIntensityRunMax"),
+        "payoffJumpCount": summary.get("payoffJumpCount"),
+        "hardCutJumpCount": summary.get("hardCutJumpCount"),
+        "weakBoundaryClipCount": summary.get("weakBoundaryClipCount"),
+        "transitionMetadataBoundaryCount": summary.get("transitionMetadataBoundaryCount"),
+        "bridgeEvidenceBoundaryCount": summary.get("bridgeEvidenceBoundaryCount"),
+        "finalBlueprintLineageStatus": summary.get("finalBlueprintLineageStatus"),
+        "transitionBreathingRoomStatus": summary.get("transitionBreathingRoomStatus"),
+        "sceneFlowArcStatus": summary.get("sceneFlowArcStatus"),
+        "shotFlowContinuityStatus": summary.get("shotFlowContinuityStatus"),
+        "transitionVisualMatchStatus": summary.get("transitionVisualMatchStatus"),
+        "transitionChoreographyStatus": summary.get("transitionChoreographyStatus"),
+        "transitionStoryboardStatus": summary.get("transitionStoryboardStatus"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def final_cut_smoothness_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintExists") is True
+        and evidence.get("blueprintInsidePackage") is True
+        and int(evidence.get("visualClipCount") or 0) >= 4
+        and int(evidence.get("visualBoundaryCount") or 0) >= 3
+        and int(evidence.get("blockedBoundaryCount") or 0) == 0
+        and int(evidence.get("blockedImportantBoundaryCount") or 0) == 0
+        and int(evidence.get("unsupportedMotionEffectCount") or 0) == 0
+        and int(evidence.get("unstableLandingCount") or 0) == 0
+        and int(evidence.get("highIntensityRunMax") or 0) <= 1
+        and int(evidence.get("payoffJumpCount") or 0) == 0
+        and int(evidence.get("hardCutJumpCount") or 0) == 0
+        and int(evidence.get("weakBoundaryClipCount") or 0) == 0
+        and evidence.get("finalBlueprintLineageStatus") == "passed"
+        and evidence.get("transitionBreathingRoomStatus") == "passed"
+        and evidence.get("sceneFlowArcStatus") == "passed"
+        and evidence.get("shotFlowContinuityStatus") == "passed"
+        and evidence.get("transitionVisualMatchStatus") == "passed"
+        and evidence.get("transitionChoreographyStatus") == "passed"
+        and evidence.get("transitionStoryboardStatus") == "passed"
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_storyboard_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_storyboard_contract_audit.json"
     data = load_json(path) or {}
@@ -6698,6 +6784,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Scene flow arc contract proves chapters read as travel-film sequences instead of landmark stacks or effect-hidden jumps",
         scene_flow_arc_contract_ready(scene_flow_arc_evidence),
         scene_flow_arc_evidence,
+    )
+    final_cut_smoothness_evidence = final_cut_smoothness_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Final cut smoothness contract proves adjacent shots land cleanly instead of rough hard joins or effect-hidden jumps",
+        final_cut_smoothness_contract_ready(final_cut_smoothness_evidence),
+        final_cut_smoothness_evidence,
     )
     timeline_variety_evidence = timeline_variety_contract_evidence(package_dir)
     add_check(

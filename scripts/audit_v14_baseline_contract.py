@@ -74,6 +74,7 @@ SKILL_PATTERNS = {
     "shot_flow_continuity_contract": "audit_shot_flow_continuity_contract.py",
     "transition_breathing_room_contract": "audit_transition_breathing_room_contract.py",
     "scene_flow_arc_contract": "audit_scene_flow_arc_contract.py",
+    "final_cut_smoothness_contract": "audit_final_cut_smoothness_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
@@ -157,6 +158,7 @@ REQUIRED_SCRIPTS = [
     "audit_shot_flow_continuity_contract.py",
     "audit_transition_breathing_room_contract.py",
     "audit_scene_flow_arc_contract.py",
+    "audit_final_cut_smoothness_contract.py",
     "audit_timeline_variety_contract.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
@@ -264,6 +266,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
     transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
+    final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -1610,6 +1613,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     )
     transition_breathing_room_summary = get_summary(transition_breathing_room)
     scene_flow_arc_summary = get_summary(scene_flow_arc)
+    final_cut_smoothness_summary = get_summary(final_cut_smoothness)
     add_check(
         checks,
         "Transition breathing-room contract proves V14 transitions land on stable footage and do not become motion-effect spam",
@@ -1656,6 +1660,36 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "sceneFlowArcStatus": scene_flow_arc.get("status"),
             "sceneFlowArcSummary": scene_flow_arc_summary,
             "blockers": scene_flow_arc.get("blockers"),
+        },
+    )
+    add_check(
+        checks,
+        "Final cut smoothness contract proves V14 adjacent shots land cleanly instead of rough joins or effect-hidden jumps",
+        final_cut_smoothness.get("status") == "passed"
+        and int(final_cut_smoothness_summary.get("visualClipCount") or 0) >= 4
+        and int(final_cut_smoothness_summary.get("visualBoundaryCount") or 0) >= 3
+        and int(final_cut_smoothness_summary.get("blockedBoundaryCount") or 0) == 0
+        and int(final_cut_smoothness_summary.get("blockedImportantBoundaryCount") or 0) == 0
+        and int(final_cut_smoothness_summary.get("unsupportedMotionEffectCount") or 0) == 0
+        and int(final_cut_smoothness_summary.get("unstableLandingCount") or 0) == 0
+        and int(final_cut_smoothness_summary.get("highIntensityRunMax") or 0) <= 1
+        and int(final_cut_smoothness_summary.get("payoffJumpCount") or 0) == 0
+        and int(final_cut_smoothness_summary.get("hardCutJumpCount") or 0) == 0
+        and int(final_cut_smoothness_summary.get("weakBoundaryClipCount") or 0) == 0
+        and final_cut_smoothness_summary.get("finalBlueprintLineageStatus") == "passed"
+        and final_cut_smoothness_summary.get("transitionBreathingRoomStatus") == "passed"
+        and final_cut_smoothness_summary.get("sceneFlowArcStatus") == "passed"
+        and final_cut_smoothness_summary.get("shotFlowContinuityStatus") == "passed"
+        and final_cut_smoothness_summary.get("transitionVisualMatchStatus") == "passed"
+        and final_cut_smoothness_summary.get("transitionChoreographyStatus") == "passed"
+        and final_cut_smoothness_summary.get("transitionStoryboardStatus") == "passed"
+        and int(final_cut_smoothness_summary.get("blockedCheckCount") or 0) == 0
+        and int(final_cut_smoothness_summary.get("blockerCount") or 0) == 0
+        and not final_cut_smoothness.get("blockers"),
+        {
+            "finalCutSmoothnessStatus": final_cut_smoothness.get("status"),
+            "finalCutSmoothnessSummary": final_cut_smoothness_summary,
+            "blockers": final_cut_smoothness.get("blockers"),
         },
     )
     reference_transition_profile_summary = get_summary(reference_transition_profile)
