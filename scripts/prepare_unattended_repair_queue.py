@@ -294,7 +294,7 @@ KEYWORD_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
         },
     ),
     (
-        ("title", "cover", "ghost", "stacked", "date", "route label", "hero"),
+        ("title", "cover_title", "ghost", "stacked", "date", "route label", "hero"),
         {
             "phase": "title_establishing",
             "ownerScript": "prepare_title_typography_plan.py",
@@ -318,6 +318,302 @@ KEYWORD_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
 )
 
 ACTION_FIELDS = ("ownerScript", "requiredArtifact", "command", "acceptanceEvidence", "forbiddenWorkaround")
+
+FINAL_QA_META_STAGES = {
+    "unattended_repair_queue",
+    "unattended_first_draft_contract_audit",
+    "skill_maturity_contract_audit",
+    "v14_baseline_contract_audit",
+}
+
+FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
+    (
+        ("render_delivery_verification",),
+        {
+            "phase": "resolve_preflight",
+            "ownerScript": "prepare_resolve_render.py",
+            "requiredArtifact": "render_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_resolve_render.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun render preparation, render verification, and final QA until the final output is 4K/high-FPS/high-bitrate and verified.",
+            "forbiddenWorkaround": "Do not mark delivery complete from an unverified export, low-frame-rate file, stale render, or missing final output.",
+        },
+    ),
+    (
+        ("bgm_musicality", "bgm_audio", "visual_audio_style", "audio"),
+        {
+            "phase": "caption_audio",
+            "ownerScript": "prepare_bgm_selection_package.py",
+            "requiredArtifact": "bgm_selection_package/bgm_selection_package.json",
+            "command": "python3 <skill-dir>/scripts/prepare_bgm_selection_package.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun BGM selection, BGM/audio, musicality, audio-scene policy, and final QA until music is local, musical, audible, and BGM-only.",
+            "forbiddenWorkaround": "Do not use hum tones, silence, camera audio, generated voiceover, or untraceable music to pass BGM/style gates.",
+        },
+    ),
+    (
+        ("audience_caption", "caption", "subtitle"),
+        {
+            "phase": "caption_audio",
+            "ownerScript": "prepare_caption_story_plan.py",
+            "requiredArtifact": "caption_story_plan/caption_story_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_caption_story_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun caption planning, audience-caption audit, and final QA until TXT/SRT/burned captions are dense, title-safe, and viewer-facing.",
+            "forbiddenWorkaround": "Do not expose workflow, QA, version, Resolve, or repair-status language to viewers.",
+        },
+    ),
+    (
+        ("title", "cover_title"),
+        {
+            "phase": "title_establishing",
+            "ownerScript": "prepare_title_typography_plan.py",
+            "requiredArtifact": "title_typography_plan/title_typography_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_title_typography_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun title typography, cover/title, title visual proof, and final QA until hero titles are clean scenic titles with no ghosting or route/date clutter.",
+            "forbiddenWorkaround": "Do not hide bad title composition with duplicate layers, shadows, route/date labels, or internal text.",
+        },
+    ),
+    (
+        ("location_truth", "raw_intake"),
+        {
+            "phase": "intake_route",
+            "ownerScript": "prepare_footage_recognition_report.py",
+            "requiredArtifact": "recognition_reports/latest_footage_recognition_route_report.json",
+            "command": "python3 <skill-dir>/scripts/prepare_footage_recognition_report.py --project-dir <project-dir> --json",
+            "acceptanceEvidence": "Rerun full-folder recognition, location truth, route review, and final QA until route claims are evidence-backed and caveated correctly.",
+            "forbiddenWorkaround": "Do not infer exact locations from filename order, stale route files, sampled folders, or unsupported GPS claims.",
+        },
+    ),
+    (
+        ("client_delivery", "orientation"),
+        {
+            "phase": "source_selection",
+            "ownerScript": "prepare_orientation_repair_package.py",
+            "requiredArtifact": "orientation_repair_package_report.json",
+            "command": "python3 <skill-dir>/scripts/prepare_orientation_repair_package.py --source-package <package> --output-dir <new-package> --json",
+            "acceptanceEvidence": "Rerun client delivery/orientation audits and final QA until active blueprint source paths have no raw portrait, square, or unknown clips unless deliberately designed.",
+            "forbiddenWorkaround": "Do not crop sampled final frames while leaving portrait sourcePath clips in the active Resolve blueprint.",
+        },
+    ),
+    (
+        ("stock_aerial", "visual_establishing", "route_texture"),
+        {
+            "phase": "title_establishing",
+            "ownerScript": "prepare_visual_establishing_plan.py",
+            "requiredArtifact": "visual_establishing_plan/visual_establishing_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_visual_establishing_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun establishing, stock/aerial closure, route texture, and final QA until opening/chapter/ending bridges have local footage or closed licensed-stock decisions.",
+            "forbiddenWorkaround": "Do not reuse stale previous-trip aerials, black slates, generic landmarks, or stock inserts that do not fit the route.",
+        },
+    ),
+    (
+        ("reference", "director", "story_style"),
+        {
+            "phase": "reference_style",
+            "ownerScript": "prepare_reference_style_repair_plan.py",
+            "requiredArtifact": "reference_style_repair_plan/reference_style_repair_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_reference_style_repair_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun reference-style repair, closure, director/reference audits, and final QA until Parallel World/Malta lessons are applied through concrete artifacts.",
+            "forbiddenWorkaround": "Do not write vague style prose, copy reference assets, or claim the cut is reference-like without artifacts and closure evidence.",
+        },
+    ),
+    (
+        ("chapter_story_spine", "scene_flow_arc", "narrative_adjacency", "longform_delivery", "story"),
+        {
+            "phase": "story_spine",
+            "ownerScript": "prepare_chapter_arc_plan.py",
+            "requiredArtifact": "chapter_arc_plan/chapter_arc_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_chapter_arc_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun chapter arc, scene flow, narrative adjacency, long-form/story audits, and final QA until chapters read as travel sequences with context, movement, texture, payoff, and aftertaste.",
+            "forbiddenWorkaround": "Do not hide landmark stacks or missing story beats behind transition effects, stock inserts, or title cards.",
+        },
+    ),
+    (
+        ("pacing_watchability", "timeline_variety", "rhythm_recut"),
+        {
+            "phase": "creator_cut",
+            "ownerScript": "prepare_edit_rhythm_plan.py",
+            "requiredArtifact": "edit_rhythm_plan/edit_rhythm_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_edit_rhythm_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun rhythm, pacing, timeline-variety, rhythm-recut, and final QA until long holds, flat AI pacing, and repetitive shot roles are repaired.",
+            "forbiddenWorkaround": "Do not pass watchability by adding effects over weak shot order or leaving long raw holds untouched.",
+        },
+    ),
+    (
+        ("final_source_usage", "creator_cut", "shot_flow_continuity"),
+        {
+            "phase": "creator_cut",
+            "ownerScript": "prepare_creator_cut_plan.py",
+            "requiredArtifact": "creator_cut_plan/creator_cut_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_creator_cut_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun creator-cut/source-usage/shot-flow audits and final QA until the active blueprint uses selected hero/main/texture footage in a readable order.",
+            "forbiddenWorkaround": "Do not let transitions, stock, or titles rescue weak footage; demote, replace, or reorder weak shots first.",
+        },
+    ),
+    (
+        ("bridge_sequence", "transition_bridge_visual_evidence"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_bridge_sequence_blueprint.py",
+            "requiredArtifact": "bridge_sequence_blueprint/bridge_sequence_blueprint_report.json",
+            "command": "python3 <skill-dir>/scripts/prepare_bridge_sequence_blueprint.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun bridge-sequence blueprint/application, transition-bridge visual evidence, and final QA until important boundaries use real local bridge clips with frame evidence.",
+            "forbiddenWorkaround": "Do not replace missing bridge footage with marker metadata, stock-only filler, or a flashy effect.",
+        },
+    ),
+    (
+        ("transition_preview",),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_preview_packet.py",
+            "requiredArtifact": "transition_preview_packet/transition_preview_packet.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_preview_packet.py --package-dir <package> --extract-frames --json",
+            "acceptanceEvidence": "Rerun preview packet/quality audits and final QA until important boundaries have nonblank outgoing/middle/landing frame evidence.",
+            "forbiddenWorkaround": "Do not approve storyboard or Resolve apply from prose when preview frames are blank, stale, missing, or identical.",
+        },
+    ),
+    (
+        ("transition_audition",),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_audition_packet.py",
+            "requiredArtifact": "transition_audition_packet/transition_audition_packet.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
+            "acceptanceEvidence": "Rerun audition packet/quality/visual-proof/role-integrity audits and final QA until important transitions have playable muted MP4 previews with ordered roles.",
+            "forbiddenWorkaround": "Do not claim a transition is watchable without playable local audition clips and endpoint/middle-motion frame proof.",
+        },
+    ),
+    (
+        ("resolve_transition_materialization",),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_execution_blueprint.py",
+            "requiredArtifact": "transition_execution_blueprint/transition_execution_blueprint_report.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_execution_blueprint.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition execution blueprint, Resolve materialization audit, and final QA until transition recipe payloads survive into Resolve marker/readback metadata.",
+            "forbiddenWorkaround": "Do not claim Resolve transition materialization from stale blueprint metadata or marker-free timeline items.",
+        },
+    ),
+    (
+        ("resolve_transition_apply",),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_resolve_transition_apply_plan.py",
+            "requiredArtifact": "resolve_transition_apply_plan/resolve_transition_apply_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_resolve_transition_apply_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun Resolve transition apply planning/audit and final QA until visible transitions have API-supported cuts, materialized bridge clips, or completed Resolve readback plus frame-sample evidence.",
+            "forbiddenWorkaround": "Do not treat marker customData, manual instructions, or --allow-planned-manual-visible-effects as unattended applied-transition evidence.",
+        },
+    ),
+    (
+        ("transition_polish_application", "final_blueprint_lineage"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_polish_blueprint.py",
+            "requiredArtifact": "transition_polish_blueprint/transition_polish_blueprint_report.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_polish_blueprint.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition polish, final-blueprint lineage, and final QA until the active blueprint inherits the latest BGM-hit/title-safe transition candidate chain.",
+            "forbiddenWorkaround": "Do not apply or render from a stale blueprint that lost transition polish, bridge beats, BGM phrase metadata, or candidate lineage.",
+        },
+    ),
+    (
+        ("transition_motif",),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_motif_plan.py",
+            "requiredArtifact": "transition_motif_plan/transition_motif_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_motif_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition motif planning/coherence and final QA until the whole film uses one restrained motif language instead of random per-cut effects.",
+            "forbiddenWorkaround": "Do not pass motif coherence by repeating one template transition or hiding weak jumps with unrelated effects.",
+        },
+    ),
+    (
+        ("transition_source_coverage",),
+        {
+            "phase": "source_selection",
+            "ownerScript": "prepare_source_selection_repair_plan.py",
+            "requiredArtifact": "source_selection_repair_plan/source_selection_repair_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_source_selection_repair_plan.py --package-dir <package> --project-dir <project-dir> --json",
+            "acceptanceEvidence": "Rerun source selection repair, transition source coverage, and final QA until outgoing, bridge, motion, and landing material exists before effects are trusted.",
+            "forbiddenWorkaround": "Do not compensate for missing transition source footage with stock inserts, title cards, or flashier effects.",
+        },
+    ),
+    (
+        ("rendered_transition_proof",),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_audition_packet.py",
+            "requiredArtifact": "transition_audition_packet/transition_audition_packet.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
+            "acceptanceEvidence": "Rerun transition audition, rendered-transition proof, render verification, and final QA until final MP4 transition windows have no black/white flashes, raw vertical frames, or strobe-like luma jumps.",
+            "forbiddenWorkaround": "Do not treat a transition as fixed until both preview/audition evidence and rendered final-frame proof are clean.",
+        },
+    ),
+    (
+        ("transition_choreography", "transition_motion", "transition_cutpoint", "transition_action_anchor", "transition_sensory", "transition_effect_recipe", "transition_storyboard", "transition_viewer_orientation", "transition_scene_settlement", "transition_continuity_rehearsal"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_choreography_plan.py",
+            "requiredArtifact": "transition_choreography_plan/transition_choreography_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_choreography_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition choreography/cutpoint/action/sensory/motion/storyboard/orientation audits and final QA until every important boundary has outgoing, bridge-or-motion, BGM-hit, title-safe, and stable-landing proof.",
+            "forbiddenWorkaround": "Do not use random rotation, whip, push, speed-ramp, or flash effects without source motion, action anchors, BGM timing, and stable landing evidence.",
+        },
+    ),
+    (
+        ("transition_reference",),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_reference_candidates.py",
+            "requiredArtifact": "transition_reference_candidates/transition_reference_candidates.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_reference_candidates.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition reference candidates/selection/profile audits and final QA until every adjacent boundary has non-copying reference-calibrated choices and one safe unattended default.",
+            "forbiddenWorkaround": "Do not leave A/B/C choices unresolved or select random visible effects to hide missing bridge/breath/match evidence.",
+        },
+    ),
+    (
+        ("transition", "shot_transition_boundary"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_grammar_plan.py",
+            "requiredArtifact": "transition_grammar_plan/transition_grammar_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_grammar_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition grammar/quality/motivation/pair-continuity/cadence/microstructure/effect-palette/visual-match/source-coverage audits and final QA until adjacent joins have motivated bridge, match, breath, and landing evidence.",
+            "forbiddenWorkaround": "Do not hide rough hard joins, missing route bridges, weak adjacent shots, or effect spam behind flashier transitions.",
+        },
+    ),
+    (
+        ("effect_motion",),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_effect_motion_blueprint.py",
+            "requiredArtifact": "effect_motion_blueprint/effect_motion_blueprint_report.json",
+            "command": "python3 <skill-dir>/scripts/prepare_effect_motion_blueprint.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun effect-motion blueprint/application and final QA until restrained title/route-motion effects survive into the active blueprint.",
+            "forbiddenWorkaround": "Do not use template motion, repeated zooms, or decorative effects that are not tied to route, title, or transition intent.",
+        },
+    ),
+    (
+        ("feedback_regression",),
+        {
+            "phase": "reference_style",
+            "ownerScript": "prepare_feedback_regression_plan.py",
+            "requiredArtifact": "feedback_regression_plan/feedback_regression_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_feedback_regression_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun feedback regression planning/audit and final QA until known complaints such as ghost title, vertical clip, voice leak, and missing BGM are actively probed.",
+            "forbiddenWorkaround": "Do not close feedback by editing prose; every complaint needs a probe, artifact, and post-repair audit.",
+        },
+    ),
+    (
+        ("package_integrity",),
+        {
+            "phase": "resolve_preflight",
+            "ownerScript": "build_delivery_package.py",
+            "requiredArtifact": "package_integrity_audit.json",
+            "command": "python3 <skill-dir>/scripts/build_delivery_package.py --project-dir <project-dir> --output-dir <package> --json",
+            "acceptanceEvidence": "Rerun package integrity, strict portable integrity, and final QA until active dependencies are package-local and no stale cross-package paths remain.",
+            "forbiddenWorkaround": "Do not hand off a package with external media, stale generated paths, source-drive writes, or copied QA from another package.",
+        },
+    ),
+)
 
 
 def load_json(path: Path | None) -> Any | None:
@@ -364,6 +660,34 @@ def route_for(spec: dict[str, Any], blocker: str) -> dict[str, Any]:
         return route
     lowered = blocker.lower()
     for keywords, override in KEYWORD_ROUTES:
+        if any(keyword in lowered for keyword in keywords):
+            route.update(override)
+            break
+    return route
+
+
+def final_qa_stage_report_path(package_dir: Path, stage_row: dict[str, Any]) -> Path:
+    raw = stage_row.get("report")
+    if raw:
+        path = Path(str(raw)).expanduser()
+        return path if path.is_absolute() else (package_dir / path).resolve()
+    stage = str(stage_row.get("stage") or "unknown_final_qa_stage")
+    return package_dir / f"{stage}.json"
+
+
+def final_qa_spec_for_stage(stage: str) -> dict[str, Any]:
+    route: dict[str, Any] = {
+        "phase": "final_qa",
+        "priority": "P0",
+        "ownerScript": "run_final_qa_suite.py",
+        "requiredArtifact": "final_qa_suite_report.json",
+        "command": "python3 <skill-dir>/scripts/run_final_qa_suite.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun the final QA suite and prove the blocked stage now passes with a package-local report.",
+        "forbiddenWorkaround": "Do not ignore final QA blocked stages, reuse stale reports, or claim delivery while final QA is blocked.",
+        "allowKeywordRoutes": False,
+    }
+    lowered = stage.lower()
+    for keywords, override in FINAL_QA_STAGE_ROUTES:
         if any(keyword in lowered for keyword in keywords):
             route.update(override)
             break
@@ -422,6 +746,60 @@ def repair_row(
     }
     row["actionable"] = row_actionable(row)
     return row
+
+
+def final_qa_repair_rows(
+    *,
+    package_dir: Path,
+    skill_dir: Path,
+    start_index: int,
+    tracked_report_ids: set[str],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    final_qa_path = package_dir / "final_qa_suite_report.json"
+    final_qa = load_json(final_qa_path)
+    if not isinstance(final_qa, dict):
+        return [], []
+    stages = final_qa.get("stages") if isinstance(final_qa.get("stages"), list) else []
+    rows: list[dict[str, Any]] = []
+    warnings: list[str] = []
+    for stage_row in stages:
+        if not isinstance(stage_row, dict) or stage_row.get("passed") is True:
+            continue
+        stage = str(stage_row.get("stage") or "").strip()
+        if not stage:
+            continue
+        command_return = stage_row.get("commandReturnCode")
+        if stage in FINAL_QA_META_STAGES:
+            warnings.append(f"Skipped final QA summary stage `{stage}`; repair underlying blocked package stages first.")
+            continue
+        if stage in tracked_report_ids and command_return in (None, 0):
+            continue
+        accepted = stage_row.get("acceptedStatuses") if isinstance(stage_row.get("acceptedStatuses"), list) else []
+        report_exists = stage_row.get("reportExists")
+        blocker = (
+            f"Final QA stage `{stage}` failed with status `{stage_row.get('status')}`; "
+            f"accepted statuses: {accepted}; report exists: {report_exists}; "
+            f"command return code: {command_return}"
+        )
+        report_path = final_qa_stage_report_path(package_dir, stage_row)
+        row = repair_row(
+            row_index=start_index + len(rows),
+            report_id=f"final_qa:{stage}",
+            report_path=report_path,
+            spec=final_qa_spec_for_stage(stage),
+            issue_type="final_qa_blocked_stage",
+            source_status=str(stage_row.get("status") or ""),
+            blocker=blocker,
+            skill_dir=skill_dir,
+        )
+        row["sourceFinalQaStage"] = stage
+        row["finalQaStageReport"] = str(report_path)
+        row["finalQaAcceptedStatuses"] = accepted
+        row["finalQaCommandReturnCode"] = command_return
+        rows.append(row)
+    if final_qa.get("status") == "blocked" and not rows:
+        warnings.append("Final QA is blocked, but all blocked stages are tracked elsewhere or are summary stages.")
+    return rows, warnings
 
 
 def row_actionable(row: dict[str, Any]) -> bool:
@@ -494,6 +872,14 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
                 )
             )
 
+    final_qa_rows, final_qa_warnings = final_qa_repair_rows(
+        package_dir=package_dir,
+        skill_dir=skill_dir,
+        start_index=len(rows) + 1,
+        tracked_report_ids=set(REPORT_SPECS),
+    )
+    rows.extend(final_qa_rows)
+
     phase_counts: dict[str, int] = {}
     priority_counts: dict[str, int] = {}
     for row in rows:
@@ -531,7 +917,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             f"Repair row {row.get('rowIndex')} is not actionable: {row.get('sourceReport')}"
             for row in unactionable
         ],
-        "warnings": [],
+        "warnings": final_qa_warnings,
         "summary": {
             "requiredReportCount": len(REPORT_SPECS),
             "missingRequiredReportCount": len(missing_reports),
@@ -549,6 +935,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "rowsWithForbiddenWorkaround": len([row for row in rows if row.get("forbiddenWorkaround")]),
             "resolveTransitionApplyRepairRowCount": len(resolve_apply_rows),
             "pendingManualTransitionApplyRepairRowCount": len(pending_manual_resolve_apply_rows),
+            "finalQaRepairRowCount": len(final_qa_rows),
+            "finalQaWarningCount": len(final_qa_warnings),
             "phaseCounts": phase_counts,
             "priorityCounts": priority_counts,
         },
@@ -610,6 +998,9 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
     if report["blockers"]:
         lines.extend(["", "## Queue Blockers"])
         lines.extend(f"- {item}" for item in report["blockers"])
+    if report["warnings"]:
+        lines.extend(["", "## Warnings"])
+        lines.extend(f"- {item}" for item in report["warnings"])
     lines.extend(["", "## Safety", "", "```json", json.dumps(report["safety"], ensure_ascii=False, indent=2), "```"])
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

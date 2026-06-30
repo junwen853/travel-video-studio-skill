@@ -7,6 +7,8 @@ The engine does not edit Resolve, queue renders, download assets, modify source 
 - `unattended_repair_queue/unattended_repair_queue.json`
 - `unattended_repair_queue/unattended_repair_queue.md`
 
+If `final_qa_suite_report.json` already exists, the queue also reads its blocked stages and creates extra repair rows for untracked final-QA failures. This is not a dependency cycle: the queue does not require final QA to exist, and it skips summary/meta stages such as V14 baseline or Skill maturity so the agent repairs the underlying blocked reports first.
+
 ## Purpose
 
 This queue turns a large set of blockers into ordered, machine-readable repair work. A future agent should not need to infer what to fix first from dozens of audit files. Each repair row must name:
@@ -38,6 +40,7 @@ This queue turns a large set of blockers into ordered, machine-readable repair w
 - Fix creator cut and final source usage before adding stronger effects.
 - Fix bridge, match, breathing-room, choreography, storyboard, and final-cut smoothness before adding whip, rotation, speed-ramp, flash, or zoom effects.
 - Fix Resolve transition apply blockers before handoff: pending manual visible effects must become API-supported cuts, materialized bridge clips, or completed Resolve readback plus frame-sample evidence. `--allow-planned-manual-visible-effects` is never an unattended repair.
+- Fix final QA blocked stages through their owner preparation scripts, not by rerunning final QA repeatedly. BGM, caption, title, reference style, source selection, transition preview/audition/choreography, Resolve apply, render, and package-integrity stages each need concrete repair artifacts before the next final QA run.
 - Fix reference-style rows with artifacts and closure evidence instead of repeating "make it closer to the reference."
 - Never use an effect, stock insert, black card, generic title, or stale QA report to hide a blocker from a lower phase.
 
