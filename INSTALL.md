@@ -41,9 +41,9 @@ python3 scripts/install_for_agent.py \
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.79.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.79/travel-video-studio-skill-v0.1.79.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.79.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.80.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.80/travel-video-studio-skill-v0.1.80.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.80.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 ## Install From Source
@@ -109,6 +109,7 @@ test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_audition_qu
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_audition_visual_proof_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_audition_role_integrity_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_motion_direction_contract.py
+test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_motion_accent_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_cutpoint_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_action_anchor_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_sensory_continuity_contract.py
@@ -140,6 +141,7 @@ test -f ~/.codex/skills/travel-video-studio/references/transition-audition-quali
 test -f ~/.codex/skills/travel-video-studio/references/transition-audition-visual-proof-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-audition-role-integrity-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-motion-direction-contract.md
+test -f ~/.codex/skills/travel-video-studio/references/transition-motion-accent-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-cutpoint-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-action-anchor-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-sensory-continuity-contract.md

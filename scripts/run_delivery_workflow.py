@@ -1662,6 +1662,35 @@ def summarize_transition_motion_direction_contract(report: dict[str, Any] | None
     }
 
 
+def summarize_transition_motion_accent_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "motionAccentRowCount": summary.get("motionAccentRowCount"),
+        "readyMotionAccentRowCount": summary.get("readyMotionAccentRowCount"),
+        "blockedMotionAccentRowCount": summary.get("blockedMotionAccentRowCount"),
+        "maxMotionAccentAllowed": summary.get("maxMotionAccentAllowed"),
+        "motionAccentShare": summary.get("motionAccentShare"),
+        "motionAccentRunMax": summary.get("motionAccentRunMax"),
+        "highIntensityMotionCount": summary.get("highIntensityMotionCount"),
+        "rotationTooStrongCount": summary.get("rotationTooStrongCount"),
+        "unsupportedMotionAccentCount": summary.get("unsupportedMotionAccentCount"),
+        "directionMismatchMotionCount": summary.get("directionMismatchMotionCount"),
+        "titleOrCaptionRiskMotionCount": summary.get("titleOrCaptionRiskMotionCount"),
+        "missingAnchorMotionCount": summary.get("missingAnchorMotionCount"),
+        "missingSensoryMotionCount": summary.get("missingSensoryMotionCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_transition_storyboard_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -3516,6 +3545,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_transition_audition_role_integrity_contract", transition_audition_role_integrity_cmd, ok_codes={0, 2}))
 
+    transition_motion_accent_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_transition_motion_accent_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_transition_motion_accent_contract", transition_motion_accent_cmd, ok_codes={0, 2}))
+
     transition_storyboard_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_storyboard_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_storyboard_contract", transition_storyboard_cmd, ok_codes={0, 2}))
 
@@ -3766,6 +3804,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_audition_quality_summary = None
     transition_audition_visual_proof_summary = None
     transition_audition_role_integrity_summary = None
+    transition_motion_accent_summary = None
     transition_storyboard_summary = None
     reference_transition_profile_summary = None
     chapter_story_spine_summary = None
@@ -4173,6 +4212,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition audition role integrity blocker: {item}" for item in transition_audition_role_integrity_summary.get("blockers") or [])
             if transition_audition_role_integrity_summary and transition_audition_role_integrity_summary.get("warnings"):
                 warnings.extend(f"Transition audition role integrity warning: {item}" for item in transition_audition_role_integrity_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_motion_accent_contract":
+            transition_motion_accent_summary = summarize_transition_motion_accent_contract(payload)
+            if transition_motion_accent_summary and transition_motion_accent_summary.get("status") == "blocked":
+                blockers.extend(f"Transition motion accent blocker: {item}" for item in transition_motion_accent_summary.get("blockers") or [])
+            if transition_motion_accent_summary and transition_motion_accent_summary.get("warnings"):
+                warnings.extend(f"Transition motion accent warning: {item}" for item in transition_motion_accent_summary.get("warnings") or [])
         if step["id"] == "audit_transition_storyboard_contract":
             transition_storyboard_summary = summarize_transition_storyboard_contract(payload)
             if transition_storyboard_summary and transition_storyboard_summary.get("status") == "blocked":
@@ -4579,6 +4624,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_audition_role_integrity_summary = summarize_transition_audition_role_integrity_contract(
             load_json(package_dir / "transition_audition_role_integrity_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_motion_accent_contract_audit.json").exists():
+        transition_motion_accent_summary = summarize_transition_motion_accent_contract(
+            load_json(package_dir / "transition_motion_accent_contract_audit.json")
+        )
     if package_dir and (package_dir / "transition_storyboard_contract_audit.json").exists():
         transition_storyboard_summary = summarize_transition_storyboard_contract(
             load_json(package_dir / "transition_storyboard_contract_audit.json")
@@ -4755,6 +4804,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionAuditionQualitySummary": transition_audition_quality_summary,
         "transitionAuditionVisualProofSummary": transition_audition_visual_proof_summary,
         "transitionAuditionRoleIntegritySummary": transition_audition_role_integrity_summary,
+        "transitionMotionAccentSummary": transition_motion_accent_summary,
         "transitionStoryboardSummary": transition_storyboard_summary,
         "referenceTransitionProfileSummary": reference_transition_profile_summary,
         "chapterStorySpineSummary": chapter_story_spine_summary,

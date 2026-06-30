@@ -62,6 +62,7 @@ REQUIRED_SCRIPTS = {
         "prepare_transition_choreography_plan.py",
         "audit_transition_choreography_contract.py",
         "audit_transition_motion_direction_contract.py",
+        "audit_transition_motion_accent_contract.py",
         "audit_transition_cutpoint_contract.py",
         "audit_transition_action_anchor_contract.py",
         "audit_transition_sensory_continuity_contract.py",
@@ -170,6 +171,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_choreography_plan_rule": "prepare_transition_choreography_plan.py",
     "transition_choreography_contract_rule": "audit_transition_choreography_contract.py",
     "transition_motion_direction_contract_rule": "audit_transition_motion_direction_contract.py",
+    "transition_motion_accent_contract_rule": "audit_transition_motion_accent_contract.py",
     "transition_cutpoint_contract_rule": "audit_transition_cutpoint_contract.py",
     "transition_action_anchor_contract_rule": "audit_transition_action_anchor_contract.py",
     "transition_sensory_continuity_contract_rule": "audit_transition_sensory_continuity_contract.py",
@@ -259,6 +261,7 @@ REQUIRED_SKILL_PATTERNS = {
     "narrative_adjacency_contract_reference_rule": "narrative-adjacency-contract.md",
     "transition_viewer_orientation_contract_reference_rule": "transition-viewer-orientation-contract.md",
     "transition_scene_settlement_contract_reference_rule": "transition-scene-settlement-contract.md",
+    "transition_motion_accent_contract_reference_rule": "transition-motion-accent-contract.md",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
@@ -345,6 +348,7 @@ REQUIRED_STYLE_PATTERNS = {
     "narrative_adjacency_contract": "narrative-adjacency-contract.md",
     "transition_viewer_orientation_contract": "transition-viewer-orientation-contract.md",
     "transition_scene_settlement_contract": "transition-scene-settlement-contract.md",
+    "transition_motion_accent_contract": "transition-motion-accent-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
@@ -408,6 +412,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "narrative_adjacency_contract": "narrative adjacency contract",
     "transition_viewer_orientation_contract": "transition viewer orientation",
     "transition_scene_settlement_contract": "transition scene settlement",
+    "transition_motion_accent_contract": "transition motion accent",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -6006,6 +6011,83 @@ def transition_motion_direction_contract_ready(evidence: dict[str, Any]) -> bool
     )
 
 
+def transition_motion_accent_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_motion_accent_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "visualBoundaryCount": summary.get("visualBoundaryCount"),
+        "motionAccentRowCount": summary.get("motionAccentRowCount"),
+        "readyMotionAccentRowCount": summary.get("readyMotionAccentRowCount"),
+        "blockedMotionAccentRowCount": summary.get("blockedMotionAccentRowCount"),
+        "maxMotionAccentAllowed": summary.get("maxMotionAccentAllowed"),
+        "motionAccentShare": summary.get("motionAccentShare"),
+        "motionAccentRunMax": summary.get("motionAccentRunMax"),
+        "highIntensityMotionCount": summary.get("highIntensityMotionCount"),
+        "rotationTooStrongCount": summary.get("rotationTooStrongCount"),
+        "unsupportedMotionAccentCount": summary.get("unsupportedMotionAccentCount"),
+        "directionMismatchMotionCount": summary.get("directionMismatchMotionCount"),
+        "titleOrCaptionRiskMotionCount": summary.get("titleOrCaptionRiskMotionCount"),
+        "missingAnchorMotionCount": summary.get("missingAnchorMotionCount"),
+        "missingSensoryMotionCount": summary.get("missingSensoryMotionCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "motionAccentsMustBeRare": policy.get("motionAccentsMustBeRare"),
+        "motionAccentsMustNotBeBackToBack": policy.get("motionAccentsMustNotBeBackToBack"),
+        "motionAccentsNeedSourceOrBridgeEvidence": policy.get("motionAccentsNeedSourceOrBridgeEvidence"),
+        "motionAccentsNeedMatchedDirection": policy.get("motionAccentsNeedMatchedDirection"),
+        "rotationMustStaySubtle": policy.get("rotationMustStaySubtle"),
+        "motionAccentsNeedBgmHitAndQuietTitleCaptionZone": policy.get("motionAccentsNeedBgmHitAndQuietTitleCaptionZone"),
+        "motionAccentsNeedReadableLandingAnchorAndSensoryContinuity": policy.get("motionAccentsNeedReadableLandingAnchorAndSensoryContinuity"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_motion_accent_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("transitionRowCount") or 0) >= 1
+        and int(evidence.get("motionAccentRowCount") or 0) <= int(evidence.get("maxMotionAccentAllowed") or 999)
+        and int(evidence.get("readyMotionAccentRowCount") or 0) == int(evidence.get("motionAccentRowCount") or 0)
+        and int(evidence.get("blockedMotionAccentRowCount") or 0) == 0
+        and int(evidence.get("motionAccentRunMax") or 0) <= 1
+        and int(evidence.get("highIntensityMotionCount") or 0) == 0
+        and int(evidence.get("rotationTooStrongCount") or 0) == 0
+        and int(evidence.get("unsupportedMotionAccentCount") or 0) == 0
+        and int(evidence.get("directionMismatchMotionCount") or 0) == 0
+        and int(evidence.get("titleOrCaptionRiskMotionCount") or 0) == 0
+        and int(evidence.get("missingAnchorMotionCount") or 0) == 0
+        and int(evidence.get("missingSensoryMotionCount") or 0) == 0
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("motionAccentsMustBeRare") is True
+        and evidence.get("motionAccentsMustNotBeBackToBack") is True
+        and evidence.get("motionAccentsNeedSourceOrBridgeEvidence") is True
+        and evidence.get("motionAccentsNeedMatchedDirection") is True
+        and evidence.get("rotationMustStaySubtle") is True
+        and evidence.get("motionAccentsNeedBgmHitAndQuietTitleCaptionZone") is True
+        and evidence.get("motionAccentsNeedReadableLandingAnchorAndSensoryContinuity") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_cutpoint_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_cutpoint_contract_audit.json"
     data = load_json(path) or {}
@@ -8183,6 +8265,27 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         transition_sensory_continuity_contract_ready(transition_sensory_continuity_evidence),
         transition_sensory_continuity_evidence,
     )
+    transition_motion_accent_evidence = transition_motion_accent_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition motion accent contract proves whip, rotation, push, zoom, and speed-ramp effects are rare, motivated, and readable",
+        transition_choreography_plan_ready(transition_choreography_plan)
+        and transition_choreography_contract_ready(transition_choreography_contract)
+        and transition_motion_direction_contract_ready(transition_motion_direction_evidence)
+        and transition_cutpoint_contract_ready(transition_cutpoint_evidence)
+        and transition_action_anchor_contract_ready(transition_action_anchor_evidence)
+        and transition_sensory_continuity_contract_ready(transition_sensory_continuity_evidence)
+        and transition_motion_accent_contract_ready(transition_motion_accent_evidence),
+        {
+            "transitionChoreographyPlan": transition_choreography_plan,
+            "transitionChoreographyContract": transition_choreography_contract,
+            "transitionMotionDirection": transition_motion_direction_evidence,
+            "transitionCutpoint": transition_cutpoint_evidence,
+            "transitionActionAnchor": transition_action_anchor_evidence,
+            "transitionSensoryContinuity": transition_sensory_continuity_evidence,
+            "transitionMotionAccent": transition_motion_accent_evidence,
+        },
+    )
     transition_preview_packet = transition_preview_packet_evidence(package_dir)
     add_check(
         checks,
@@ -8359,6 +8462,7 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         and narrative_adjacency_contract_ready(narrative_adjacency_evidence)
         and transition_viewer_orientation_contract_ready(transition_viewer_orientation_evidence)
         and transition_scene_settlement_contract_ready(transition_scene_settlement_evidence)
+        and transition_motion_accent_contract_ready(transition_motion_accent_evidence)
         and transition_continuity_rehearsal_contract_ready(transition_continuity_rehearsal_evidence),
         {
             "transitionStoryboard": transition_storyboard_evidence,
@@ -8369,6 +8473,7 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
             "narrativeAdjacency": narrative_adjacency_evidence,
             "transitionViewerOrientation": transition_viewer_orientation_evidence,
             "transitionSceneSettlement": transition_scene_settlement_evidence,
+            "transitionMotionAccent": transition_motion_accent_evidence,
             "transitionContinuityRehearsal": transition_continuity_rehearsal_evidence,
         },
     )

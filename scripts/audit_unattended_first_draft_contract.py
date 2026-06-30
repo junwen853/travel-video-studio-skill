@@ -471,6 +471,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
     transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     transition_motion_direction = load_json(package_dir / "transition_motion_direction_contract_audit.json") or {}
+    transition_motion_accent = load_json(package_dir / "transition_motion_accent_contract_audit.json") or {}
     transition_cutpoint = load_json(package_dir / "transition_cutpoint_contract_audit.json") or {}
     transition_action_anchor = load_json(package_dir / "transition_action_anchor_contract_audit.json") or {}
     transition_sensory = load_json(package_dir / "transition_sensory_continuity_contract_audit.json") or {}
@@ -487,6 +488,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_choreography_plan.get("status") == "ready_with_transition_choreography_plan"
         and transition_choreography_contract.get("status") == "passed"
         and transition_motion_direction.get("status") == "passed"
+        and transition_motion_accent.get("status") == "passed"
         and transition_cutpoint.get("status") == "passed"
         and transition_action_anchor.get("status") == "passed"
         and transition_sensory.get("status") == "passed"
@@ -599,6 +601,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tcp_summary = summary_of(transition_choreography_plan)
     tcc_summary = summary_of(transition_choreography_contract)
     tmd_summary = summary_of(transition_motion_direction)
+    tma_summary = summary_of(transition_motion_accent)
     tcpn_summary = summary_of(transition_cutpoint)
     taa_summary = summary_of(transition_action_anchor)
     tsc_summary = summary_of(transition_sensory)
@@ -1044,6 +1047,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_choreography_plan.get("blockers")
         and not transition_choreography_contract.get("blockers")
         and not transition_motion_direction.get("blockers")
+        and not transition_motion_accent.get("blockers")
         and not transition_sensory.get("blockers")
         and not transition_preview_packet.get("blockers")
         and not transition_preview_quality.get("blockers")
@@ -1106,6 +1110,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionChoreographyContractSummary": tcc_summary,
             "transitionMotionDirectionStatus": transition_motion_direction.get("status"),
             "transitionMotionDirectionSummary": tmd_summary,
+            "transitionMotionAccentStatus": transition_motion_accent.get("status"),
+            "transitionMotionAccentSummary": tma_summary,
             "transitionCutpointStatus": transition_cutpoint.get("status"),
             "transitionCutpointSummary": tcpn_summary,
             "transitionActionAnchorStatus": transition_action_anchor.get("status"),
@@ -1309,6 +1315,30 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": transition_scene_settlement.get("status"),
             "summary": tss_summary,
             "blockers": transition_scene_settlement.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Transition motion accent proves whip, rotation, push, zoom, and speed-ramp effects are rare, motivated, and readable",
+        transition_motion_accent.get("status") == "passed"
+        and as_int(tma_summary.get("transitionRowCount")) >= 1
+        and as_int(tma_summary.get("motionAccentRowCount")) <= as_int(tma_summary.get("maxMotionAccentAllowed"), 999)
+        and as_int(tma_summary.get("blockedMotionAccentRowCount")) == 0
+        and as_int(tma_summary.get("motionAccentRunMax")) <= 1
+        and as_int(tma_summary.get("highIntensityMotionCount")) == 0
+        and as_int(tma_summary.get("rotationTooStrongCount")) == 0
+        and as_int(tma_summary.get("unsupportedMotionAccentCount")) == 0
+        and as_int(tma_summary.get("directionMismatchMotionCount")) == 0
+        and as_int(tma_summary.get("titleOrCaptionRiskMotionCount")) == 0
+        and as_int(tma_summary.get("missingAnchorMotionCount")) == 0
+        and as_int(tma_summary.get("missingSensoryMotionCount")) == 0
+        and as_int(tma_summary.get("blockedCheckCount")) == 0
+        and not transition_motion_accent.get("blockers"),
+        {
+            "status": transition_motion_accent.get("status"),
+            "summary": tma_summary,
+            "blockers": transition_motion_accent.get("blockers") or [],
         },
     )
 
