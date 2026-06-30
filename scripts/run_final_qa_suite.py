@@ -57,6 +57,7 @@ ACCEPTED_STATUSES = {
     "timeline_variety_contract_audit": {"passed"},
     "transition_scene_arc_contract_audit": {"passed"},
     "transition_effect_palette_contract_audit": {"passed"},
+    "transition_motif_coherence_contract_audit": {"passed"},
     "transition_visual_match_contract_audit": {"passed"},
     "transition_reference_candidates": {"ready_with_transition_reference_candidates"},
     "transition_reference_selection": {"ready_with_transition_reference_selection"},
@@ -722,6 +723,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "prepare_transition_reference_selection.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_motif_coherence_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_transition_motif_coherence_contract.py"),
                     "--package-dir",
                     str(package_dir),
                 ],

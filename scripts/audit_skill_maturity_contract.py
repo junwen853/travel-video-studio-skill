@@ -112,6 +112,7 @@ REQUIRED_SCRIPTS = {
         "prepare_transition_reference_selection.py",
         "prepare_transition_execution_blueprint.py",
         "prepare_transition_motif_plan.py",
+        "audit_transition_motif_coherence_contract.py",
         "prepare_bridge_sequence_plan.py",
         "prepare_bridge_sequence_blueprint.py",
         "prepare_reference_style_repair_plan.py",
@@ -223,6 +224,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_reference_selection_rule": "prepare_transition_reference_selection.py",
     "transition_execution_blueprint_rule": "prepare_transition_execution_blueprint.py",
     "transition_motif_plan_rule": "prepare_transition_motif_plan.py",
+    "transition_motif_coherence_contract_rule": "audit_transition_motif_coherence_contract.py",
     "bridge_sequence_plan_rule": "prepare_bridge_sequence_plan.py",
     "bridge_sequence_blueprint_rule": "prepare_bridge_sequence_blueprint.py",
     "reference_style_repair_plan_rule": "prepare_reference_style_repair_plan.py",
@@ -262,6 +264,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_reference_selection_engine_rule": "transition-reference-selection-engine.md",
     "transition_execution_blueprint_engine_rule": "transition-execution-blueprint-engine.md",
     "transition_motif_engine_rule": "transition-motif-engine.md",
+    "transition_motif_coherence_contract_reference_rule": "transition-motif-coherence-contract.md",
     "bridge_sequence_engine_rule": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine_rule": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract_reference_rule": "bridge-sequence-application-contract.md",
@@ -317,6 +320,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_reference_selection_engine": "transition-reference-selection-engine.md",
     "transition_execution_blueprint_engine": "transition-execution-blueprint-engine.md",
     "transition_motif_engine": "transition-motif-engine.md",
+    "transition_motif_coherence_contract": "transition-motif-coherence-contract.md",
     "bridge_sequence_engine": "bridge-sequence-engine.md",
     "bridge_sequence_blueprint_engine": "bridge-sequence-blueprint-engine.md",
     "bridge_sequence_application_contract": "bridge-sequence-application-contract.md",
@@ -401,6 +405,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_audition_visual_proof_contract": "transition audition visual proof contract",
     "transition_audition_role_integrity_contract": "transition audition role integrity contract",
     "transition_motif_plan": "transition motif plan",
+    "transition_motif_coherence_contract": "transition motif coherence",
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
     "bridge_sequence_application_contract": "bridge sequence application contract",
@@ -3458,6 +3463,87 @@ def transition_motif_plan_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("modifiesSourceFootage") is False
         and evidence.get("hasPassRubric") is True
         and evidence.get("hasRejectRubric") is True
+    )
+
+
+def transition_motif_coherence_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_motif_coherence_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "motifFamilyCount": summary.get("motifFamilyCount"),
+        "minimumMotifFamilyCount": summary.get("minimumMotifFamilyCount"),
+        "dominantMotif": summary.get("dominantMotif"),
+        "dominantMotifShare": summary.get("dominantMotifShare"),
+        "repeatedMotifRunMax": summary.get("repeatedMotifRunMax"),
+        "repeatedStyleRunMax": summary.get("repeatedStyleRunMax"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantReadyBoundaryCount": summary.get("importantReadyBoundaryCount"),
+        "chapterOrTimelineBoundaryCount": summary.get("chapterOrTimelineBoundaryCount"),
+        "chapterOrTimelineWithBridgeMotifCount": summary.get("chapterOrTimelineWithBridgeMotifCount"),
+        "motionMotifCount": summary.get("motionMotifCount"),
+        "motionMotifShare": summary.get("motionMotifShare"),
+        "motionSpacingViolationCount": summary.get("motionSpacingViolationCount"),
+        "openingEndingMotionRowCount": summary.get("openingEndingMotionRowCount"),
+        "selectionMismatchCount": summary.get("selectionMismatchCount"),
+        "missingSelectionRowCount": summary.get("missingSelectionRowCount"),
+        "blockingRepairRowCount": summary.get("blockingRepairRowCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "filmLevelMotifCoherenceRequired": policy.get("filmLevelMotifCoherenceRequired"),
+        "referenceSelectionMustMatchMotif": policy.get("referenceSelectionMustMatchMotif"),
+        "motionMotifsAreRareSpacedAccents": policy.get("motionMotifsAreRareSpacedAccents"),
+        "openingEndingMotionMotifsRejected": policy.get("openingEndingMotionMotifsRejected"),
+        "importantBoundariesNeedBridgeMatchDissolveOrTitleReveal": policy.get("importantBoundariesNeedBridgeMatchDissolveOrTitleReveal"),
+        "unresolvedMotifRepairsBlockFinalCandidate": policy.get("unresolvedMotifRepairsBlockFinalCandidate"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_motif_coherence_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("transitionRowCount") or 0) >= 3
+        and int(evidence.get("motifFamilyCount") or 0) >= int(evidence.get("minimumMotifFamilyCount") or 0)
+        and float(evidence.get("dominantMotifShare") or 0.0) <= 0.6
+        and int(evidence.get("repeatedMotifRunMax") or 0) <= 3
+        and int(evidence.get("repeatedStyleRunMax") or 0) <= 3
+        and int(evidence.get("importantReadyBoundaryCount") or 0) == int(evidence.get("importantBoundaryCount") or 0)
+        and (
+            int(evidence.get("chapterOrTimelineBoundaryCount") or 0) == 0
+            or int(evidence.get("chapterOrTimelineWithBridgeMotifCount") or 0) >= 1
+        )
+        and int(evidence.get("motionSpacingViolationCount") or 0) == 0
+        and int(evidence.get("openingEndingMotionRowCount") or 0) == 0
+        and int(evidence.get("selectionMismatchCount") or 0) == 0
+        and int(evidence.get("missingSelectionRowCount") or 0) == 0
+        and int(evidence.get("blockingRepairRowCount") or 0) == 0
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("filmLevelMotifCoherenceRequired") is True
+        and evidence.get("referenceSelectionMustMatchMotif") is True
+        and evidence.get("motionMotifsAreRareSpacedAccents") is True
+        and evidence.get("openingEndingMotionMotifsRejected") is True
+        and evidence.get("importantBoundariesNeedBridgeMatchDissolveOrTitleReveal") is True
+        and evidence.get("unresolvedMotifRepairsBlockFinalCandidate") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
     )
 
 
@@ -7694,6 +7780,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition motif plan prevents repeated dissolve chains, random motion effects, and effects hiding weak route jumps",
         transition_motif_plan_ready(transition_motif_evidence),
         transition_motif_evidence,
+    )
+    transition_motif_coherence_evidence = transition_motif_coherence_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition motif coherence proves transition motifs form one reference-like film language instead of random per-cut effects",
+        transition_motif_coherence_contract_ready(transition_motif_coherence_evidence),
+        transition_motif_coherence_evidence,
     )
     bridge_sequence_evidence = bridge_sequence_plan_evidence(package_dir)
     add_check(

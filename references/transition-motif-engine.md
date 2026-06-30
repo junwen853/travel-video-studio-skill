@@ -19,6 +19,7 @@ This layer prevents a technically valid transition plan from becoming a generic 
 
 ```bash
 python3 <skill-dir>/scripts/prepare_transition_motif_plan.py --package-dir <package> --json
+python3 <skill-dir>/scripts/audit_transition_motif_coherence_contract.py --package-dir <package> --json
 python3 <skill-dir>/scripts/prepare_bridge_sequence_plan.py --package-dir <package> --json
 python3 <skill-dir>/scripts/prepare_bridge_sequence_blueprint.py --package-dir <package> --json
 ```
@@ -27,6 +28,8 @@ Outputs:
 
 - `<package>/transition_motif_plan/transition_motif_plan.json`
 - `<package>/transition_motif_plan/transition_motif_plan.md`
+- `<package>/transition_motif_coherence_contract_audit.json`
+- `<package>/transition_motif_coherence_contract_audit.md`
 - `<package>/bridge_sequence_plan/bridge_sequence_plan.json`
 - `<package>/bridge_sequence_plan/bridge_sequence_plan.md`
 - `<package>/bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json`
@@ -67,6 +70,7 @@ P0 rows must be resolved before final render or V14 baseline claims. P1 rows req
 Pass:
 
 - `transition_motif_plan.json` exists and status is `ready_with_transition_motif_plan`
+- `transition_motif_coherence_contract_audit.json` exists and status is `passed`
 - every transition row has a motif, decision fields, BGM phrase cue, and title-zone policy when relevant
 - motion motifs cite route/bridge/two-sided motion evidence
 - bridge or motion failures create owner-script repair rows

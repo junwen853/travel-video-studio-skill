@@ -545,6 +545,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     timeline_variety = load_json(package_dir / "timeline_variety_contract_audit.json") or {}
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
+    transition_motif_coherence = load_json(package_dir / "transition_motif_coherence_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
     transition_reference_candidates = load_json(package_dir / "transition_reference_candidates" / "transition_reference_candidates.json") or {}
     transition_reference_selection = load_json(package_dir / "transition_reference_selection" / "transition_reference_selection.json") or {}
@@ -589,6 +590,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tv_summary = summary_of(timeline_variety)
     tsa_summary = summary_of(transition_scene_arc)
     tep_summary = summary_of(transition_effect_palette)
+    tmc_summary = summary_of(transition_motif_coherence)
     tvm_summary = summary_of(transition_visual_match)
     trc_summary = summary_of(transition_reference_candidates)
     trs_summary = summary_of(transition_reference_selection)
@@ -648,6 +650,25 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         {
             "transitionReferenceSelectionStatus": transition_reference_selection.get("status"),
             "transitionReferenceSelectionSummary": trs_summary,
+        },
+    )
+    add_gate(
+        gates,
+        "Transition motif coherence proves the unattended draft has a unified transition language instead of random per-cut effects",
+        transition_motif_coherence.get("status") == "passed"
+        and as_int(tmc_summary.get("transitionRowCount")) >= 3
+        and as_int(tmc_summary.get("motifFamilyCount")) >= as_int(tmc_summary.get("minimumMotifFamilyCount"))
+        and as_int(tmc_summary.get("importantReadyBoundaryCount")) == as_int(tmc_summary.get("importantBoundaryCount"))
+        and as_int(tmc_summary.get("motionSpacingViolationCount")) == 0
+        and as_int(tmc_summary.get("openingEndingMotionRowCount")) == 0
+        and as_int(tmc_summary.get("selectionMismatchCount")) == 0
+        and as_int(tmc_summary.get("blockingRepairRowCount")) == 0
+        and as_int(tmc_summary.get("blockedCheckCount")) == 0
+        and not transition_motif_coherence.get("blockers"),
+        {
+            "transitionMotifCoherenceStatus": transition_motif_coherence.get("status"),
+            "transitionMotifCoherenceSummary": tmc_summary,
+            "blockers": transition_motif_coherence.get("blockers") or [],
         },
     )
     add_gate(

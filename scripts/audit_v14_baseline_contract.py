@@ -44,6 +44,7 @@ SKILL_PATTERNS = {
     "transition_reference_selection": "prepare_transition_reference_selection.py",
     "transition_execution_blueprint": "prepare_transition_execution_blueprint.py",
     "transition_motif": "prepare_transition_motif_plan.py",
+    "transition_motif_coherence": "audit_transition_motif_coherence_contract.py",
     "bridge_sequence": "prepare_bridge_sequence_plan.py",
     "bridge_sequence_blueprint": "prepare_bridge_sequence_blueprint.py",
     "bridge_sequence_application": "audit_bridge_sequence_application_contract.py",
@@ -140,6 +141,7 @@ REQUIRED_SCRIPTS = [
     "prepare_transition_reference_selection.py",
     "prepare_transition_execution_blueprint.py",
     "prepare_transition_motif_plan.py",
+    "audit_transition_motif_coherence_contract.py",
     "prepare_bridge_sequence_plan.py",
     "prepare_bridge_sequence_blueprint.py",
     "audit_bridge_sequence_application_contract.py",
@@ -314,6 +316,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_reference_selection = load_json(package_dir / "transition_reference_selection" / "transition_reference_selection.json") or {}
     transition_execution_blueprint = load_json(package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json") or {}
     transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
+    transition_motif_coherence = load_json(package_dir / "transition_motif_coherence_contract_audit.json") or {}
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
     bridge_sequence_blueprint = load_json(package_dir / "bridge_sequence_blueprint" / "bridge_sequence_blueprint_report.json") or {}
     bridge_sequence_application = load_json(package_dir / "bridge_sequence_application_contract_audit.json") or {}
@@ -807,6 +810,26 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "transitionMotifStatus": transition_motif.get("status"),
             "transitionMotifSummary": transition_motif_summary,
+        },
+    )
+    transition_motif_coherence_summary = get_summary(transition_motif_coherence)
+    add_check(
+        checks,
+        "Transition motif coherence proves V14 transitions use a unified film language instead of random per-cut effects",
+        transition_motif_coherence.get("status") == "passed"
+        and int(transition_motif_coherence_summary.get("transitionRowCount") or 0) >= 3
+        and int(transition_motif_coherence_summary.get("motifFamilyCount") or 0) >= int(transition_motif_coherence_summary.get("minimumMotifFamilyCount") or 0)
+        and int(transition_motif_coherence_summary.get("importantReadyBoundaryCount") or 0) == int(transition_motif_coherence_summary.get("importantBoundaryCount") or 0)
+        and int(transition_motif_coherence_summary.get("motionSpacingViolationCount") or 0) == 0
+        and int(transition_motif_coherence_summary.get("openingEndingMotionRowCount") or 0) == 0
+        and int(transition_motif_coherence_summary.get("selectionMismatchCount") or 0) == 0
+        and int(transition_motif_coherence_summary.get("blockingRepairRowCount") or 0) == 0
+        and int(transition_motif_coherence_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_motif_coherence.get("blockers"),
+        {
+            "transitionMotifCoherenceStatus": transition_motif_coherence.get("status"),
+            "transitionMotifCoherenceSummary": transition_motif_coherence_summary,
+            "blockers": transition_motif_coherence.get("blockers"),
         },
     )
 
@@ -2463,6 +2486,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_execution.get("status") == "ready_with_transition_execution_plan"
         and transition_execution_blueprint.get("status") == "ready_with_transition_execution_blueprint"
         and transition_motif.get("status") == "ready_with_transition_motif_plan"
+        and transition_motif_coherence.get("status") == "passed"
+        and int(transition_motif_coherence_summary.get("blockedCheckCount") or 0) == 0
+        and int(transition_motif_coherence_summary.get("selectionMismatchCount") or 0) == 0
+        and int(transition_motif_coherence_summary.get("openingEndingMotionRowCount") or 0) == 0
         and bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
         and bridge_sequence_blueprint.get("status") == "ready_with_bridge_sequence_blueprint"
         and effect_motion_blueprint.get("status") == "ready_with_effect_motion_blueprint"
@@ -2570,6 +2597,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionSensoryContinuitySummary": transition_sensory_summary,
             "transitionMotifStatus": transition_motif.get("status"),
             "transitionMotifSummary": transition_motif_summary,
+            "transitionMotifCoherenceStatus": transition_motif_coherence.get("status"),
+            "transitionMotifCoherenceSummary": transition_motif_coherence_summary,
             "bridgeSequenceStatus": bridge_sequence.get("status"),
             "bridgeSequenceSummary": bridge_sequence_summary,
             "bridgeSequenceBlueprintStatus": bridge_sequence_blueprint.get("status"),

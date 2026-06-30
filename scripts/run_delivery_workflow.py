@@ -1543,6 +1543,34 @@ def summarize_transition_effect_palette_contract(report: dict[str, Any] | None) 
     }
 
 
+def summarize_transition_motif_coherence_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "motifFamilyCount": summary.get("motifFamilyCount"),
+        "minimumMotifFamilyCount": summary.get("minimumMotifFamilyCount"),
+        "dominantMotif": summary.get("dominantMotif"),
+        "dominantMotifShare": summary.get("dominantMotifShare"),
+        "repeatedMotifRunMax": summary.get("repeatedMotifRunMax"),
+        "repeatedStyleRunMax": summary.get("repeatedStyleRunMax"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantReadyBoundaryCount": summary.get("importantReadyBoundaryCount"),
+        "motionMotifCount": summary.get("motionMotifCount"),
+        "motionSpacingViolationCount": summary.get("motionSpacingViolationCount"),
+        "openingEndingMotionRowCount": summary.get("openingEndingMotionRowCount"),
+        "selectionMismatchCount": summary.get("selectionMismatchCount"),
+        "blockingRepairRowCount": summary.get("blockingRepairRowCount"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_transition_visual_match_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -3354,6 +3382,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_effect_palette_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_effect_palette_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_effect_palette_contract", transition_effect_palette_cmd, ok_codes={0, 2}))
 
+    transition_motif_coherence_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_transition_motif_coherence_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_transition_motif_coherence_contract", transition_motif_coherence_cmd, ok_codes={0, 2}))
+
     transition_visual_match_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_visual_match_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_visual_match_contract", transition_visual_match_cmd, ok_codes={0, 2}))
 
@@ -3654,6 +3691,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     timeline_variety_summary = None
     transition_scene_arc_summary = None
     transition_effect_palette_summary = None
+    transition_motif_coherence_summary = None
     transition_visual_match_summary = None
     transition_choreography_plan_summary = None
     transition_choreography_contract_summary = None
@@ -3999,6 +4037,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition effect palette blocker: {item}" for item in transition_effect_palette_summary.get("blockers") or [])
             if transition_effect_palette_summary and transition_effect_palette_summary.get("warnings"):
                 warnings.extend(f"Transition effect palette warning: {item}" for item in transition_effect_palette_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_motif_coherence_contract":
+            transition_motif_coherence_summary = summarize_transition_motif_coherence_contract(payload)
+            if transition_motif_coherence_summary and transition_motif_coherence_summary.get("status") == "blocked":
+                blockers.extend(f"Transition motif coherence blocker: {item}" for item in transition_motif_coherence_summary.get("blockers") or [])
+            if transition_motif_coherence_summary and transition_motif_coherence_summary.get("warnings"):
+                warnings.extend(f"Transition motif coherence warning: {item}" for item in transition_motif_coherence_summary.get("warnings") or [])
         if step["id"] == "audit_transition_visual_match_contract":
             transition_visual_match_summary = summarize_transition_visual_match_contract(payload)
             if transition_visual_match_summary and transition_visual_match_summary.get("status") == "blocked":
@@ -4413,6 +4457,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_effect_palette_summary = summarize_transition_effect_palette_contract(
             load_json(package_dir / "transition_effect_palette_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_motif_coherence_contract_audit.json").exists():
+        transition_motif_coherence_summary = summarize_transition_motif_coherence_contract(
+            load_json(package_dir / "transition_motif_coherence_contract_audit.json")
+        )
     if package_dir and (package_dir / "transition_visual_match_contract_audit.json").exists():
         transition_visual_match_summary = summarize_transition_visual_match_contract(
             load_json(package_dir / "transition_visual_match_contract_audit.json")
@@ -4610,6 +4658,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "timelineVarietySummary": timeline_variety_summary,
         "transitionSceneArcSummary": transition_scene_arc_summary,
         "transitionEffectPaletteSummary": transition_effect_palette_summary,
+        "transitionMotifCoherenceSummary": transition_motif_coherence_summary,
         "transitionVisualMatchSummary": transition_visual_match_summary,
         "transitionChoreographyPlanSummary": transition_choreography_plan_summary,
         "transitionChoreographyContractSummary": transition_choreography_contract_summary,
@@ -4701,6 +4750,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review timeline_variety_contract_audit.json before Resolve apply so movement, lived-in texture, destination payoff, and ending aftertaste vary across the whole film instead of hiding weak shot choice behind transitions.",
             "Review transition_scene_arc_contract_audit.json before Resolve apply so important boundaries become outgoing/bridge-or-motion/BGM-hit/title-safe/landing scene arcs, not isolated effects.",
             "Review transition_effect_palette_contract_audit.json before Resolve apply so the whole film balances clean cuts, match cuts, bridges, dissolves, title reveals, and rare motivated motion instead of effect spam.",
+            "Review transition_motif_coherence_contract_audit.json before Resolve apply so transition motifs form a coherent film language and reference-selected styles do not contradict motif rows.",
             "Review transition_visual_match_contract_audit.json before Resolve apply so every adjacent pair has concrete visual, bridge, motion, mood, title, local, or BGM continuity evidence instead of arbitrary effects.",
             "Review transition_choreography_plan/transition_choreography_plan.md and transition_choreography_contract_audit.json before preview/storyboard so every important boundary has outgoing, bridge-or-motion, landing, BGM-hit, and caption-quiet choreography.",
             "Review transition_motion_direction_contract_audit.json before preview/storyboard so rotation, whip, push, and speed-ramp effects match source or bridge movement direction instead of random motion.",
