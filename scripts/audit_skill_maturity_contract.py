@@ -43,6 +43,7 @@ REQUIRED_SCRIPTS = {
         "audit_final_viewer_friction_contract.py",
         "audit_first_draft_satisfaction_contract.py",
         "audit_transition_reference_readiness_contract.py",
+        "audit_transition_sequence_satisfaction_contract.py",
         "audit_reference_profile_application_contract.py",
         "audit_reference_transition_profile_contract.py",
         "prepare_bgm_sourcing_brief.py",
@@ -292,6 +293,9 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_reference_readiness_contract_rule": "audit_transition_reference_readiness_contract.py",
     "transition_reference_readiness_status_rule": "blocked_transition_reference_readiness",
     "transition_reference_readiness_reference_rule": "transition-reference-readiness-contract.md",
+    "transition_sequence_satisfaction_contract_rule": "audit_transition_sequence_satisfaction_contract.py",
+    "transition_sequence_satisfaction_status_rule": "blocked_transition_sequence_satisfaction",
+    "transition_sequence_satisfaction_reference_rule": "transition-sequence-satisfaction-contract.md",
     "reference_transition_profile_contract_reference_rule": "reference-transition-profile-contract.md",
     "chapter_story_spine_contract_reference_rule": "chapter-story-spine-contract.md",
     "shot_flow_continuity_contract_reference_rule": "shot-flow-continuity-contract.md",
@@ -368,6 +372,7 @@ REQUIRED_STYLE_PATTERNS = {
     "final_viewer_friction_contract": "final-viewer-friction-contract.md",
     "first_draft_satisfaction_contract": "first-draft-satisfaction-contract.md",
     "transition_reference_readiness_contract": "transition-reference-readiness-contract.md",
+    "transition_sequence_satisfaction_contract": "transition-sequence-satisfaction-contract.md",
     "reference_profile_application_contract": "reference-profile-application-contract.md",
     "reference_transition_profile_contract": "reference-transition-profile-contract.md",
     "footage_select_engine": "footage-select-engine.md",
@@ -443,6 +448,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "final_viewer_friction_contract": "final viewer friction",
     "first_draft_satisfaction_contract": "first draft satisfaction",
     "transition_reference_readiness_contract": "transition reference-readiness",
+    "transition_sequence_satisfaction_contract": "transition sequence satisfaction",
     "cover_title_formula": "Cover And Hero Title Style",
     "cover_title_contract": "cover title contract",
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
@@ -874,6 +880,53 @@ def transition_reference_readiness_contract_ready(evidence: dict[str, Any]) -> b
         and int(evidence.get("transitionReadinessRowCount") or 0) == 0
         and int(evidence.get("p0TransitionReadinessRowCount") or 0) == 0
         and int(evidence.get("p1TransitionReadinessRowCount") or 0) == 0
+        and int(evidence.get("metricIssueCount") or 0) == 0
+        and int(evidence.get("rowCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
+def transition_sequence_satisfaction_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_sequence_satisfaction_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data, dict) and isinstance(data.get("summary"), dict) else {}
+    rows = data.get("transitionSequenceRows") if isinstance(data, dict) and isinstance(data.get("transitionSequenceRows"), list) else []
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status") if isinstance(data, dict) else None,
+        "requiredSequenceReportCount": summary.get("requiredSequenceReportCount"),
+        "passedSequenceReportCount": summary.get("passedSequenceReportCount"),
+        "transitionSequenceRowCount": summary.get("transitionSequenceRowCount"),
+        "p0TransitionSequenceRowCount": summary.get("p0TransitionSequenceRowCount"),
+        "p1TransitionSequenceRowCount": summary.get("p1TransitionSequenceRowCount"),
+        "metricIssueCount": summary.get("metricIssueCount"),
+        "ownerScripts": summary.get("ownerScripts") or [],
+        "rowCount": len(rows),
+        "rowsWithOwnerScript": sum(1 for row in rows if isinstance(row, dict) and row.get("ownerScript")),
+        "rowsWithCommand": sum(1 for row in rows if isinstance(row, dict) and row.get("command")),
+        "rowsWithAcceptanceEvidence": sum(1 for row in rows if isinstance(row, dict) and row.get("acceptanceEvidence")),
+        "writesResolve": (data.get("safety") or {}).get("writesResolve") if isinstance(data.get("safety"), dict) else None,
+        "queuesRender": (data.get("safety") or {}).get("queuesRender") if isinstance(data.get("safety"), dict) else None,
+        "downloadsExternalAssets": (data.get("safety") or {}).get("downloadsExternalAssets") if isinstance(data.get("safety"), dict) else None,
+        "modifiesSourceFootage": (data.get("safety") or {}).get("modifiesSourceFootage") if isinstance(data.get("safety"), dict) else None,
+        "modifiesSourceDrive": (data.get("safety") or {}).get("modifiesSourceDrive") if isinstance(data.get("safety"), dict) else None,
+    }
+
+
+def transition_sequence_satisfaction_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("requiredSequenceReportCount") or 0) >= 30
+        and int(evidence.get("passedSequenceReportCount") or 0) == int(evidence.get("requiredSequenceReportCount") or 0)
+        and int(evidence.get("transitionSequenceRowCount") or 0) == 0
+        and int(evidence.get("p0TransitionSequenceRowCount") or 0) == 0
+        and int(evidence.get("p1TransitionSequenceRowCount") or 0) == 0
         and int(evidence.get("metricIssueCount") or 0) == 0
         and int(evidence.get("rowCount") or 0) == 0
         and evidence.get("writesResolve") is False
@@ -8520,6 +8573,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition reference-readiness contract proves the whole transition chain has no open craft, watch-reel, rendered-proof, or repair-closure rows",
         transition_reference_readiness_contract_ready(transition_reference_readiness_evidence),
         transition_reference_readiness_evidence,
+    )
+    transition_sequence_satisfaction_evidence = transition_sequence_satisfaction_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition sequence satisfaction contract proves the ordered transition chain is muted, restrained, bridged, landed, reference-like, and viewer-satisfying as one sequence",
+        transition_sequence_satisfaction_contract_ready(transition_sequence_satisfaction_evidence),
+        transition_sequence_satisfaction_evidence,
     )
     reference_profile_application_evidence = reference_profile_application_contract_evidence(package_dir)
     add_check(

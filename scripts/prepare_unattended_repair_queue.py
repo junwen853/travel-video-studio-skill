@@ -235,6 +235,19 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "forbiddenWorkaround": "Do not claim Parallel World/Malta-level transition quality while the aggregate transition readiness gate still has open rows or metric issues.",
         "allowKeywordRoutes": False,
     },
+    "transition_sequence_satisfaction_contract_audit": {
+        "path": "transition_sequence_satisfaction_contract_audit.json",
+        "accepted": {"passed"},
+        "phase": "transition_flow",
+        "priority": "P0",
+        "ownerScript": "audit_transition_sequence_satisfaction_contract.py",
+        "requiredArtifact": "transition_sequence_satisfaction_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_transition_sequence_satisfaction_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun transition sequence satisfaction aggregation and prove the ordered viewer sequence has zero open rows, zero P0 rows, zero metric issues, clean muted watch-reel review, bridge/breath/landing proof, and Resolve/rendered proof.",
+        "forbiddenWorkaround": "Do not approve a transition chain that passes isolated checks while the ordered sequence still feels random, flashy, audio-leaky, or unlanded.",
+        "allowKeywordRoutes": False,
+        "expandRepairRows": True,
+    },
     "transition_breathing_room_contract_audit": {
         "path": "transition_breathing_room_contract_audit.json",
         "accepted": {"passed"},
@@ -484,6 +497,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/audit_transition_reference_readiness_contract.py --package-dir <package> --json",
             "acceptanceEvidence": "Rerun transition reference-readiness aggregation, repair open transition rows, and rerun final QA until this stage passes.",
             "forbiddenWorkaround": "Do not hand off a cut whose transition chain only passes isolated checks while the aggregate transition readiness stage is blocked.",
+        },
+    ),
+    (
+        ("transition_sequence_satisfaction", "transition sequence satisfaction", "blocked_transition_sequence_satisfaction"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "audit_transition_sequence_satisfaction_contract.py",
+            "requiredArtifact": "transition_sequence_satisfaction_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_transition_sequence_satisfaction_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition sequence satisfaction aggregation, repair open owner-script rows, and rerun final QA until this stage passes with zero sequence rows and zero metric issues.",
+            "forbiddenWorkaround": "Do not call a transition sequence viewer-ready when the ordered reel still has audio leakage, repeated high-intensity effects, missing bridge breath, random rotation/whip, or unproven landings.",
         },
     ),
     (
@@ -1020,6 +1044,70 @@ def repair_row(
     return row
 
 
+def embedded_repair_row(
+    *,
+    row_index: int,
+    report_id: str,
+    report_path: Path,
+    spec: dict[str, Any],
+    source_status: str | None,
+    embedded: dict[str, Any],
+    skill_dir: Path,
+) -> dict[str, Any]:
+    blocker = clean_text(
+        embedded.get("issue")
+        or embedded.get("blocker")
+        or embedded.get("viewerSymptom")
+        or f"Embedded repair row from {report_id}"
+    )
+    fallback = route_for(spec, blocker)
+    owner_script = str(embedded.get("ownerScript") or fallback["ownerScript"])
+    owner_script_path = skill_dir / "scripts" / owner_script
+    safety_payload = embedded.get("safety") if isinstance(embedded.get("safety"), dict) else {}
+    safety = {
+        "writesResolve": bool(safety_payload.get("writesResolve", False)),
+        "queuesRender": bool(safety_payload.get("queuesRender", False)),
+        "downloadsExternalAssets": bool(safety_payload.get("downloadsExternalAssets", False)),
+        "modifiesSourceFootage": bool(safety_payload.get("modifiesSourceFootage", False)),
+        "modifiesSourceDrive": bool(safety_payload.get("modifiesSourceDrive", False)),
+    }
+    row = {
+        "rowIndex": row_index,
+        "priority": str(embedded.get("priority") or fallback["priority"]),
+        "phase": str(embedded.get("phase") or fallback["phase"]),
+        "issueType": "embedded_repair_row",
+        "sourceReport": report_id,
+        "sourceReportPath": str(report_path),
+        "sourceReportExists": report_path.exists(),
+        "sourceStatus": source_status,
+        "blocker": blocker,
+        "embeddedRepairId": clean_text(embedded.get("repairId"), limit=240),
+        "embeddedReportId": clean_text(embedded.get("reportId"), limit=240),
+        "embeddedCategory": clean_text(embedded.get("category"), limit=240),
+        "ownerScript": owner_script,
+        "ownerScriptExists": owner_script_path.exists(),
+        "requiredArtifact": str(embedded.get("requiredArtifact") or fallback["requiredArtifact"]),
+        "command": str(embedded.get("command") or fallback["command"]),
+        "acceptanceEvidence": str(embedded.get("acceptanceEvidence") or fallback["acceptanceEvidence"]),
+        "blockedUntil": str(embedded.get("acceptanceEvidence") or fallback["acceptanceEvidence"]),
+        "forbiddenWorkaround": str(embedded.get("forbiddenWorkaround") or fallback["forbiddenWorkaround"]),
+        "decision": {
+            "acceptedRepair": False,
+            "repairOwner": "",
+            "repairStartedAt": "",
+            "repairAppliedAt": "",
+            "artifactEvidence": "",
+            "postRepairAudit": "",
+            "resolveReadbackEvidence": "",
+            "renderFrameEvidence": "",
+            "editorNotes": "",
+        },
+        "safety": safety,
+    }
+    row["actionable"] = row_actionable(row)
+    return row
+
+
 def final_qa_repair_rows(
     *,
     package_dir: Path,
@@ -1127,6 +1215,24 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             continue
         if accepted:
             continue
+        embedded_rows = data.get("repairRows") if isinstance(data.get("repairRows"), list) else []
+        if spec.get("expandRepairRows") and embedded_rows:
+            for embedded in embedded_rows:
+                if not isinstance(embedded, dict):
+                    continue
+                rows.append(
+                    embedded_repair_row(
+                        row_index=len(rows) + 1,
+                        report_id=report_id,
+                        report_path=report_path,
+                        spec=spec,
+                        source_status=status,
+                        embedded=embedded,
+                        skill_dir=skill_dir,
+                    )
+                )
+            if any(row.get("sourceReport") == report_id and row.get("issueType") == "embedded_repair_row" for row in rows):
+                continue
         blockers = data.get("blockers") if isinstance(data.get("blockers"), list) else []
         if not blockers:
             blockers = [f"Report status `{status}` is not in accepted statuses {sorted(spec.get('accepted') or ACCEPTED_COMMON)}"]

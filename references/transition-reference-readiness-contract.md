@@ -1,6 +1,6 @@
 # Transition Reference Readiness Contract
 
-Run this after all transition planning, preview, audition, watch-reel, Resolve apply, rendered-proof, and flow-repair reports exist. Run it before final QA, V14 baseline, Skill maturity, Resolve handoff, or claiming the first draft matches the Parallel World/Malta reference level.
+Run this after all transition planning, preview, audition, watch-reel, Resolve apply, rendered-proof, and flow-repair reports exist. Run it before `transition-sequence-satisfaction-contract.md`, final QA, V14 baseline, Skill maturity, Resolve handoff, or claiming the first draft matches the Parallel World/Malta reference level.
 
 ## Required Command
 
@@ -37,7 +37,7 @@ Every open row must include:
 - acceptance evidence
 - forbidden workaround
 
-If this contract blocks, repair via the listed owner scripts and rerun the source audits, this contract, final viewer friction, unattended repair queue, final QA, V14 baseline, and Skill maturity.
+If this contract blocks, repair via the listed owner scripts and rerun the source audits, this contract, transition sequence satisfaction, final viewer friction, unattended repair queue, final QA, V14 baseline, and Skill maturity.
 
 ## Safety
 

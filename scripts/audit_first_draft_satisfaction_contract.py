@@ -49,6 +49,7 @@ FIRST_DRAFT_GATES: tuple[tuple[str, str, str], ...] = (
     ("final_cut_smoothness_contract_audit", "transition_flow", "Adjacent joins may still feel rough, effect-hidden, or unlanded."),
     ("transition_flow_repair_plan", "transition_flow", "Transition-flow repair rows are still open."),
     ("transition_reference_readiness_contract_audit", "transition_flow", "The whole transition chain is not reference-ready."),
+    ("transition_sequence_satisfaction_contract_audit", "transition_flow", "The ordered transition sequence still feels too random, flashy, audio-leaky, or unlanded for a viewer."),
     ("transition_watch_reel", "transition_flow", "Important transitions have not been reviewed as one ordered muted reel."),
     ("transition_watch_reel_review_contract_audit", "transition_flow", "The transition reel may repeat template motion, leak audio, or overuse high-intensity effects."),
     ("rendered_transition_proof_contract_audit", "transition_flow", "The final render may hide black/white flashes, portrait frames, or unstable transition landings."),

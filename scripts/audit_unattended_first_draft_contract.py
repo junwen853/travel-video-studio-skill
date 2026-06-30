@@ -609,6 +609,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_scene_settlement = load_json(package_dir / "transition_scene_settlement_contract_audit.json") or {}
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
+    transition_sequence_satisfaction = load_json(package_dir / "transition_sequence_satisfaction_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
     sb_summary = summary_of(shot_boundary)
     tm_summary = summary_of(transition_motivation)
@@ -659,6 +660,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tss_summary = summary_of(transition_scene_settlement)
     sfa_summary = summary_of(scene_flow_arc)
     fcs_summary = summary_of(final_cut_smoothness)
+    tseq_summary = summary_of(transition_sequence_satisfaction)
     add_gate(
         gates,
         "Transition reference candidates turn every adjacent boundary into non-copying A/B/C choices before preview, storyboard, or Resolve apply",
@@ -1068,6 +1070,11 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             or as_float(rtp_summary.get("cleanMatchBreathShare")) >= 0.45
         )
         and as_float(rtp_summary.get("importantBridgeBreathCoverage"), 1.0) >= 1.0
+        and transition_sequence_satisfaction.get("status") == "passed"
+        and as_int(tseq_summary.get("requiredSequenceReportCount")) >= 30
+        and as_int(tseq_summary.get("transitionSequenceRowCount")) == 0
+        and as_int(tseq_summary.get("p0TransitionSequenceRowCount")) == 0
+        and as_int(tseq_summary.get("metricIssueCount")) == 0
         and as_int(tsb_summary.get("motionReadyRowCount")) == as_int(tsb_summary.get("motionTransitionCount"))
         and as_int(tm_summary.get("motivatedBoundaryCount")) == as_int(tm_summary.get("visualBoundaryCount"))
         and as_int(tpc_summary.get("pairContinuityPayloadCount")) == as_int(tpc_summary.get("visualBoundaryCount"))
@@ -1187,6 +1194,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionStoryboardSummary": tsb_summary,
             "referenceTransitionProfileStatus": reference_transition_profile.get("status"),
             "referenceTransitionProfileSummary": rtp_summary,
+            "transitionSequenceSatisfactionStatus": transition_sequence_satisfaction.get("status"),
+            "transitionSequenceSatisfactionSummary": tseq_summary,
             "transitionContinuityRehearsalStatus": transition_continuity_rehearsal.get("status"),
             "transitionContinuityRehearsalSummary": tcr_summary,
             "pacingWatchabilityStatus": pacing_watchability.get("status"),
