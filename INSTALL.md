@@ -41,9 +41,9 @@ python3 scripts/install_for_agent.py \
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.82.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.82/travel-video-studio-skill-v0.1.82.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.82.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.83.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.83/travel-video-studio-skill-v0.1.83.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.83.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 ## Install From Source
@@ -125,10 +125,12 @@ test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_motif_coher
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_viewer_orientation_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_scene_settlement_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_effect_recipe_contract.py
+test -f ~/.codex/skills/travel-video-studio/scripts/audit_rendered_transition_proof_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/prepare_unattended_repair_queue.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_chapter_story_spine_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_shot_flow_continuity_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_bridge_visual_evidence_contract.py
+test -f ~/.codex/skills/travel-video-studio/references/rendered-transition-proof-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/reference-profile-application-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/reference-transition-profile-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/bgm-musicality-contract.md

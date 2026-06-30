@@ -67,6 +67,7 @@ SKILL_PATTERNS = {
     "transition_motion_direction": "audit_transition_motion_direction_contract.py",
     "transition_motion_accent": "audit_transition_motion_accent_contract.py",
     "transition_effect_recipe": "audit_transition_effect_recipe_contract.py",
+    "rendered_transition_proof": "audit_rendered_transition_proof_contract.py",
     "transition_cutpoint": "audit_transition_cutpoint_contract.py",
     "transition_action_anchor": "audit_transition_action_anchor_contract.py",
     "transition_sensory_continuity": "audit_transition_sensory_continuity_contract.py",
@@ -170,6 +171,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_motion_direction_contract.py",
     "audit_transition_motion_accent_contract.py",
     "audit_transition_effect_recipe_contract.py",
+    "audit_rendered_transition_proof_contract.py",
     "audit_transition_cutpoint_contract.py",
     "audit_transition_action_anchor_contract.py",
     "audit_transition_sensory_continuity_contract.py",
@@ -351,6 +353,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_motion_direction = load_json(package_dir / "transition_motion_direction_contract_audit.json") or {}
     transition_motion_accent = load_json(package_dir / "transition_motion_accent_contract_audit.json") or {}
     transition_effect_recipe = load_json(package_dir / "transition_effect_recipe_contract_audit.json") or {}
+    rendered_transition_proof = load_json(package_dir / "rendered_transition_proof_contract_audit.json") or {}
     transition_cutpoint = load_json(package_dir / "transition_cutpoint_contract_audit.json") or {}
     transition_action_anchor = load_json(package_dir / "transition_action_anchor_contract_audit.json") or {}
     transition_sensory = load_json(package_dir / "transition_sensory_continuity_contract_audit.json") or {}
@@ -1942,6 +1945,25 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "blockers": transition_effect_recipe.get("blockers"),
         },
     )
+    rendered_transition_proof_summary = get_summary(rendered_transition_proof)
+    add_check(
+        checks,
+        "Rendered transition proof contract proves V14 final-MP4 transition windows have no black/white flashes, raw pillarboxed vertical frames, or strobe-like luma jumps",
+        rendered_transition_proof.get("status") == "passed"
+        and int(rendered_transition_proof_summary.get("auditedTransitionRowCount") or 0) >= 1
+        and int(rendered_transition_proof_summary.get("blockedTransitionRowCount") or 0) == 0
+        and int(rendered_transition_proof_summary.get("rowsWithBlankOrBlackFrame") or 0) == 0
+        and int(rendered_transition_proof_summary.get("rowsWithWhiteFlash") or 0) == 0
+        and int(rendered_transition_proof_summary.get("rowsWithPillarbox") or 0) == 0
+        and int(rendered_transition_proof_summary.get("rowsWithStrobeLikeLumaJump") or 0) == 0
+        and int(rendered_transition_proof_summary.get("blockerCount") or 0) == 0
+        and not rendered_transition_proof.get("blockers"),
+        {
+            "renderedTransitionProofStatus": rendered_transition_proof.get("status"),
+            "renderedTransitionProofSummary": rendered_transition_proof_summary,
+            "blockers": rendered_transition_proof.get("blockers"),
+        },
+    )
     transition_cutpoint_summary = get_summary(transition_cutpoint)
     cutpoint_rows = int(transition_cutpoint_summary.get("transitionRowCount") or 0)
     important_cutpoint_rows = int(transition_cutpoint_summary.get("importantBoundaryCount") or 0)
@@ -2645,6 +2667,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_audition_role_integrity.get("status") == "passed"
         and transition_motion_accent.get("status") == "passed"
         and transition_effect_recipe.get("status") == "passed"
+        and rendered_transition_proof.get("status") == "passed"
         and transition_continuity_rehearsal.get("status") == "passed"
         and pacing_watchability.get("status") == "passed"
         and narrative_adjacency.get("status") == "passed"
@@ -2680,6 +2703,12 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(transition_motion_accent_summary.get("blockedCheckCount") or 0) == 0
         and int(transition_effect_recipe_summary.get("blockedRecipeRowCount") or 0) == 0
         and int(transition_effect_recipe_summary.get("blockerCount") or 0) == 0
+        and int(rendered_transition_proof_summary.get("blockedTransitionRowCount") or 0) == 0
+        and int(rendered_transition_proof_summary.get("rowsWithBlankOrBlackFrame") or 0) == 0
+        and int(rendered_transition_proof_summary.get("rowsWithWhiteFlash") or 0) == 0
+        and int(rendered_transition_proof_summary.get("rowsWithPillarbox") or 0) == 0
+        and int(rendered_transition_proof_summary.get("rowsWithStrobeLikeLumaJump") or 0) == 0
+        and int(rendered_transition_proof_summary.get("blockerCount") or 0) == 0
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("rowsWithMotionExecution") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
@@ -2749,6 +2778,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionSensoryContinuitySummary": transition_sensory_summary,
             "transitionEffectRecipeStatus": transition_effect_recipe.get("status"),
             "transitionEffectRecipeSummary": transition_effect_recipe_summary,
+            "renderedTransitionProofStatus": rendered_transition_proof.get("status"),
+            "renderedTransitionProofSummary": rendered_transition_proof_summary,
             "transitionMotifStatus": transition_motif.get("status"),
             "transitionMotifSummary": transition_motif_summary,
             "transitionMotifCoherenceStatus": transition_motif_coherence.get("status"),

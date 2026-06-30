@@ -65,6 +65,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_motion_direction_contract.py",
         "audit_transition_motion_accent_contract.py",
         "audit_transition_effect_recipe_contract.py",
+        "audit_rendered_transition_proof_contract.py",
         "audit_transition_cutpoint_contract.py",
         "audit_transition_action_anchor_contract.py",
         "audit_transition_sensory_continuity_contract.py",
@@ -176,6 +177,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_motion_direction_contract_rule": "audit_transition_motion_direction_contract.py",
     "transition_motion_accent_contract_rule": "audit_transition_motion_accent_contract.py",
     "transition_effect_recipe_contract_rule": "audit_transition_effect_recipe_contract.py",
+    "rendered_transition_proof_contract_rule": "audit_rendered_transition_proof_contract.py",
     "transition_cutpoint_contract_rule": "audit_transition_cutpoint_contract.py",
     "transition_action_anchor_contract_rule": "audit_transition_action_anchor_contract.py",
     "transition_sensory_continuity_contract_rule": "audit_transition_sensory_continuity_contract.py",
@@ -295,6 +297,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_choreography_contract_reference_rule": "transition-choreography-contract.md",
     "transition_motion_direction_contract_reference_rule": "transition-motion-direction-contract.md",
     "transition_effect_recipe_contract_reference_rule": "transition-effect-recipe-contract.md",
+    "rendered_transition_proof_contract_reference_rule": "rendered-transition-proof-contract.md",
     "transition_cutpoint_contract_reference_rule": "transition-cutpoint-contract.md",
     "transition_action_anchor_contract_reference_rule": "transition-action-anchor-contract.md",
     "transition_sensory_continuity_contract_reference_rule": "transition-sensory-continuity-contract.md",
@@ -356,6 +359,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_scene_settlement_contract": "transition-scene-settlement-contract.md",
     "transition_motion_accent_contract": "transition-motion-accent-contract.md",
     "transition_effect_recipe_contract": "transition-effect-recipe-contract.md",
+    "rendered_transition_proof_contract": "rendered-transition-proof-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
@@ -423,6 +427,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_scene_settlement_contract": "transition scene settlement",
     "transition_motion_accent_contract": "transition motion accent",
     "transition_effect_recipe_contract": "transition effect recipe",
+    "rendered_transition_proof_contract": "rendered transition proof",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -6249,6 +6254,57 @@ def transition_effect_recipe_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def rendered_transition_proof_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "rendered_transition_proof_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "output": data.get("output"),
+        "rawTransitionRowCount": summary.get("rawTransitionRowCount"),
+        "auditedTransitionRowCount": summary.get("auditedTransitionRowCount"),
+        "blockedTransitionRowCount": summary.get("blockedTransitionRowCount"),
+        "rowsWithBlankOrBlackFrame": summary.get("rowsWithBlankOrBlackFrame"),
+        "rowsWithWhiteFlash": summary.get("rowsWithWhiteFlash"),
+        "rowsWithPillarbox": summary.get("rowsWithPillarbox"),
+        "rowsWithStrobeLikeLumaJump": summary.get("rowsWithStrobeLikeLumaJump"),
+        "maxObservedLumaJump": summary.get("maxObservedLumaJump"),
+        "contactSheet": summary.get("contactSheet"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def rendered_transition_proof_contract_ready(evidence: dict[str, Any]) -> bool:
+    audited_rows = int(evidence.get("auditedTransitionRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and audited_rows >= 1
+        and int(evidence.get("blockedTransitionRowCount") or 0) == 0
+        and int(evidence.get("rowsWithBlankOrBlackFrame") or 0) == 0
+        and int(evidence.get("rowsWithWhiteFlash") or 0) == 0
+        and int(evidence.get("rowsWithPillarbox") or 0) == 0
+        and int(evidence.get("rowsWithStrobeLikeLumaJump") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_cutpoint_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_cutpoint_contract_audit.json"
     data = load_json(path) or {}
@@ -8465,6 +8521,17 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
             "transitionChoreographyPlan": transition_choreography_plan,
             "transitionMotionAccent": transition_motion_accent_evidence,
             "transitionEffectRecipe": transition_effect_recipe_evidence,
+        },
+    )
+    rendered_transition_proof_evidence = rendered_transition_proof_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Rendered transition proof contract proves final MP4 transition windows have no black/white flashes, pillarboxed vertical frames, or strobe-like luma jumps",
+        transition_effect_recipe_contract_ready(transition_effect_recipe_evidence)
+        and rendered_transition_proof_contract_ready(rendered_transition_proof_evidence),
+        {
+            "transitionEffectRecipe": transition_effect_recipe_evidence,
+            "renderedTransitionProof": rendered_transition_proof_evidence,
         },
     )
     transition_preview_packet = transition_preview_packet_evidence(package_dir)

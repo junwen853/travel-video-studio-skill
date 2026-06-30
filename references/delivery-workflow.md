@@ -108,6 +108,7 @@ Expected files:
 - `render_plan.json`: Resolve final render settings created by `prepare_resolve_render.py`
 - `render_job_status.json`: present only after an approved Resolve render job is queued
 - `render_delivery_verification.json` / `.md`: final MP4 verification after export, including duration, streams, sample frames, black-frame scan, and subtitle evidence
+- `rendered_transition_proof_contract_audit.json` / `.md`: final-MP4 transition-window proof with extracted frames/contact sheet, blocking black flashes, white flashes, raw pillarboxed vertical footage, and strobe-like luma jumps
 - `longform_delivery_audit.json` / `.md`: final 20-minute-film promise audit, covering voiceover, subtitles, BGM, aerial/stock evidence, typography/title cards, transitions, DaVinci readback, route-recognition artifacts, route honesty, and final render proof
 - `quality_recut_report.json` / `.md`: required when revising a weak draft into a higher-quality 59.94/60fps, high-bitrate, no-voiceover, dense-caption version
 - `title_cards/title_cards_manifest.json`: generated title/place cards when enabled
@@ -226,6 +227,7 @@ The package is not final until:
 - `delivery_audit.json` reports `ready_for_final_render` before a Resolve render is queued or started
 - final render verification passes before the output is called deliverable
 - final render verification proves the required frame rate and bitrate for high-quality masters
+- rendered transition proof passes before the output is called reference-quality, proving important final-MP4 transition windows have clean frame evidence instead of black/white flashes, raw pillarboxed vertical footage, or strobe-like luma jumps
 - long-form delivery audit passes or reports only explicit route/location certainty caveats
 - final editor path is selected, with DaVinci API preferred
 

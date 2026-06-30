@@ -67,6 +67,7 @@ ACCEPTED_STATUSES = {
     "transition_motion_direction_contract_audit": {"passed"},
     "transition_motion_accent_contract_audit": {"passed"},
     "transition_effect_recipe_contract_audit": {"passed"},
+    "rendered_transition_proof_contract_audit": {"passed"},
     "transition_preview_packet": {"ready_with_transition_preview_packet", "ready_no_important_transitions"},
     "transition_preview_quality_contract_audit": {"passed"},
     "transition_audition_packet": {"ready_with_transition_audition_packet", "ready_no_important_transitions"},
@@ -865,6 +866,17 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                     "--package-dir",
                     str(package_dir),
                 ],
+                False,
+            ),
+            (
+                "rendered_transition_proof_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_rendered_transition_proof_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ]
+                + (["--output", str(output)] if output else []),
                 False,
             ),
             (
