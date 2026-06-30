@@ -281,6 +281,9 @@ def build_profile(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "referencePath": report.get("referencePath"),
                 "analysisPath": str(item_root / safe_stem(Path(str(report.get("referencePath") or f"reference_{index}")), index) / "reference_analysis.json"),
+                "analysisMarkdownPath": str(item_root / safe_stem(Path(str(report.get("referencePath") or f"reference_{index}")), index) / "reference_analysis.md"),
+                "fullReviewPrompt": "Review the reference as a full film before learning from it: opening/title, chapter rhythm, transition language, ending aftertaste, BGM/audio/caption behavior, and non-copying Skill takeaways.",
+                "fullReviewRepairPlan": "Run prepare_reference_review_repair_plan.py and close this reference row before final QA or Skill maturity.",
                 "durationMinutes": report.get("durationMinutes"),
                 "pacingStatus": (report.get("pacingProfile") or {}).get("status") if isinstance(report.get("pacingProfile"), dict) else None,
                 "audioStatus": (report.get("audioProfile") or {}).get("status") if isinstance(report.get("audioProfile"), dict) else None,
@@ -363,6 +366,8 @@ def write_markdown(path: Path, profile: dict[str, Any]) -> None:
                 "",
                 f"### {Path(str(row.get('referencePath') or 'reference')).name}",
                 f"- Analysis: `{row.get('analysisPath')}`",
+                f"- Analysis markdown: `{row.get('analysisMarkdownPath')}`",
+                f"- Full-review prompt: {row.get('fullReviewPrompt')}",
                 f"- Duration minutes: {row.get('durationMinutes')}",
                 f"- Pacing/audio: `{row.get('pacingStatus')}` / `{row.get('audioStatus')}`",
                 f"- Shots: {row.get('estimatedShotCount')}",

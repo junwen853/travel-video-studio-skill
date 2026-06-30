@@ -28,6 +28,14 @@ Outputs under `<package>/reference/`:
 - compatibility copy: `reference_analysis.json`
 - per-video analyses under `reference_items/`
 
+Then run the full-review closure gate:
+
+```bash
+python3 <skill-dir>/scripts/prepare_reference_review_repair_plan.py --package-dir <package> --json
+```
+
+Read `references/reference-review-completeness-contract.md` before closing rows. The gate must return `ready_no_reference_review_repairs_needed` before reference-profile application, reference-transition-profile, final QA, V14 baseline, or Skill maturity can be treated as handoff-ready.
+
 ## What It Measures
 
 The batch profile aggregates:
@@ -51,13 +59,15 @@ Pass only when:
 - aggregate `pacingProfile.status` and `audioProfile.status` are `analyzed`
 - `sampleFrames` carries enough worksheet rows for visual review
 - the profile is explicitly non-copying
+- `reference_review_repair_plan/reference_review_repair_plan.json` returns `ready_no_reference_review_repairs_needed`
 
 Reject:
 
 - using only a few random screenshots as "learning"
+- leaving full-film reference review rows open
 - copying reference titles, subtitles, branding, music, or footage
 - running reference-style audits without a local reference profile when the user supplied references
 
 ## Workflow Position
 
-Run this before `prepare_chapter_arc_plan.py`, `prepare_edit_rhythm_plan.py`, `audit_reference_style_alignment.py`, and `prepare_reference_style_repair_plan.py`. After the downstream story/rhythm/creator/transition/caption/audio/style artifacts exist, run `audit_reference_profile_application_contract.py`, `audit_reference_transition_profile_contract.py`, and `audit_chapter_story_spine_contract.py`, and read `references/reference-profile-application-contract.md`, `references/reference-transition-profile-contract.md`, and `references/chapter-story-spine-contract.md` so the profile is proven applied rather than left as unused analysis. The generated `reference_analysis.json` compatibility file lets existing rhythm/style scripts use the batch targets without special handling.
+Run this before `prepare_chapter_arc_plan.py`, `prepare_edit_rhythm_plan.py`, `audit_reference_style_alignment.py`, and `prepare_reference_style_repair_plan.py`. Immediately after this profile, run `prepare_reference_review_repair_plan.py` and close all full-film review rows. After the downstream story/rhythm/creator/transition/caption/audio/style artifacts exist, run `audit_reference_profile_application_contract.py`, `audit_reference_transition_profile_contract.py`, and `audit_chapter_story_spine_contract.py`, and read `references/reference-review-completeness-contract.md`, `references/reference-profile-application-contract.md`, `references/reference-transition-profile-contract.md`, and `references/chapter-story-spine-contract.md` so the profile is proven fully reviewed and applied rather than left as unused analysis. The generated `reference_analysis.json` compatibility file lets existing rhythm/style scripts use the batch targets without special handling.

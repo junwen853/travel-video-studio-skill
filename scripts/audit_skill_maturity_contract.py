@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 
 
+MIN_REFERENCE_COUNT = 2
+
 REQUIRED_SCRIPTS = {
     "route_recognition": [
         "discover_external_media.py",
@@ -36,6 +38,7 @@ REQUIRED_SCRIPTS = {
     "user_regression_gates": [
         "analyze_reference_video.py",
         "prepare_reference_batch_profile.py",
+        "prepare_reference_review_repair_plan.py",
         "audit_reference_profile_application_contract.py",
         "audit_reference_transition_profile_contract.py",
         "prepare_bgm_sourcing_brief.py",
@@ -264,6 +267,8 @@ REQUIRED_SKILL_PATTERNS = {
     "parallel_world_reference_rule": "parallel-world-vlog-style.md",
     "parallel_world_cover_rule": "high-recognition aerial/skyline/coast/landmark/route background",
     "reference_batch_profile_rule": "prepare_reference_batch_profile.py",
+    "reference_review_repair_plan_rule": "prepare_reference_review_repair_plan.py",
+    "reference_full_review_repair_rule": "full-film reference review evidence",
     "reference_transition_profile_contract_reference_rule": "reference-transition-profile-contract.md",
     "chapter_story_spine_contract_reference_rule": "chapter-story-spine-contract.md",
     "shot_flow_continuity_contract_reference_rule": "shot-flow-continuity-contract.md",
@@ -335,6 +340,7 @@ REQUIRED_STYLE_PATTERNS = {
     "parallel_world_anchor": "space.bilibili.com/405004967",
     "parallel_world_profile": "parallel-world-vlog-style.md",
     "reference_batch_profile": "reference-batch-profile-engine.md",
+    "reference_review_completeness_contract": "reference-review-completeness-contract.md",
     "reference_profile_application_contract": "reference-profile-application-contract.md",
     "reference_transition_profile_contract": "reference-transition-profile-contract.md",
     "footage_select_engine": "footage-select-engine.md",
@@ -402,6 +408,8 @@ REQUIRED_STYLE_PATTERNS = {
 REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "full_review_method": "full-film timeline strips every 10 seconds",
     "batch_reference_profile": "reference batch profile",
+    "reference_review_repair_plan": "reference review repair plan",
+    "full_reference_review_closure": "ready_no_reference_review_repairs_needed",
     "cover_title_formula": "Cover And Hero Title Style",
     "cover_title_contract": "cover title contract",
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
@@ -607,6 +615,54 @@ def reference_batch_profile_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("modifiesSourceFootage") is False
         and evidence.get("hasPassRubric") is True
         and evidence.get("hasRejectRubric") is True
+    )
+
+
+def reference_review_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "reference_review_repair_plan" / "reference_review_repair_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    rows = data.get("repairRows") if isinstance(data.get("repairRows"), list) else []
+    inputs = data.get("inputs") if isinstance(data.get("inputs"), dict) else {}
+    reference_evidence = inputs.get("referenceEvidence") if isinstance(inputs.get("referenceEvidence"), list) else []
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "referenceVideoCount": summary.get("referenceVideoCount"),
+        "referenceRowsWithClosedFullReviewDecision": summary.get("referenceRowsWithClosedFullReviewDecision"),
+        "profileStatus": summary.get("profileStatus"),
+        "profileAccepted": summary.get("profileAccepted"),
+        "referencesWithAnalysis": summary.get("referencesWithAnalysis"),
+        "referencesWithContactSheet": summary.get("referencesWithContactSheet"),
+        "referencesWithOpeningMiddleEndingCoverage": summary.get("referencesWithOpeningMiddleEndingCoverage"),
+        "rowCount": len(rows),
+        "inputReferenceEvidenceCount": len(reference_evidence),
+        "writesResolve": (data.get("safety") or {}).get("writesResolve") if isinstance(data.get("safety"), dict) else None,
+        "queuesRender": (data.get("safety") or {}).get("queuesRender") if isinstance(data.get("safety"), dict) else None,
+        "downloadsExternalAssets": (data.get("safety") or {}).get("downloadsExternalAssets") if isinstance(data.get("safety"), dict) else None,
+        "modifiesSourceFootage": (data.get("safety") or {}).get("modifiesSourceFootage") if isinstance(data.get("safety"), dict) else None,
+    }
+
+
+def reference_review_repair_plan_ready(evidence: dict[str, Any]) -> bool:
+    reference_count = int(evidence.get("referenceVideoCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_no_reference_review_repairs_needed"
+        and int(evidence.get("repairRowCount") or 0) == 0
+        and int(evidence.get("rowCount") or 0) == 0
+        and reference_count >= MIN_REFERENCE_COUNT
+        and int(evidence.get("referenceRowsWithClosedFullReviewDecision") or 0) == reference_count
+        and evidence.get("profileAccepted") is True
+        and int(evidence.get("referencesWithAnalysis") or 0) == reference_count
+        and int(evidence.get("referencesWithContactSheet") or 0) == reference_count
+        and int(evidence.get("referencesWithOpeningMiddleEndingCoverage") or 0) == reference_count
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
     )
 
 
@@ -8097,6 +8153,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Reference batch profile learns from multiple supplied creator/reference videos without copying assets",
         reference_batch_profile_ready(reference_batch_evidence),
         reference_batch_evidence,
+    )
+    reference_review_repair_evidence = reference_review_repair_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Reference review repair plan proves supplied creator/reference videos were reviewed as full films before the Skill learns from them",
+        reference_review_repair_plan_ready(reference_review_repair_evidence),
+        reference_review_repair_evidence,
     )
     reference_profile_application_evidence = reference_profile_application_contract_evidence(package_dir)
     add_check(

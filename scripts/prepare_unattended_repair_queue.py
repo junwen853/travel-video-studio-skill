@@ -279,6 +279,17 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Rerun audit_reference_repair_closure.py and prove P0 reference/style rows are closed by artifacts plus post-repair evidence.",
         "forbiddenWorkaround": "Do not leave 'make it closer to the reference' as prose without owner script, artifact, evidence, and closure audit.",
     },
+    "reference_review_repair_plan": {
+        "path": "reference_review_repair_plan/reference_review_repair_plan.json",
+        "accepted": {"ready_no_reference_review_repairs_needed"},
+        "phase": "reference_style",
+        "priority": "P0",
+        "ownerScript": "prepare_reference_review_repair_plan.py",
+        "requiredArtifact": "reference_review_repair_plan/reference_review_repair_plan.json",
+        "command": "python3 <skill-dir>/scripts/prepare_reference_review_repair_plan.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun reference review repair planning and prove every supplied reference video has full-film review evidence for opening/title, chapter rhythm, transition language, ending, BGM/audio/captions, and non-copying Skill takeaways.",
+        "forbiddenWorkaround": "Do not learn from sampled-frame impressions, copied creator assets, vague style adjectives, or unreviewed contact sheets when the user supplied full reference videos.",
+    },
     "resolve_blueprint_preflight": {
         "path": "resolve_blueprint_preflight.json",
         "accepted": {"ready", "ready_with_warnings"},
@@ -446,6 +457,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/prepare_visual_establishing_plan.py --package-dir <package> --json",
             "acceptanceEvidence": "Rerun establishing, stock/aerial closure, route texture, and final QA until opening/chapter/ending bridges have local footage or closed licensed-stock decisions.",
             "forbiddenWorkaround": "Do not reuse stale previous-trip aerials, black slates, generic landmarks, or stock inserts that do not fit the route.",
+        },
+    ),
+    (
+        ("reference_review", "reference review", "reference_review_repair", "full reference", "full-film reference"),
+        {
+            "phase": "reference_style",
+            "ownerScript": "prepare_reference_review_repair_plan.py",
+            "requiredArtifact": "reference_review_repair_plan/reference_review_repair_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_reference_review_repair_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun reference review repair planning until every supplied creator/reference video has complete full-film review evidence and the plan returns ready_no_reference_review_repairs_needed.",
+            "forbiddenWorkaround": "Do not pass reference learning from random frames, contact sheets without observations, vague prose, copied titles/music/subtitles, or old reference notes.",
         },
     ),
     (

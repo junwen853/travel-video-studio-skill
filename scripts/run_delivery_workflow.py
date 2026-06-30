@@ -542,6 +542,23 @@ def summarize_reference_batch_profile(plan: dict[str, Any] | None) -> dict[str, 
     }
 
 
+def summarize_reference_review_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "referenceVideoCount": summary.get("referenceVideoCount"),
+        "closedFullReviewDecisionCount": summary.get("referenceRowsWithClosedFullReviewDecision"),
+        "referencesWithAnalysis": summary.get("referencesWithAnalysis"),
+        "referencesWithContactSheet": summary.get("referencesWithContactSheet"),
+        "referencesWithOpeningMiddleEndingCoverage": summary.get("referencesWithOpeningMiddleEndingCoverage"),
+        "ownerScripts": summary.get("ownerScripts"),
+    }
+
+
 def summarize_edit_rhythm_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -2895,6 +2912,19 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Sample frames: {reference.get('sampleFrameCount')}",
             ]
         )
+    if report.get("referenceReviewRepairSummary"):
+        reference_review = report["referenceReviewRepairSummary"]
+        lines.extend(
+            [
+                "",
+                "## Reference Review Repair Plan",
+                f"- Exists: `{reference_review.get('exists')}`",
+                f"- Status: `{reference_review.get('status')}`",
+                f"- Repair rows: {reference_review.get('repairRowCount')}",
+                f"- Reference videos: {reference_review.get('referenceVideoCount')}",
+                f"- Closed full-review decisions: {reference_review.get('closedFullReviewDecisionCount')}",
+            ]
+        )
     if report.get("editRhythmSummary"):
         rhythm = report["editRhythmSummary"]
         lines.extend(
@@ -3473,6 +3503,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
             reference_batch_cmd.append("--recursive")
         steps.append(run_step("prepare_reference_batch_profile", reference_batch_cmd, ok_codes={0, 2}))
 
+        reference_review_repair_cmd = [
+            "python3",
+            str(SCRIPTS_DIR / "prepare_reference_review_repair_plan.py"),
+            "--package-dir",
+            str(package_dir),
+            "--json",
+        ]
+        steps.append(run_step("prepare_reference_review_repair_plan", reference_review_repair_cmd, ok_codes={0}))
+
     opening_story_cmd = ["python3", str(SCRIPTS_DIR / "prepare_opening_story_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_opening_story_plan", opening_story_cmd, ok_codes={0, 2}))
 
@@ -4050,6 +4089,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     bgm_musicality_summary = None
     feedback_regression_plan_summary = None
     reference_batch_summary = None
+    reference_review_repair_summary = None
     audio_scene_policy_summary = None
     edit_rhythm_summary = None
     creator_cut_summary = None
@@ -4278,6 +4318,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             feedback_regression_plan_summary = summarize_feedback_regression_plan(payload)
         if step["id"] == "prepare_reference_batch_profile":
             reference_batch_summary = summarize_reference_batch_profile(payload)
+        if step["id"] == "prepare_reference_review_repair_plan":
+            reference_review_repair_summary = summarize_reference_review_repair_plan(payload)
+            if reference_review_repair_summary and reference_review_repair_summary.get("status") != "ready_no_reference_review_repairs_needed":
+                blockers.append(
+                    f"Reference review repair blocker: {reference_review_repair_summary.get('repairRowCount')} full-reference review rows remain open"
+                )
         if step["id"] == "prepare_audio_scene_policy_plan":
             audio_scene_policy_summary = summarize_audio_scene_policy_plan(payload)
         if step["id"] == "prepare_edit_rhythm_plan":
@@ -4796,6 +4842,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         reference_batch_summary = summarize_reference_batch_profile(
             load_json(package_dir / "reference" / "reference_batch_profile.json")
         )
+    if package_dir and (package_dir / "reference_review_repair_plan" / "reference_review_repair_plan.json").exists():
+        reference_review_repair_summary = summarize_reference_review_repair_plan(
+            load_json(package_dir / "reference_review_repair_plan" / "reference_review_repair_plan.json")
+        )
     if package_dir and (package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json").exists():
         audio_scene_policy_summary = summarize_audio_scene_policy_plan(
             load_json(package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json")
@@ -5145,6 +5195,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "bgmMusicalitySummary": bgm_musicality_summary,
         "feedbackRegressionPlanSummary": feedback_regression_plan_summary,
         "referenceBatchSummary": reference_batch_summary,
+        "referenceReviewRepairSummary": reference_review_repair_summary,
         "audioScenePolicySummary": audio_scene_policy_summary,
         "editRhythmSummary": edit_rhythm_summary,
         "creatorCutSummary": creator_cut_summary,
@@ -5257,6 +5308,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Preflight bgm_phrase_blueprint/resolve_timeline_blueprint_bgm_phrase.json before approving BGM phrase cues, transition sync, or music-led scenic sections for Resolve.",
             "Review feedback_regression_plan.json so original user complaints stay in pre-render audio policy, post-render feedback audit, and final QA commands.",
             "Review reference_batch_profile.json when local reference videos are supplied so rhythm/style targets are based on measured reference evidence.",
+            "Review reference_review_repair_plan/reference_review_repair_plan.json when local reference videos are supplied so full-film review evidence is closed before reference learning, final QA, V14, or Skill maturity claims.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",
             "Review edit_rhythm_plan.json before Resolve apply so long raw clips, missing cutaways, and weak chapter variety are fixed before the edit feels AI-assembled.",
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",

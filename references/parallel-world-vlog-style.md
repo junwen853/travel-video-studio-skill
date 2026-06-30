@@ -18,6 +18,10 @@ Future reference-learning passes should use the same standard before writing dur
 
 When multiple local reference videos are available, run `prepare_reference_batch_profile.py` first. The batch profile should aggregate scene-cut rhythm, audio continuity, sampled frame worksheets, and non-copying style targets before edit rhythm or reference-style audits use the reference.
 
+Then run `prepare_reference_review_repair_plan.py --package-dir <package> --json` and read `references/reference-review-completeness-contract.md`. Full reference learning is not closed until the plan returns `ready_no_reference_review_repairs_needed`. If it returns `ready_with_reference_review_repair_plan`, complete the row decisions with full-film timeline strip evidence, opening/title observations, chapter rhythm, transition language, ending aftertaste, audio/BGM/caption behavior, and non-copying Skill takeaways before using the references as a quality claim.
+
+The reference review repair plan is the first closure gate. After it closes, downstream proof should include BGM musicality, transition sensory-continuity contract, transition breathing-room contract, scene flow arc contract, final cut smoothness contract, transition continuity rehearsal contract, narrative adjacency contract, transition viewer orientation, transition scene settlement, transition motion accent, transition effect recipe, transition source coverage, transition audition visual proof contract, transition audition role integrity contract, and transition motif coherence before saying the current edit matches the Parallel World/Malta bar.
+
 ## Measured Batch Profile
 
 The 2026-06-28 local reference pass analyzed four downloaded videos, about `95.48` total minutes.

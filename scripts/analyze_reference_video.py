@@ -395,6 +395,20 @@ def build_report(
             "allowed": "Use pacing, route rhythm, audio/text balance, and shot-category observations as non-copying guidance.",
             "forbidden": "Do not copy exact footage, title design, music, narration, subtitles, or creator branding.",
         },
+        "fullReviewContract": {
+            "requiredBeforeSkillLearning": True,
+            "repairPlanScript": "prepare_reference_review_repair_plan.py",
+            "requiredObservations": [
+                "full-film timeline strip evidence",
+                "opening/title construction",
+                "chapter rhythm and shot-function alternation",
+                "transition language and bridge/breath/match balance",
+                "ending aftertaste",
+                "BGM/audio/caption behavior",
+                "non-copying reusable Skill takeaways",
+            ],
+            "acceptedStatus": "ready_no_reference_review_repairs_needed",
+        },
         "styleImplications": [
             "This is long-form reference material, not a short recap.",
             "Use sparse narration and long visual passages.",
@@ -441,6 +455,15 @@ def build_report(
     md.extend(["", "## Sample Frame Review Worksheet"])
     for sample in sample_rows:
         md.append(f"- `{sample['timecode']}` `{sample['framePath']}` - {sample['visualReviewPrompt']}")
+    md.extend(
+        [
+            "",
+            "## Full-Film Review Contract",
+            "- Run `prepare_reference_review_repair_plan.py` after batch profiling.",
+            "- Close the repair row with full-film timeline strip evidence, opening/title observations, chapter rhythm, transition language, ending aftertaste, BGM/audio/caption behavior, and non-copying Skill takeaways.",
+            "- Do not treat this per-video analysis as complete reference learning until the repair plan returns `ready_no_reference_review_repairs_needed`.",
+        ]
+    )
     md.extend(["", "## Style Implications"])
     md.extend(f"- {item}" for item in report["styleImplications"])
     md.extend(
