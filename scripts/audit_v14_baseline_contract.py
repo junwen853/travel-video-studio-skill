@@ -76,6 +76,7 @@ SKILL_PATTERNS = {
     "scene_flow_arc_contract": "audit_scene_flow_arc_contract.py",
     "final_cut_smoothness_contract": "audit_final_cut_smoothness_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
+    "unattended_repair_queue": "prepare_unattended_repair_queue.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure": "audit_reference_repair_closure.py",
@@ -160,6 +161,7 @@ REQUIRED_SCRIPTS = [
     "audit_scene_flow_arc_contract.py",
     "audit_final_cut_smoothness_contract.py",
     "audit_timeline_variety_contract.py",
+    "prepare_unattended_repair_queue.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_repair_closure.py",
@@ -314,6 +316,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     reference_scene_grammar = load_json(package_dir / "reference_scene_grammar_contract_audit.json") or {}
     timeline_variety = load_json(package_dir / "timeline_variety_contract_audit.json") or {}
     unattended_first_draft = load_json(package_dir / "unattended_first_draft_contract_audit.json") or {}
+    unattended_repair_queue = load_json(package_dir / "unattended_repair_queue" / "unattended_repair_queue.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
     reference = load_json(package_dir / "reference_style_alignment_audit.json") or {}
@@ -1783,6 +1786,23 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "unattendedFirstDraftStatus": unattended_first_draft.get("status"),
             "unattendedFirstDraftSummary": unattended_summary,
             "warnings": unattended_first_draft.get("warnings"),
+        },
+    )
+    unattended_repair_queue_summary = get_summary(unattended_repair_queue)
+    add_check(
+        checks,
+        "Unattended repair queue is empty for a V14-ready first draft",
+        unattended_repair_queue.get("status") == "ready_no_unattended_repairs_needed"
+        and int(unattended_repair_queue_summary.get("repairRowCount") or 0) == 0
+        and int(unattended_repair_queue_summary.get("p0RepairRowCount") or 0) == 0
+        and int(unattended_repair_queue_summary.get("missingRequiredReportCount") or 0) == 0
+        and int(unattended_repair_queue_summary.get("blockedReportCount") or 0) == 0
+        and int(unattended_repair_queue_summary.get("unactionableRepairRowCount") or 0) == 0
+        and not unattended_repair_queue.get("blockers"),
+        {
+            "unattendedRepairQueueStatus": unattended_repair_queue.get("status"),
+            "unattendedRepairQueueSummary": unattended_repair_queue_summary,
+            "blockers": unattended_repair_queue.get("blockers"),
         },
     )
     reference_repair_summary = get_summary(reference_repair)

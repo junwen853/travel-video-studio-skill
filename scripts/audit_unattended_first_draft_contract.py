@@ -993,6 +993,29 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         },
     )
 
+    repair_queue = load_json(package_dir / "unattended_repair_queue" / "unattended_repair_queue.json") or {}
+    repair_queue_summary = summary_of(repair_queue)
+    queue_status = repair_queue.get("status")
+    queue_rows = as_int(repair_queue_summary.get("repairRowCount"))
+    queue_actionable_rows = as_int(repair_queue_summary.get("actionableRepairRowCount"))
+    add_gate(
+        gates,
+        "Unattended repair queue is empty or every blocker has an executable owner-script route",
+        queue_status in {"ready_no_unattended_repairs_needed", "ready_with_unattended_repair_queue"}
+        and queue_actionable_rows == queue_rows
+        and as_int(repair_queue_summary.get("unactionableRepairRowCount")) == 0
+        and as_int(repair_queue_summary.get("rowsWithOwnerScript")) == queue_rows
+        and as_int(repair_queue_summary.get("rowsWithCommand")) == queue_rows
+        and as_int(repair_queue_summary.get("rowsWithAcceptanceEvidence")) == queue_rows
+        and as_int(repair_queue_summary.get("rowsWithForbiddenWorkaround")) == queue_rows
+        and not repair_queue.get("blockers"),
+        {
+            "repairQueueStatus": queue_status,
+            "repairQueueSummary": repair_queue_summary,
+            "blockers": repair_queue.get("blockers") or [],
+        },
+    )
+
     preflight = load_json(package_dir / "resolve_blueprint_preflight.json") or {}
     clip_summary = preflight.get("clipSummary") if isinstance(preflight.get("clipSummary"), dict) else {}
     add_gate(
@@ -1048,6 +1071,9 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "warningGateCount": len(warnings),
             "requiredGateCount": len([row for row in gates if row["required"]]),
             "totalGateCount": len(gates),
+            "repairQueueStatus": repair_queue.get("status"),
+            "repairQueueRowCount": summary_of(repair_queue).get("repairRowCount"),
+            "repairQueueActionableRowCount": summary_of(repair_queue).get("actionableRepairRowCount"),
         },
         "safety": {
             "writesResolve": False,

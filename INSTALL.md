@@ -108,6 +108,7 @@ test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_storyboard_
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_breathing_room_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_scene_flow_arc_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_final_cut_smoothness_contract.py
+test -f ~/.codex/skills/travel-video-studio/scripts/prepare_unattended_repair_queue.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_chapter_story_spine_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_shot_flow_continuity_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_bridge_visual_evidence_contract.py
@@ -124,6 +125,7 @@ test -f ~/.codex/skills/travel-video-studio/references/transition-storyboard-con
 test -f ~/.codex/skills/travel-video-studio/references/transition-breathing-room-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/scene-flow-arc-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/final-cut-smoothness-contract.md
+test -f ~/.codex/skills/travel-video-studio/references/unattended-repair-queue-engine.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-bridge-visual-evidence-contract.md
 python3 ~/.codex/skills/travel-video-studio/scripts/check_project_state.py \
   --project-dir "$VIDEO_CLAW_STUDIO_DIR"

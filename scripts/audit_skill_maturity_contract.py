@@ -74,6 +74,7 @@ REQUIRED_SCRIPTS = {
         "audit_scene_flow_arc_contract.py",
         "audit_final_cut_smoothness_contract.py",
         "audit_timeline_variety_contract.py",
+        "prepare_unattended_repair_queue.py",
         "audit_unattended_first_draft_contract.py",
         "prepare_transition_bridge_plan.py",
         "prepare_caption_story_plan.py",
@@ -165,6 +166,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_breathing_room_contract_rule": "audit_transition_breathing_room_contract.py",
     "scene_flow_arc_contract_rule": "audit_scene_flow_arc_contract.py",
     "final_cut_smoothness_contract_rule": "audit_final_cut_smoothness_contract.py",
+    "unattended_repair_queue_rule": "prepare_unattended_repair_queue.py",
     "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
     "reference_transition_profile_contract_rule": "audit_reference_transition_profile_contract.py",
     "timeline_variety_contract_rule": "audit_timeline_variety_contract.py",
@@ -260,6 +262,7 @@ REQUIRED_SKILL_PATTERNS = {
     "effect_motion_blueprint_engine_rule": "effect-motion-blueprint-engine.md",
     "effect_motion_application_contract_reference_rule": "effect-motion-application-contract.md",
     "reference_style_repair_engine_rule": "reference-style-repair-engine.md",
+    "unattended_repair_queue_engine_rule": "unattended-repair-queue-engine.md",
 }
 
 REQUIRED_STYLE_PATTERNS = {
@@ -303,6 +306,7 @@ REQUIRED_STYLE_PATTERNS = {
     "effect_motion_blueprint_engine": "effect-motion-blueprint-engine.md",
     "effect_motion_application_contract": "effect-motion-application-contract.md",
     "reference_style_repair_engine": "reference-style-repair-engine.md",
+    "unattended_repair_queue_engine": "unattended-repair-queue-engine.md",
     "opening_story_engine": "opening-story-engine.md",
     "full_timeline_review": "full-film timeline strips",
     "cover_title_review": "cover/title card construction",
@@ -351,6 +355,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "final_blueprint_lineage_contract": "final-blueprint lineage",
     "final_source_usage_contract": "final source usage",
     "reference_style_repair_plan": "reference style repair plan",
+    "unattended_repair_queue": "unattended repair queue",
     "talking_segment_broll": "Long talking segments should be supported by the place",
     "ending_aftertaste": "End with aftertaste after the main experience",
 }
@@ -5939,6 +5944,64 @@ def unattended_first_draft_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def unattended_repair_queue_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "unattended_repair_queue" / "unattended_repair_queue.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rows = data.get("repairRows") if isinstance(data.get("repairRows"), list) else []
+    row_count = len([row for row in rows if isinstance(row, dict)])
+    actionable_rows = len([row for row in rows if isinstance(row, dict) and row.get("actionable") is True])
+    rows_with_forbidden = len([row for row in rows if isinstance(row, dict) and row.get("forbiddenWorkaround")])
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "requiredReportCount": summary.get("requiredReportCount"),
+        "missingRequiredReportCount": summary.get("missingRequiredReportCount"),
+        "blockedReportCount": summary.get("blockedReportCount"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "p0RepairRowCount": summary.get("p0RepairRowCount"),
+        "actionableRepairRowCount": summary.get("actionableRepairRowCount"),
+        "unactionableRepairRowCount": summary.get("unactionableRepairRowCount"),
+        "rowsWithOwnerScript": summary.get("rowsWithOwnerScript"),
+        "rowsWithCommand": summary.get("rowsWithCommand"),
+        "rowsWithAcceptanceEvidence": summary.get("rowsWithAcceptanceEvidence"),
+        "rowsWithForbiddenWorkaround": summary.get("rowsWithForbiddenWorkaround"),
+        "rowCountByRows": row_count,
+        "actionableRowsByRows": actionable_rows,
+        "rowsWithForbiddenWorkaroundByRows": rows_with_forbidden,
+        "phaseCounts": summary.get("phaseCounts"),
+        "blockerCount": len(data.get("blockers") or []),
+        "warningCount": len(data.get("warnings") or []),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def unattended_repair_queue_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_no_unattended_repairs_needed"
+        and int(evidence.get("requiredReportCount") or 0) >= 10
+        and int(evidence.get("missingRequiredReportCount") or 0) == 0
+        and int(evidence.get("blockedReportCount") or 0) == 0
+        and int(evidence.get("repairRowCount") or 0) == 0
+        and int(evidence.get("p0RepairRowCount") or 0) == 0
+        and int(evidence.get("unactionableRepairRowCount") or 0) == 0
+        and int(evidence.get("rowCountByRows") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def effect_motion_application_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "effect_motion_application_contract_audit.json"
     data = load_json(path) or {}
@@ -6805,6 +6868,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Unattended first-draft contract proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected",
         unattended_first_draft_contract_ready(unattended_first_draft_evidence),
         unattended_first_draft_evidence,
+    )
+    unattended_repair_queue = unattended_repair_queue_evidence(package_dir)
+    add_check(
+        checks,
+        "Unattended repair queue proves a mature package has no remaining routed P0/P1 repairs",
+        unattended_repair_queue_ready(unattended_repair_queue),
+        unattended_repair_queue,
     )
     rhythm_recut_apply_evidence = rhythm_recut_apply_package_evidence(package_dir)
     add_check(

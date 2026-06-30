@@ -1705,6 +1705,26 @@ def summarize_reference_repair_closure(report: dict[str, Any] | None) -> dict[st
     }
 
 
+def summarize_unattended_repair_queue(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "requiredReportCount": summary.get("requiredReportCount"),
+        "missingRequiredReportCount": summary.get("missingRequiredReportCount"),
+        "blockedReportCount": summary.get("blockedReportCount"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "p0RepairRowCount": summary.get("p0RepairRowCount"),
+        "actionableRepairRowCount": summary.get("actionableRepairRowCount"),
+        "unactionableRepairRowCount": summary.get("unactionableRepairRowCount"),
+        "phaseCounts": summary.get("phaseCounts"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_rhythm_recut_apply_package(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -3010,6 +3030,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("resolve_blueprint_preflight", preflight_cmd, ok_codes={0, 2}))
 
+    unattended_repair_queue_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "prepare_unattended_repair_queue.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("prepare_unattended_repair_queue", unattended_repair_queue_cmd, ok_codes={0, 2}))
+
     unattended_first_draft_cmd = ["python3", str(SCRIPTS_DIR / "audit_unattended_first_draft_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_unattended_first_draft_contract", unattended_first_draft_cmd, ok_codes={0, 2}))
 
@@ -3111,6 +3140,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     unattended_first_draft_summary = None
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
+    unattended_repair_queue_summary = None
     rhythm_recut_apply_summary = None
     resolve_apply_contract_summary = None
     resolve_blueprint_preflight_summary = None
@@ -3498,6 +3528,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Reference repair closure blocker: {item}" for item in reference_repair_closure_summary.get("blockers") or [])
             if reference_repair_closure_summary and reference_repair_closure_summary.get("warnings"):
                 warnings.extend(f"Reference repair closure warning: {item}" for item in reference_repair_closure_summary.get("warnings") or [])
+        if step["id"] == "prepare_unattended_repair_queue":
+            unattended_repair_queue_summary = summarize_unattended_repair_queue(payload)
+            if unattended_repair_queue_summary and unattended_repair_queue_summary.get("status") == "blocked_unactionable_repair_queue":
+                blockers.extend(f"Unattended repair queue blocker: {item}" for item in unattended_repair_queue_summary.get("blockers") or [])
+            if unattended_repair_queue_summary and unattended_repair_queue_summary.get("warnings"):
+                warnings.extend(f"Unattended repair queue warning: {item}" for item in unattended_repair_queue_summary.get("warnings") or [])
         if step["id"] == "prepare_rhythm_recut_apply_package":
             rhythm_recut_apply_summary = summarize_rhythm_recut_apply_package(payload)
         if step["id"] == "prepare_resolve_apply_contract":
@@ -3814,6 +3850,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         reference_repair_closure_summary = summarize_reference_repair_closure(
             load_json(package_dir / "reference_repair_closure_audit.json")
         )
+    if package_dir and (package_dir / "unattended_repair_queue" / "unattended_repair_queue.json").exists():
+        unattended_repair_queue_summary = summarize_unattended_repair_queue(
+            load_json(package_dir / "unattended_repair_queue" / "unattended_repair_queue.json")
+        )
     if package_dir and (package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json").exists():
         rhythm_recut_apply_summary = summarize_rhythm_recut_apply_package(
             load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_apply_package_report.json")
@@ -3930,6 +3970,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
+        "unattendedRepairQueueSummary": unattended_repair_queue_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "resolveApplyContractSummary": resolve_apply_contract_summary,
         "resolveBlueprintPreflightSummary": resolve_blueprint_preflight_summary,
@@ -4005,6 +4046,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "Review unattended_first_draft_contract_audit.json before Resolve apply or handoff; it proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected.",
+            "Review unattended_repair_queue/unattended_repair_queue.md when any gate blocks; it orders P0/P1 repairs by owner script, command, required artifact, acceptance evidence, and forbidden workaround.",
             "Review reference_style_repair_plan.json so blocked reference/director/QA gaps become executable repair rows before another Resolve write.",
             "When the rhythm recut candidate is approved, generate/review the rhythm recut apply package before any Resolve write.",
             "Approve local TTS, recorded voiceover, or imported narration audio.",
