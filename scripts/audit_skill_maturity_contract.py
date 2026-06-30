@@ -66,6 +66,7 @@ REQUIRED_SCRIPTS = {
         "prepare_transition_audition_packet.py",
         "audit_transition_audition_quality_contract.py",
         "audit_transition_audition_visual_proof_contract.py",
+        "audit_transition_audition_role_integrity_contract.py",
         "audit_transition_storyboard_contract.py",
         "audit_final_source_usage_contract.py",
         "audit_reference_scene_grammar_contract.py",
@@ -163,6 +164,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_audition_packet_rule": "prepare_transition_audition_packet.py",
     "transition_audition_quality_contract_rule": "audit_transition_audition_quality_contract.py",
     "transition_audition_visual_proof_contract_rule": "audit_transition_audition_visual_proof_contract.py",
+    "transition_audition_role_integrity_contract_rule": "audit_transition_audition_role_integrity_contract.py",
     "transition_storyboard_contract_rule": "audit_transition_storyboard_contract.py",
     "final_source_usage_contract_rule": "audit_final_source_usage_contract.py",
     "reference_scene_grammar_contract_rule": "audit_reference_scene_grammar_contract.py",
@@ -263,6 +265,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_audition_packet_reference_rule": "transition-audition-packet-engine.md",
     "transition_audition_quality_contract_reference_rule": "transition-audition-quality-contract.md",
     "transition_audition_visual_proof_contract_reference_rule": "transition-audition-visual-proof-contract.md",
+    "transition_audition_role_integrity_contract_reference_rule": "transition-audition-role-integrity-contract.md",
     "transition_storyboard_contract_reference_rule": "transition-storyboard-contract.md",
     "timeline_variety_contract_reference_rule": "timeline-variety-contract.md",
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
@@ -313,6 +316,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_audition_packet_engine": "transition-audition-packet-engine.md",
     "transition_audition_quality_contract": "transition-audition-quality-contract.md",
     "transition_audition_visual_proof_contract": "transition-audition-visual-proof-contract.md",
+    "transition_audition_role_integrity_contract": "transition-audition-role-integrity-contract.md",
     "final_source_usage_contract": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
     "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
@@ -363,6 +367,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_audition_packet": "transition audition packet",
     "transition_audition_quality_contract": "transition audition quality contract",
     "transition_audition_visual_proof_contract": "transition audition visual proof contract",
+    "transition_audition_role_integrity_contract": "transition audition role integrity contract",
     "transition_motif_plan": "transition motif plan",
     "bridge_sequence_plan": "bridge sequence plan",
     "bridge_sequence_blueprint": "bridge sequence blueprint",
@@ -6233,6 +6238,69 @@ def transition_audition_visual_proof_contract_ready(evidence: dict[str, Any]) ->
     )
 
 
+def transition_audition_role_integrity_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_audition_role_integrity_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "auditionRoleRowCount": summary.get("auditionRoleRowCount"),
+        "importantAuditionRoleRowCount": summary.get("importantAuditionRoleRowCount"),
+        "passedAuditionRoleRowCount": summary.get("passedAuditionRoleRowCount"),
+        "blockedAuditionRoleRowCount": summary.get("blockedAuditionRoleRowCount"),
+        "rowsWithRoleOrderedSegments": summary.get("rowsWithRoleOrderedSegments"),
+        "rowsWithOutgoingLandingSegments": summary.get("rowsWithOutgoingLandingSegments"),
+        "rowsWithBridgeOrMotionSegment": summary.get("rowsWithBridgeOrMotionSegment"),
+        "rowsWithBridgeSegment": summary.get("rowsWithBridgeSegment"),
+        "rowsWithAllSegmentsPassed": summary.get("rowsWithAllSegmentsPassed"),
+        "rowsWithConcatOrderEvidence": summary.get("rowsWithConcatOrderEvidence"),
+        "rowsWithMotionExecution": summary.get("rowsWithMotionExecution"),
+        "rowsWithThreeBeatRoles": summary.get("rowsWithThreeBeatRoles"),
+        "transitionAuditionQualityStatus": summary.get("transitionAuditionQualityStatus"),
+        "transitionAuditionVisualProofStatus": summary.get("transitionAuditionVisualProofStatus"),
+        "ffprobeAvailable": summary.get("ffprobeAvailable"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_audition_role_integrity_contract_ready(evidence: dict[str, Any]) -> bool:
+    important_rows = int(evidence.get("importantAuditionRoleRowCount") or 0)
+    row_count = int(evidence.get("auditionRoleRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("transitionAuditionQualityStatus") == "passed"
+        and evidence.get("transitionAuditionVisualProofStatus") == "passed"
+        and int(evidence.get("blockedAuditionRoleRowCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and (important_rows == 0 or int(evidence.get("passedAuditionRoleRowCount") or 0) >= important_rows)
+        and int(evidence.get("rowsWithRoleOrderedSegments") or 0) >= row_count
+        and int(evidence.get("rowsWithOutgoingLandingSegments") or 0) >= row_count
+        and int(evidence.get("rowsWithBridgeOrMotionSegment") or 0) >= row_count
+        and (important_rows == 0 or int(evidence.get("rowsWithBridgeSegment") or 0) >= important_rows)
+        and int(evidence.get("rowsWithAllSegmentsPassed") or 0) >= row_count
+        and int(evidence.get("rowsWithConcatOrderEvidence") or 0) >= row_count
+        and (important_rows == 0 or int(evidence.get("rowsWithMotionExecution") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithThreeBeatRoles") or 0) >= important_rows)
+        and evidence.get("ffprobeAvailable") is True
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_storyboard_contract_ready(evidence: dict[str, Any]) -> bool:
     important_boundaries = int(evidence.get("importantBoundaryCount") or 0)
     transition_rows = int(evidence.get("transitionRowCount") or 0)
@@ -7191,6 +7259,23 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
             "transitionAuditionVisualProof": transition_audition_visual_proof_evidence,
         },
     )
+    transition_audition_role_integrity_evidence = transition_audition_role_integrity_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition audition role integrity contract proves audition MP4s are built from ordered outgoing/bridge/landing segments, not arbitrary moving clips",
+        transition_preview_packet_ready(transition_preview_packet)
+        and transition_preview_quality_contract_ready(transition_preview_quality_evidence)
+        and transition_audition_packet_ready(transition_audition_packet)
+        and transition_audition_quality_contract_ready(transition_audition_quality_evidence)
+        and transition_audition_visual_proof_contract_ready(transition_audition_visual_proof_evidence)
+        and transition_audition_role_integrity_contract_ready(transition_audition_role_integrity_evidence),
+        {
+            "transitionAuditionPacket": transition_audition_packet,
+            "transitionAuditionQuality": transition_audition_quality_evidence,
+            "transitionAuditionVisualProof": transition_audition_visual_proof_evidence,
+            "transitionAuditionRoleIntegrity": transition_audition_role_integrity_evidence,
+        },
+    )
     transition_storyboard_evidence = transition_storyboard_contract_evidence(package_dir)
     add_check(
         checks,
@@ -7200,6 +7285,7 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         and transition_audition_packet_ready(transition_audition_packet)
         and transition_audition_quality_contract_ready(transition_audition_quality_evidence)
         and transition_audition_visual_proof_contract_ready(transition_audition_visual_proof_evidence)
+        and transition_audition_role_integrity_contract_ready(transition_audition_role_integrity_evidence)
         and transition_storyboard_contract_ready(transition_storyboard_evidence),
         {
             "transitionPreviewPacket": transition_preview_packet,
@@ -7207,6 +7293,7 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
             "transitionAuditionPacket": transition_audition_packet,
             "transitionAuditionQuality": transition_audition_quality_evidence,
             "transitionAuditionVisualProof": transition_audition_visual_proof_evidence,
+            "transitionAuditionRoleIntegrity": transition_audition_role_integrity_evidence,
             "transitionStoryboard": transition_storyboard_evidence,
         },
     )
