@@ -1,6 +1,6 @@
 # Transition Action Anchor Contract
 
-Run `scripts/audit_transition_action_anchor_contract.py` after `prepare_transition_execution_blueprint.py` and `audit_transition_cutpoint_contract.py`, before transition preview, audition, storyboard, Resolve apply, final QA, maturity, unattended first-draft, or V14 baseline claims.
+Run `scripts/audit_transition_action_anchor_contract.py` after `prepare_transition_execution_blueprint.py` and `audit_transition_cutpoint_contract.py`, before `audit_transition_sensory_continuity_contract.py`, transition preview, audition, storyboard, Resolve apply, final QA, maturity, unattended first-draft, or V14 baseline claims.
 
 ## Command
 
@@ -36,7 +36,7 @@ Do not repair a blocked action-anchor row by adding a stronger effect. Repair th
 - downgrade rotation, whip, push, or speed-ramp to a clean match cut or short dissolve when directional action is weak
 - keep title/subtitle quiet zones and BGM-only audio intact after the anchor repair
 
-After repair, rerun transition execution blueprint, cutpoint contract, action-anchor contract, microstructure, preview, audition, storyboard, unattended first-draft, V14 baseline, and maturity checks.
+After repair, rerun transition execution blueprint, cutpoint contract, action-anchor contract, sensory-continuity contract, microstructure, preview, audition, storyboard, unattended first-draft, V14 baseline, and maturity checks.
 
 ## Safety
 

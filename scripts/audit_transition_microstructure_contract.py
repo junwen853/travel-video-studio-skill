@@ -60,6 +60,10 @@ REPORT_SPECS = {
         "path": "transition_action_anchor_contract_audit.json",
         "accepted": {"passed"},
     },
+    "transitionSensoryContinuity": {
+        "path": "transition_sensory_continuity_contract_audit.json",
+        "accepted": {"passed"},
+    },
 }
 MOTION_STYLES = {"whip_pan", "rotation", "speed_ramp", "push_slide"}
 
@@ -156,6 +160,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     cadence = reports["transitionCadence"]["summary"]
     cutpoint = reports["transitionCutpoint"]["summary"]
     anchor = reports["transitionActionAnchor"]["summary"]
+    sensory = reports["transitionSensoryContinuity"]["summary"]
 
     boundary_names = (
         "transitionQuality",
@@ -180,6 +185,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     repeated_run = max_decorative_run(reports)
     cutpoint_rows = as_int(cutpoint.get("transitionRowCount"))
     anchor_rows = as_int(anchor.get("transitionRowCount"))
+    sensory_rows = as_int(sensory.get("transitionRowCount"))
 
     checks: list[dict[str, Any]] = []
     add_check(
@@ -245,7 +251,14 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         and as_int(anchor.get("blockedActionAnchorRowCount")) == 0
         and as_int(anchor.get("rowsWithOutgoingActionAnchor")) == anchor_rows
         and as_int(anchor.get("rowsWithBridgeOrMatchActionAnchor")) == anchor_rows
-        and as_int(anchor.get("rowsWithLandingActionAnchor")) == anchor_rows,
+        and as_int(anchor.get("rowsWithLandingActionAnchor")) == anchor_rows
+        and sensory_rows >= 1
+        and as_int(sensory.get("readySensoryContinuityRowCount")) == sensory_rows
+        and as_int(sensory.get("blockedSensoryContinuityRowCount")) == 0
+        and as_int(sensory.get("rowsWithVisualSensoryContinuity")) == sensory_rows
+        and as_int(sensory.get("rowsWithAudioSensoryContinuity")) == sensory_rows
+        and as_int(sensory.get("rowsWithCaptionSensoryContinuity")) == sensory_rows
+        and as_int(sensory.get("rowsWithLandingSensoryContinuity")) == sensory_rows,
         {
             "recipeReadyBoundaryCount": readiness.get("recipeReadyBoundaryCount"),
             "bgmHitBoundaryCount": readiness.get("bgmHitBoundaryCount"),
@@ -271,6 +284,13 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "rowsWithOutgoingActionAnchor": anchor.get("rowsWithOutgoingActionAnchor"),
             "rowsWithBridgeOrMatchActionAnchor": anchor.get("rowsWithBridgeOrMatchActionAnchor"),
             "rowsWithLandingActionAnchor": anchor.get("rowsWithLandingActionAnchor"),
+            "sensoryTransitionRowCount": sensory.get("transitionRowCount"),
+            "readySensoryContinuityRowCount": sensory.get("readySensoryContinuityRowCount"),
+            "blockedSensoryContinuityRowCount": sensory.get("blockedSensoryContinuityRowCount"),
+            "rowsWithVisualSensoryContinuity": sensory.get("rowsWithVisualSensoryContinuity"),
+            "rowsWithAudioSensoryContinuity": sensory.get("rowsWithAudioSensoryContinuity"),
+            "rowsWithCaptionSensoryContinuity": sensory.get("rowsWithCaptionSensoryContinuity"),
+            "rowsWithLandingSensoryContinuity": sensory.get("rowsWithLandingSensoryContinuity"),
         },
     )
     add_check(
@@ -393,6 +413,11 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "blockedCutpointRowCount": cutpoint.get("blockedCutpointRowCount"),
             "readyActionAnchorRowCount": anchor.get("readyActionAnchorRowCount"),
             "blockedActionAnchorRowCount": anchor.get("blockedActionAnchorRowCount"),
+            "readySensoryContinuityRowCount": sensory.get("readySensoryContinuityRowCount"),
+            "blockedSensoryContinuityRowCount": sensory.get("blockedSensoryContinuityRowCount"),
+            "rowsWithAudioSensoryContinuity": sensory.get("rowsWithAudioSensoryContinuity"),
+            "rowsWithRouteOrMoodSensoryContinuity": sensory.get("rowsWithRouteOrMoodSensoryContinuity"),
+            "rowsWithLandingSensoryContinuity": sensory.get("rowsWithLandingSensoryContinuity"),
             "handleReadyBoundaryCount": readiness.get("handleReadyBoundaryCount"),
             "pairReadyBoundaryCount": readiness.get("pairReadyBoundaryCount"),
             "weakPairFitCount": pair.get("weakPairFitCount"),
@@ -424,6 +449,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "weakPairFitRejected": True,
             "markerOnlyEffectsRejected": True,
             "importantJumpsNeedBridgeBeats": True,
+            "sensoryContinuityRequired": True,
             "writesResolve": False,
             "downloadsExternalAssets": False,
         },
@@ -466,6 +492,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
             "## Contract",
             "- Reject a final candidate where adjacent clips have transition rows but no practical landing point.",
             "- Require BGM hits, BGM-only audio, title-safe windows, pair readiness, handles, and motivated continuity on every boundary.",
+            "- Require sensory continuity: visual connector, BGM phrase support, caption quiet zone, route/mood handoff, and stable landing.",
             "- Reject weak adjacent-pair fit and repeated or overlong motion effects used to hide bad shot choice.",
             "- Require bridge beats, Resolve apply evidence, and final blueprint lineage before trusting the cut.",
         ]

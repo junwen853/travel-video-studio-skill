@@ -1,6 +1,6 @@
 # Transition Preview Packet Engine
 
-Use this engine after transition grammar, visual-match, choreography, motion-direction, cutpoint, action-anchor, scene-arc, effect-palette, microstructure, pair-continuity, execution-readiness, transition-polish, bridge-application, and final-blueprint-lineage checks exist, and before `audit_transition_preview_quality_contract.py`, `prepare_transition_audition_packet.py`, `audit_transition_audition_quality_contract.py`, and `audit_transition_storyboard_contract.py`.
+Use this engine after transition grammar, visual-match, choreography, motion-direction, cutpoint, action-anchor, sensory-continuity, scene-arc, effect-palette, microstructure, pair-continuity, execution-readiness, transition-polish, bridge-application, and final-blueprint-lineage checks exist, and before `audit_transition_preview_quality_contract.py`, `prepare_transition_audition_packet.py`, `audit_transition_audition_quality_contract.py`, and `audit_transition_storyboard_contract.py`.
 
 ## Purpose
 
@@ -24,6 +24,7 @@ Use `--include-all-rows` when every adjacent pair needs review, not only importa
 - `transition_motion_direction_contract_audit.json`
 - `transition_cutpoint_contract_audit.json`
 - `transition_action_anchor_contract_audit.json`
+- `transition_sensory_continuity_contract_audit.json`
 - `resolve_timeline_blueprint.json`
 - readable local source video paths for the outgoing and landing clips
 - optional bridge source path in the transition grammar decision fields
@@ -48,7 +49,7 @@ The packet is ready when every selected important boundary has:
 
 `ready_no_important_transitions` is acceptable only when the transition grammar has no important day/place/title/timeline-gap/ending boundaries.
 
-After the packet is ready, run `audit_transition_preview_quality_contract.py`, then build and audit the transition audition packet. Do not approve storyboard, Resolve apply, final QA, maturity, or V14 baseline until the choreography, motion-direction, cutpoint, and action-anchor contracts pass, the quality audit proves the generated frames decode, are not blank, outgoing/landing evidence is not identical, and the audition layer proves important transitions can be watched as muted local MP4s.
+After the packet is ready, run `audit_transition_preview_quality_contract.py`, then build and audit the transition audition packet. Do not approve storyboard, Resolve apply, final QA, maturity, or V14 baseline until the choreography, motion-direction, cutpoint, action-anchor, and sensory-continuity contracts pass, the quality audit proves the generated frames decode, are not blank, outgoing/landing evidence is not identical, and the audition layer proves important transitions can be watched as muted local MP4s.
 
 ## Blockers
 

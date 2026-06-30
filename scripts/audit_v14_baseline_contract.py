@@ -65,6 +65,7 @@ SKILL_PATTERNS = {
     "transition_motion_direction": "audit_transition_motion_direction_contract.py",
     "transition_cutpoint": "audit_transition_cutpoint_contract.py",
     "transition_action_anchor": "audit_transition_action_anchor_contract.py",
+    "transition_sensory_continuity": "audit_transition_sensory_continuity_contract.py",
     "transition_preview_packet": "prepare_transition_preview_packet.py",
     "transition_preview_quality": "audit_transition_preview_quality_contract.py",
     "transition_audition_packet": "prepare_transition_audition_packet.py",
@@ -158,6 +159,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_motion_direction_contract.py",
     "audit_transition_cutpoint_contract.py",
     "audit_transition_action_anchor_contract.py",
+    "audit_transition_sensory_continuity_contract.py",
     "prepare_transition_preview_packet.py",
     "audit_transition_preview_quality_contract.py",
     "prepare_transition_audition_packet.py",
@@ -324,6 +326,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_motion_direction = load_json(package_dir / "transition_motion_direction_contract_audit.json") or {}
     transition_cutpoint = load_json(package_dir / "transition_cutpoint_contract_audit.json") or {}
     transition_action_anchor = load_json(package_dir / "transition_action_anchor_contract_audit.json") or {}
+    transition_sensory = load_json(package_dir / "transition_sensory_continuity_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
     transition_preview_quality = load_json(package_dir / "transition_preview_quality_contract_audit.json") or {}
     transition_audition_packet = load_json(package_dir / "transition_audition_packet" / "transition_audition_packet.json") or {}
@@ -965,6 +968,13 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     outgoing_action_anchor_count = 0
     bridge_match_action_anchor_count = 0
     landing_action_anchor_count = 0
+    sensory_count = 0
+    sensory_visual_count = 0
+    sensory_audio_count = 0
+    sensory_caption_count = 0
+    sensory_route_mood_count = 0
+    sensory_landing_count = 0
+    sensory_motion_count = 0
     for transition in transition_candidates:
         if not isinstance(transition, dict):
             continue
@@ -997,6 +1007,22 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             bridge_match_action_anchor_count += 1
         if (action_anchor.get("landingAnchor") or {}).get("ready") is True:
             landing_action_anchor_count += 1
+        sensory = transition.get("transitionSensoryContinuityPlan") if isinstance(transition.get("transitionSensoryContinuityPlan"), dict) else {}
+        channels = sensory.get("cueChannels") if isinstance(sensory.get("cueChannels"), dict) else {}
+        if sensory.get("status") == "ready_with_transition_sensory_continuity_plan":
+            sensory_count += 1
+        if channels.get("visualContinuityReady") is True:
+            sensory_visual_count += 1
+        if channels.get("audioContinuityReady") is True:
+            sensory_audio_count += 1
+        if channels.get("captionQuietReady") is True:
+            sensory_caption_count += 1
+        if channels.get("routeOrMoodContinuityReady") is True:
+            sensory_route_mood_count += 1
+        if channels.get("landingContinuityReady") is True:
+            sensory_landing_count += 1
+        if channels.get("motionContinuityReady") is True:
+            sensory_motion_count += 1
     motion_marker_count = sum(
         1
         for marker in transition_markers
@@ -1038,6 +1064,12 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(transition_execution_blueprint_summary.get("rowsWithBridgeOrMatchActionAnchor") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("rowsWithLandingActionAnchor") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("blockedActionAnchorRowCount") or 0) == 0
+        and int(transition_execution_blueprint_summary.get("rowsWithSensoryContinuityReady") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithVisualSensoryContinuity") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithAudioSensoryContinuity") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithCaptionSensoryContinuity") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithLandingSensoryContinuity") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("blockedSensoryContinuityRowCount") or 0) == 0
         and int(transition_execution_blueprint_summary.get("motionExecutionFromChoreographyCount") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("motionExecutionDerivedCount") or 0) == 0
         and int(transition_execution_blueprint_summary.get("blockedMotionExecutionRowCount") or 0) == 0
@@ -1062,6 +1094,11 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and outgoing_action_anchor_count == transition_execution_blueprint_rows
         and bridge_match_action_anchor_count == transition_execution_blueprint_rows
         and landing_action_anchor_count == transition_execution_blueprint_rows
+        and sensory_count == transition_execution_blueprint_rows
+        and sensory_visual_count == transition_execution_blueprint_rows
+        and sensory_audio_count == transition_execution_blueprint_rows
+        and sensory_caption_count == transition_execution_blueprint_rows
+        and sensory_landing_count == transition_execution_blueprint_rows
         and len(transition_markers) == transition_execution_blueprint_rows
         and motion_marker_count == transition_execution_blueprint_rows
         and annotated_out >= transition_execution_blueprint_rows
@@ -1084,6 +1121,13 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "outgoingActionAnchorCount": outgoing_action_anchor_count,
             "bridgeMatchActionAnchorCount": bridge_match_action_anchor_count,
             "landingActionAnchorCount": landing_action_anchor_count,
+            "sensoryContinuityCount": sensory_count,
+            "sensoryVisualCount": sensory_visual_count,
+            "sensoryAudioCount": sensory_audio_count,
+            "sensoryCaptionCount": sensory_caption_count,
+            "sensoryRouteMoodCount": sensory_route_mood_count,
+            "sensoryLandingCount": sensory_landing_count,
+            "sensoryMotionCount": sensory_motion_count,
             "markerCount": len(transition_markers),
             "motionMarkerCount": motion_marker_count,
             "annotatedOutClipCount": annotated_out,
@@ -1834,6 +1878,39 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionActionAnchorSummary": transition_action_anchor_summary,
         },
     )
+    transition_sensory_summary = get_summary(transition_sensory)
+    sensory_rows = int(transition_sensory_summary.get("transitionRowCount") or 0)
+    important_sensory_rows = int(transition_sensory_summary.get("importantBoundaryCount") or 0)
+    motion_sensory_rows = int(transition_sensory_summary.get("motionSensoryRowCount") or 0)
+    add_check(
+        checks,
+        "Transition sensory-continuity contract proves V14 transitions carry visual, BGM, caption, route/mood, and stable landing continuity instead of decorative effects",
+        transition_sensory.get("status") == "passed"
+        and sensory_rows >= 1
+        and int(transition_sensory_summary.get("readySensoryContinuityRowCount") or 0) == sensory_rows
+        and int(transition_sensory_summary.get("blockedSensoryContinuityRowCount") or 0) == 0
+        and int(transition_sensory_summary.get("rowsWithVisualSensoryContinuity") or 0) >= sensory_rows
+        and int(transition_sensory_summary.get("rowsWithAudioSensoryContinuity") or 0) >= sensory_rows
+        and int(transition_sensory_summary.get("rowsWithCaptionSensoryContinuity") or 0) >= sensory_rows
+        and int(transition_sensory_summary.get("rowsWithLandingSensoryContinuity") or 0) >= sensory_rows
+        and int(transition_sensory_summary.get("rowsWithBgmOnlyNoSourceVoice") or 0) >= sensory_rows
+        and int(transition_sensory_summary.get("rowsWithActionAnchorReady") or 0) >= sensory_rows
+        and int(transition_sensory_summary.get("rowsWithCutpointReady") or 0) >= sensory_rows
+        and (
+            important_sensory_rows == 0
+            or int(transition_sensory_summary.get("importantRowsWithRouteOrMoodContinuity") or 0) >= important_sensory_rows
+        )
+        and (
+            motion_sensory_rows == 0
+            or int(transition_sensory_summary.get("rowsWithMotionSensoryContinuity") or 0) >= motion_sensory_rows
+        )
+        and int(transition_sensory_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_sensory.get("blockers"),
+        {
+            "transitionSensoryContinuityStatus": transition_sensory.get("status"),
+            "transitionSensoryContinuitySummary": transition_sensory_summary,
+        },
+    )
     transition_preview_summary = get_summary(transition_preview_packet)
     transition_preview_quality_summary = get_summary(transition_preview_quality)
     transition_audition_summary = get_summary(transition_audition_packet)
@@ -1847,6 +1924,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         transition_preview_packet.get("status") in {"ready_with_transition_preview_packet", "ready_no_important_transitions"}
         and transition_preview_quality.get("status") == "passed"
         and transition_audition_packet.get("status") in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}
+        and transition_sensory.get("status") == "passed"
         and transition_audition_quality.get("status") == "passed"
         and transition_audition_visual_proof.get("status") == "passed"
         and transition_audition_role_integrity.get("status") == "passed"
@@ -2386,6 +2464,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionCutpointSummary": transition_cutpoint_summary,
             "transitionActionAnchorStatus": transition_action_anchor.get("status"),
             "transitionActionAnchorSummary": transition_action_anchor_summary,
+            "transitionSensoryContinuityStatus": transition_sensory.get("status"),
+            "transitionSensoryContinuitySummary": transition_sensory_summary,
             "transitionMotifStatus": transition_motif.get("status"),
             "transitionMotifSummary": transition_motif_summary,
             "bridgeSequenceStatus": bridge_sequence.get("status"),

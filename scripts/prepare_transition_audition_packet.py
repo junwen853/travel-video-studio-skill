@@ -140,6 +140,12 @@ def action_anchor_for(row_index: int, transition_by_row: dict[int, dict[str, Any
     return anchor if isinstance(anchor, dict) else {}
 
 
+def sensory_continuity_for(row_index: int, transition_by_row: dict[int, dict[str, Any]]) -> dict[str, Any]:
+    transition = transition_by_row.get(row_index) if isinstance(transition_by_row.get(row_index), dict) else {}
+    sensory = transition.get("transitionSensoryContinuityPlan") if isinstance(transition.get("transitionSensoryContinuityPlan"), dict) else {}
+    return sensory if isinstance(sensory, dict) else {}
+
+
 def motion_execution_ready(motion: dict[str, Any]) -> bool:
     bgm = motion.get("bgmChoreography") if isinstance(motion.get("bgmChoreography"), dict) else {}
     caption = motion.get("captionAndTitlePolicy") if isinstance(motion.get("captionAndTitlePolicy"), dict) else {}
@@ -227,6 +233,26 @@ def action_anchor_summary(anchor: dict[str, Any]) -> dict[str, Any]:
         "outgoingTerms": outgoing.get("terms") if isinstance(outgoing.get("terms"), list) else [],
         "bridgeOrMatchTerms": bridge.get("terms") if isinstance(bridge.get("terms"), list) else [],
         "landingTerms": landing.get("terms") if isinstance(landing.get("terms"), list) else [],
+    }
+
+
+def sensory_continuity_summary(sensory: dict[str, Any]) -> dict[str, Any]:
+    channels = sensory.get("cueChannels") if isinstance(sensory.get("cueChannels"), dict) else {}
+    return {
+        "status": sensory.get("status"),
+        "ready": sensory.get("status") == "ready_with_transition_sensory_continuity_plan",
+        "cueChannelCount": sensory.get("cueChannelCount"),
+        "requiredCueChannelCount": sensory.get("requiredCueChannelCount"),
+        "visualReady": channels.get("visualContinuityReady"),
+        "audioReady": channels.get("audioContinuityReady"),
+        "captionQuietReady": channels.get("captionQuietReady"),
+        "routeOrMoodReady": channels.get("routeOrMoodContinuityReady"),
+        "landingReady": channels.get("landingContinuityReady"),
+        "motionReady": channels.get("motionContinuityReady"),
+        "importantBoundary": sensory.get("importantBoundary"),
+        "bgmOnlyNoSourceVoice": sensory.get("bgmOnlyNoSourceVoice"),
+        "actionAnchorReady": sensory.get("actionAnchorReady"),
+        "cutpointReady": sensory.get("cutpointReady"),
     }
 
 
@@ -393,6 +419,8 @@ def build_row(
     cutpoint_row_summary = cutpoint_summary(cutpoint)
     action_anchor = action_anchor_for(row_index, transition_by_row)
     action_anchor_row_summary = action_anchor_summary(action_anchor)
+    sensory_continuity = sensory_continuity_for(row_index, transition_by_row)
+    sensory_continuity_row_summary = sensory_continuity_summary(sensory_continuity)
     out_dir = row_dir(output_dir, row_index, category)
     issues: list[str] = []
     warnings: list[str] = []
@@ -408,6 +436,10 @@ def build_row(
         issues.append("missing_transition_action_anchor_plan")
     elif action_anchor.get("status") != "ready_with_transition_action_anchor_plan":
         issues.append("transition_action_anchor_plan_not_ready_for_audition")
+    if not sensory_continuity:
+        issues.append("missing_transition_sensory_continuity_plan")
+    elif sensory_continuity.get("status") != "ready_with_transition_sensory_continuity_plan":
+        issues.append("transition_sensory_continuity_plan_not_ready_for_audition")
     if not any(sample["role"] == "outgoing" for sample in samples):
         issues.append("missing_outgoing_sample")
     if not any(sample["role"] == "landing" for sample in samples):
@@ -459,6 +491,7 @@ def build_row(
         "motionExecution": motion_summary,
         "cutpoint": cutpoint_row_summary,
         "actionAnchor": action_anchor_row_summary,
+        "sensoryContinuity": sensory_continuity_row_summary,
         "auditionClip": str(audition_path),
         "auditionMarkdown": str(md_path),
         "sampleCount": len(samples),
@@ -483,6 +516,7 @@ def write_row_markdown(path: Path, row: dict[str, Any]) -> None:
         f"To: `{row.get('toSourceName')}`",
         f"Motion execution: `{(row.get('motionExecution') or {}).get('status')}` / `{(row.get('motionExecution') or {}).get('choreographyFamily')}` / `{(row.get('motionExecution') or {}).get('resolveKeyframeEffect')}`",
         f"Bridge/motion action: {(row.get('motionExecution') or {}).get('bridgeOrMotionAction')}",
+        f"Sensory continuity: `{(row.get('sensoryContinuity') or {}).get('status')}` / channels `{(row.get('sensoryContinuity') or {}).get('cueChannelCount')}` of `{(row.get('sensoryContinuity') or {}).get('requiredCueChannelCount')}`",
         f"Audition: `{row.get('auditionClip')}`",
         "",
         "## Samples",
@@ -602,6 +636,13 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "rowsWithBridgeOrMatchActionAnchor": sum(1 for row in audition_rows if (row.get("actionAnchor") or {}).get("bridgeOrMatchReady") is True),
         "rowsWithLandingActionAnchor": sum(1 for row in audition_rows if (row.get("actionAnchor") or {}).get("landingReady") is True),
         "rowsWithDirectionalActionAnchor": sum(1 for row in audition_rows if (row.get("actionAnchor") or {}).get("directionalMotionAnchorReady") is True),
+        "rowsWithSensoryContinuity": sum(1 for row in audition_rows if (row.get("sensoryContinuity") or {}).get("ready") is True),
+        "rowsWithVisualSensoryContinuity": sum(1 for row in audition_rows if (row.get("sensoryContinuity") or {}).get("visualReady") is True),
+        "rowsWithAudioSensoryContinuity": sum(1 for row in audition_rows if (row.get("sensoryContinuity") or {}).get("audioReady") is True),
+        "rowsWithCaptionSensoryContinuity": sum(1 for row in audition_rows if (row.get("sensoryContinuity") or {}).get("captionQuietReady") is True),
+        "rowsWithRouteOrMoodSensoryContinuity": sum(1 for row in audition_rows if (row.get("sensoryContinuity") or {}).get("routeOrMoodReady") is True),
+        "rowsWithLandingSensoryContinuity": sum(1 for row in audition_rows if (row.get("sensoryContinuity") or {}).get("landingReady") is True),
+        "rowsWithMotionSensoryContinuity": sum(1 for row in audition_rows if (row.get("sensoryContinuity") or {}).get("motionReady") is True),
         "motionExecutionChoreographyFamilyCounts": {
             family: sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("choreographyFamily") == family)
             for family in sorted({str((row.get("motionExecution") or {}).get("choreographyFamily") or "") for row in audition_rows if (row.get("motionExecution") or {}).get("choreographyFamily")})

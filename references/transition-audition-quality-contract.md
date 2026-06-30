@@ -20,7 +20,8 @@ The audit reads `transition_audition_packet/transition_audition_packet.json` and
 - Every important audition row has a package-local MP4 file.
 - Every important audition row carries ready `motionExecution` from the transition execution blueprint.
 - Every important audition row carries ready `actionAnchor` from the transition execution blueprint.
-- The motion execution row has outgoing/bridge-or-motion/landing three-beat choreography, BGM-hit policy, caption/title quiet-zone policy, motion-direction evidence for visible motion effects, cutpoint leave/hit/landing timing, outgoing action, bridge-or-match connector, stable landing shot, and a Resolve keyframe effect.
+- Every important audition row carries ready `sensoryContinuity` from the transition execution blueprint.
+- The motion execution row has outgoing/bridge-or-motion/landing three-beat choreography, BGM-hit policy, caption/title quiet-zone policy, motion-direction evidence for visible motion effects, cutpoint leave/hit/landing timing, outgoing action, bridge-or-match connector, visual/audio/caption/route-or-mood/landing sensory continuity, stable landing shot, and a Resolve keyframe effect.
 - `ffprobe` can read each MP4 and find a video stream.
 - Each clip meets the minimum duration and resolution.
 - Audio streams are blocked by default; auditions are visual transition proof, not BGM or source-audio approval.
@@ -28,4 +29,4 @@ The audit reads `transition_audition_packet/transition_audition_packet.json` and
 
 ## Repair
 
-If a clip is missing, too short, unreadable, outside the package, contains audio, lacks ready motion execution, lacks motion-direction proof, lacks cutpoint timing proof, lacks action-anchor proof, or fails frame-delta proof in the visual contract, rebuild the audition packet after repairing the transition execution blueprint, transition cutpoint contract, transition action-anchor contract, transition preview packet, and bridge visual evidence.
+If a clip is missing, too short, unreadable, outside the package, contains audio, lacks ready motion execution, lacks motion-direction proof, lacks cutpoint timing proof, lacks action-anchor proof, lacks sensory-continuity proof, or fails frame-delta proof in the visual contract, rebuild the audition packet after repairing the transition execution blueprint, transition cutpoint contract, transition action-anchor contract, transition sensory-continuity contract, transition preview packet, and bridge visual evidence.

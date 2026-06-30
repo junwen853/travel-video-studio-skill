@@ -129,6 +129,7 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
     motion = row.get("motionExecution") if isinstance(row.get("motionExecution"), dict) else {}
     cutpoint = row.get("cutpoint") if isinstance(row.get("cutpoint"), dict) else {}
     action_anchor = row.get("actionAnchor") if isinstance(row.get("actionAnchor"), dict) else {}
+    sensory = row.get("sensoryContinuity") if isinstance(row.get("sensoryContinuity"), dict) else {}
     if row.get("status") != "ready_with_transition_audition":
         issues.append("audition_row_not_ready")
     if motion.get("ready") is not True:
@@ -172,6 +173,26 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
         issues.append("action_anchor_missing_directional_motion")
     if action_anchor.get("importantBoundary") is True and action_anchor.get("importantBoundaryResolved") is not True:
         issues.append("action_anchor_important_boundary_not_resolved")
+    if sensory.get("ready") is not True:
+        issues.append("sensory_continuity_not_ready")
+    if sensory.get("visualReady") is not True:
+        issues.append("sensory_continuity_missing_visual_channel")
+    if sensory.get("audioReady") is not True:
+        issues.append("sensory_continuity_missing_audio_channel")
+    if sensory.get("captionQuietReady") is not True:
+        issues.append("sensory_continuity_missing_caption_quiet_channel")
+    if sensory.get("landingReady") is not True:
+        issues.append("sensory_continuity_missing_landing_channel")
+    if sensory.get("importantBoundary") is True and sensory.get("routeOrMoodReady") is not True:
+        issues.append("sensory_continuity_missing_important_route_or_mood_channel")
+    if motion.get("motionDirectionRequired") is True and sensory.get("motionReady") is not True:
+        issues.append("sensory_continuity_missing_motion_channel")
+    if sensory.get("bgmOnlyNoSourceVoice") is not True:
+        issues.append("sensory_continuity_audio_not_bgm_only")
+    if sensory.get("actionAnchorReady") is not True:
+        issues.append("sensory_continuity_action_anchor_not_ready")
+    if sensory.get("cutpointReady") is not True:
+        issues.append("sensory_continuity_cutpoint_not_ready")
     if not clip_path:
         issues.append("audition_clip_path_missing")
         probe = {"ok": False}
@@ -212,6 +233,7 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
         "motionExecution": motion,
         "cutpoint": cutpoint,
         "actionAnchor": action_anchor,
+        "sensoryContinuity": sensory,
         "probe": probe,
         "issues": issues,
         "warnings": warnings,
@@ -257,6 +279,13 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "rowsWithBridgeOrMatchActionAnchor": sum(1 for row in audited if (row.get("actionAnchor") or {}).get("bridgeOrMatchReady") is True),
         "rowsWithLandingActionAnchor": sum(1 for row in audited if (row.get("actionAnchor") or {}).get("landingReady") is True),
         "rowsWithDirectionalActionAnchor": sum(1 for row in audited if (row.get("actionAnchor") or {}).get("directionalMotionAnchorReady") is True),
+        "rowsWithSensoryContinuity": sum(1 for row in audited if (row.get("sensoryContinuity") or {}).get("ready") is True),
+        "rowsWithVisualSensoryContinuity": sum(1 for row in audited if (row.get("sensoryContinuity") or {}).get("visualReady") is True),
+        "rowsWithAudioSensoryContinuity": sum(1 for row in audited if (row.get("sensoryContinuity") or {}).get("audioReady") is True),
+        "rowsWithCaptionSensoryContinuity": sum(1 for row in audited if (row.get("sensoryContinuity") or {}).get("captionQuietReady") is True),
+        "rowsWithRouteOrMoodSensoryContinuity": sum(1 for row in audited if (row.get("sensoryContinuity") or {}).get("routeOrMoodReady") is True),
+        "rowsWithLandingSensoryContinuity": sum(1 for row in audited if (row.get("sensoryContinuity") or {}).get("landingReady") is True),
+        "rowsWithMotionSensoryContinuity": sum(1 for row in audited if (row.get("sensoryContinuity") or {}).get("motionReady") is True),
         "rowsWithResolveKeyframeEffect": sum(1 for row in audited if bool((row.get("motionExecution") or {}).get("resolveKeyframeEffect"))),
         "warningCount": len(warnings),
     }
@@ -280,6 +309,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "policy": {
             "watchableAuditionClipsRequired": True,
             "motionExecutionRequired": True,
+            "sensoryContinuityRequired": True,
             "threeBeatBgmHitCaptionQuietRequired": True,
             "auditionClipsMustBePackageLocal": True,
             "auditionClipsMustBeMuted": bool(args.require_no_audio),
@@ -318,6 +348,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Status: `{row.get('status')}`",
                 f"- Clip: `{row.get('auditionClip')}`",
                 f"- Motion execution: `{(row.get('motionExecution') or {}).get('status')}` / `{(row.get('motionExecution') or {}).get('choreographyFamily')}` / `{(row.get('motionExecution') or {}).get('resolveKeyframeEffect')}`",
+                f"- Sensory continuity: `{(row.get('sensoryContinuity') or {}).get('status')}` / channels `{(row.get('sensoryContinuity') or {}).get('cueChannelCount')}` of `{(row.get('sensoryContinuity') or {}).get('requiredCueChannelCount')}`",
                 f"- Duration: `{probe.get('durationSeconds')}`",
                 f"- Size: `{probe.get('width')}x{probe.get('height')}`",
                 f"- Audio streams: `{probe.get('audioStreamCount')}`",

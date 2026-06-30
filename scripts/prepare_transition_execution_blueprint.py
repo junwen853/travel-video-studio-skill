@@ -582,6 +582,104 @@ def action_anchor_plan(
     }
 
 
+def anchor_ready(plan: dict[str, Any], key: str) -> bool:
+    value = plan.get(key)
+    return isinstance(value, dict) and value.get("ready") is True and value.get("weakOrPlaceholder") is not True
+
+
+def sensory_continuity_plan(
+    row: dict[str, Any],
+    *,
+    selected: dict[str, Any],
+    motion_execution: dict[str, Any],
+    cutpoint: dict[str, Any],
+    action_anchor: dict[str, Any],
+    bridge_satisfied: bool,
+) -> dict[str, Any]:
+    family = str(motion_execution.get("choreographyFamily") or "")
+    style = str(motion_execution.get("sourceTransitionStyle") or "")
+    category = str(row.get("boundaryCategory") or "")
+    important = category in {"chapter_boundary", "timeline_gap", "title_boundary", "ending_transition"} or action_anchor.get("importantBoundary") is True
+    bgm = motion_execution.get("bgmChoreography") if isinstance(motion_execution.get("bgmChoreography"), dict) else {}
+    caption = motion_execution.get("captionAndTitlePolicy") if isinstance(motion_execution.get("captionAndTitlePolicy"), dict) else {}
+    direction = motion_execution.get("motionDirectionPlan") if isinstance(motion_execution.get("motionDirectionPlan"), dict) else {}
+    selected_terms = anchor_terms_from_obj(selected, limit=6)
+    route_terms = (
+        row_anchor_terms(row, "routeTerms")
+        + row_anchor_terms(row, "bridgeTerms")
+        + row_anchor_terms(row, "visualMatchTerms")
+        + row_anchor_terms(row, "sharedVisualTerms")
+    )
+    mood_terms = row_anchor_terms(row, "moodTerms") + row_anchor_terms(row, "audioTerms")
+    visual_ready = anchor_ready(action_anchor, "outgoingAnchor") and anchor_ready(action_anchor, "landingAnchor")
+    connector_ready = action_anchor.get("bridgeOrMatchReady") is True or bridge_satisfied
+    audio_ready = (
+        bgm.get("target") == "cut_or_effect_on_bgm_phrase_hit"
+        and bgm.get("allowOffPhrase") is False
+        and cutpoint.get("bgmHitAligned") is True
+        and cutpoint.get("bgmOnlyNoSourceVoice") is True
+    )
+    caption_ready = (
+        cutpoint.get("titleSubtitleQuietZoneReady") is True
+        and caption.get("avoidTitleCollision") is True
+        and caption.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True
+    )
+    route_or_mood_ready = (
+        bool(route_terms)
+        or bool(mood_terms)
+        or bridge_satisfied
+        or family in {"visual_match_cut", "mood_dissolve_breath", "route_bridge_triptych", "texture_bridge_cutaway", "scenic_title_breath", "ending_aftertaste_hold"}
+        or action_anchor.get("importantBoundaryResolved") is True
+    )
+    landing_ready = anchor_ready(action_anchor, "landingAnchor") and as_int(cutpoint.get("landingHoldFrames"), 0) >= (10 if important else 6)
+    motion_ready = style not in MOTION_ANCHOR_STYLES or (
+        direction.get("directionMatch") is True and action_anchor.get("directionalMotionAnchorReady") is True
+    )
+    cue_channels = {
+        "visualContinuityReady": visual_ready and connector_ready,
+        "audioContinuityReady": audio_ready,
+        "captionQuietReady": caption_ready,
+        "routeOrMoodContinuityReady": route_or_mood_ready,
+        "landingContinuityReady": landing_ready,
+        "motionContinuityReady": motion_ready,
+    }
+    cue_count = sum(1 for value in cue_channels.values() if value)
+    required = 6 if important else 5
+    issues: list[str] = []
+    if not cue_channels["visualContinuityReady"]:
+        issues.append("visual_continuity_missing_outgoing_connector_or_landing")
+    if not audio_ready:
+        issues.append("audio_continuity_missing_bgm_phrase_hit_or_bgm_only_policy")
+    if not caption_ready:
+        issues.append("caption_or_title_quiet_zone_missing")
+    if important and not route_or_mood_ready:
+        issues.append("important_boundary_missing_route_or_mood_continuity")
+    if not landing_ready:
+        issues.append("stable_landing_continuity_missing")
+    if not motion_ready:
+        issues.append("motion_sensory_direction_missing")
+    if cue_count < required:
+        issues.append("insufficient_sensory_continuity_channels")
+    return {
+        "status": "ready_with_transition_sensory_continuity_plan" if not issues else "needs_transition_sensory_continuity_repair",
+        "importantBoundary": important,
+        "choreographyFamily": family,
+        "sourceTransitionStyle": style,
+        "cueChannels": cue_channels,
+        "cueChannelCount": cue_count,
+        "requiredCueChannelCount": required,
+        "selectedReferenceTerms": selected_terms,
+        "routeOrMoodTerms": (route_terms + mood_terms)[:10],
+        "bgmPhraseHitReady": audio_ready,
+        "bgmOnlyNoSourceVoice": cutpoint.get("bgmOnlyNoSourceVoice") is True,
+        "captionQuietReady": caption_ready,
+        "actionAnchorReady": action_anchor.get("status") == "ready_with_transition_action_anchor_plan",
+        "cutpointReady": cutpoint.get("status") == "ready_with_transition_cutpoint_plan",
+        "repairGuidance": "Add or relabel visual continuity, BGM phrase support, title/subtitle quiet zone, route/mood connector, and stable landing proof before using a visible transition.",
+        "issues": issues,
+    }
+
+
 def motion_execution_payload(
     row: dict[str, Any],
     *,
@@ -742,6 +840,14 @@ def transition_payload(
         cutpoint=cutpoint,
         bridge_satisfied=bridge_satisfied,
     )
+    sensory = sensory_continuity_plan(
+        row,
+        selected=selected,
+        motion_execution=motion_execution,
+        cutpoint=cutpoint,
+        action_anchor=action_anchor,
+        bridge_satisfied=bridge_satisfied,
+    )
     return {
         "role": "transition_execution_candidate",
         "rowIndex": row.get("rowIndex"),
@@ -779,6 +885,7 @@ def transition_payload(
         "transitionMotionExecution": motion_execution,
         "transitionCutpointPlan": cutpoint,
         "transitionActionAnchorPlan": action_anchor,
+        "transitionSensoryContinuityPlan": sensory,
         "decision": dict(DECISION_FIELDS),
     }
 
@@ -861,6 +968,15 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     rows_with_landing_action_anchor = 0
     rows_with_directional_action_anchor = 0
     blocked_action_anchor_rows = 0
+    rows_with_sensory_continuity_plan = 0
+    rows_with_sensory_continuity_ready = 0
+    rows_with_visual_sensory_continuity = 0
+    rows_with_audio_sensory_continuity = 0
+    rows_with_caption_sensory_continuity = 0
+    rows_with_route_or_mood_sensory_continuity = 0
+    rows_with_landing_sensory_continuity = 0
+    rows_with_motion_sensory_continuity = 0
+    blocked_sensory_continuity_rows = 0
     motion_execution_from_choreography = 0
     motion_execution_derived = 0
     blocked_motion_execution_rows = 0
@@ -911,6 +1027,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         direction_plan = motion_execution.get("motionDirectionPlan") if isinstance(motion_execution.get("motionDirectionPlan"), dict) else {}
         cutpoint = payload.get("transitionCutpointPlan") if isinstance(payload.get("transitionCutpointPlan"), dict) else {}
         action_anchor = payload.get("transitionActionAnchorPlan") if isinstance(payload.get("transitionActionAnchorPlan"), dict) else {}
+        sensory = payload.get("transitionSensoryContinuityPlan") if isinstance(payload.get("transitionSensoryContinuityPlan"), dict) else {}
         if direction_plan:
             rows_with_motion_direction_plan += 1
         if direction_plan.get("required") is not True or direction_plan.get("directionMatch") is True:
@@ -941,6 +1058,25 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             rows_with_landing_action_anchor += 1
         if action_anchor.get("directionalMotionAnchorReady") is True:
             rows_with_directional_action_anchor += 1
+        if sensory:
+            rows_with_sensory_continuity_plan += 1
+        if sensory.get("status") == "ready_with_transition_sensory_continuity_plan":
+            rows_with_sensory_continuity_ready += 1
+        else:
+            blocked_sensory_continuity_rows += 1
+        sensory_channels = sensory.get("cueChannels") if isinstance(sensory.get("cueChannels"), dict) else {}
+        if sensory_channels.get("visualContinuityReady") is True:
+            rows_with_visual_sensory_continuity += 1
+        if sensory_channels.get("audioContinuityReady") is True:
+            rows_with_audio_sensory_continuity += 1
+        if sensory_channels.get("captionQuietReady") is True:
+            rows_with_caption_sensory_continuity += 1
+        if sensory_channels.get("routeOrMoodContinuityReady") is True:
+            rows_with_route_or_mood_sensory_continuity += 1
+        if sensory_channels.get("landingContinuityReady") is True:
+            rows_with_landing_sensory_continuity += 1
+        if sensory_channels.get("motionContinuityReady") is True:
+            rows_with_motion_sensory_continuity += 1
         if motion_execution.get("source") == "transition_choreography_plan":
             motion_execution_from_choreography += 1
         if motion_execution.get("source") == "derived_from_reference_selection":
@@ -978,6 +1114,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             or motion_execution.get("status") != "ready_with_transition_motion_execution"
             or cutpoint.get("status") != "ready_with_transition_cutpoint_plan"
             or action_anchor.get("status") != "ready_with_transition_action_anchor_plan"
+            or sensory.get("status") != "ready_with_transition_sensory_continuity_plan"
             or not bridge_satisfied
             or bool(payload.get("forbiddenRecipeHits"))
             or (payload.get("motionStyle") and not payload.get("motionHasEvidence"))
@@ -1018,6 +1155,15 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "actionAnchorBridgeOrMatchReady": action_anchor.get("bridgeOrMatchReady"),
                 "actionAnchorLandingReady": (action_anchor.get("landingAnchor") or {}).get("ready"),
                 "actionAnchorDirectionalMotionReady": action_anchor.get("directionalMotionAnchorReady"),
+                "transitionSensoryContinuityPlanStatus": sensory.get("status"),
+                "sensoryCueChannelCount": sensory.get("cueChannelCount"),
+                "sensoryRequiredCueChannelCount": sensory.get("requiredCueChannelCount"),
+                "sensoryVisualReady": sensory_channels.get("visualContinuityReady"),
+                "sensoryAudioReady": sensory_channels.get("audioContinuityReady"),
+                "sensoryCaptionQuietReady": sensory_channels.get("captionQuietReady"),
+                "sensoryRouteOrMoodReady": sensory_channels.get("routeOrMoodContinuityReady"),
+                "sensoryLandingReady": sensory_channels.get("landingContinuityReady"),
+                "sensoryMotionReady": sensory_channels.get("motionContinuityReady"),
                 "bgmHitChoreographyReady": bgm_choreography.get("target") == "cut_or_effect_on_bgm_phrase_hit"
                 and bgm_choreography.get("allowOffPhrase") is False,
                 "captionQuietZoneReady": caption_policy.get("avoidTitleCollision") is True
@@ -1078,6 +1224,9 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                         else "",
                         "transitionActionAnchorStatus": (transition.get("transitionActionAnchorPlan") or {}).get("status")
                         if isinstance(transition.get("transitionActionAnchorPlan"), dict)
+                        else "",
+                        "transitionSensoryContinuityStatus": (transition.get("transitionSensoryContinuityPlan") or {}).get("status")
+                        if isinstance(transition.get("transitionSensoryContinuityPlan"), dict)
                         else "",
                     },
                 }
@@ -1142,6 +1291,15 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "rowsWithLandingActionAnchor": rows_with_landing_action_anchor,
             "rowsWithDirectionalActionAnchor": rows_with_directional_action_anchor,
             "blockedActionAnchorRowCount": blocked_action_anchor_rows,
+            "rowsWithSensoryContinuityPlan": rows_with_sensory_continuity_plan,
+            "rowsWithSensoryContinuityReady": rows_with_sensory_continuity_ready,
+            "rowsWithVisualSensoryContinuity": rows_with_visual_sensory_continuity,
+            "rowsWithAudioSensoryContinuity": rows_with_audio_sensory_continuity,
+            "rowsWithCaptionSensoryContinuity": rows_with_caption_sensory_continuity,
+            "rowsWithRouteOrMoodSensoryContinuity": rows_with_route_or_mood_sensory_continuity,
+            "rowsWithLandingSensoryContinuity": rows_with_landing_sensory_continuity,
+            "rowsWithMotionSensoryContinuity": rows_with_motion_sensory_continuity,
+            "blockedSensoryContinuityRowCount": blocked_sensory_continuity_rows,
             "motionExecutionFromChoreographyCount": motion_execution_from_choreography,
             "motionExecutionDerivedCount": motion_execution_derived,
             "blockedMotionExecutionRowCount": blocked_motion_execution_rows,
@@ -1157,6 +1315,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "Every transition execution row consumes a ready choreography row and carries transitionMotionExecution metadata.",
                 "Every transition execution row carries a transitionCutpointPlan with outgoing tail, BGM-hit bridge/effect, landing hold, handles, and title/subtitle quiet-zone proof.",
                 "Every transition execution row carries a transitionActionAnchorPlan with outgoing, bridge-or-match, landing, and directional motion anchors.",
+                "Every transition execution row carries a transitionSensoryContinuityPlan with visual, audio, caption, route/mood, landing, and motion continuity channels.",
                 "Adjacent source clips are annotated with in/out transition execution metadata.",
                 "Motion effects are present only when the execution plan recorded route or two-sided motion evidence.",
                 "Bridge-required transitions are not marked ready until bridge sequence rows are materialized.",
@@ -1167,6 +1326,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "Choreography exists but three-beat/BGM-hit/title-safe motion execution is not present in transitions, clip annotations, or markers.",
                 "Cutpoint timing remains implicit, so an effect can hide a hard or unlanded boundary.",
                 "Action anchors remain implicit, so a transition effect connects two visually unreadable or unmotivated clip moments.",
+                "Sensory continuity remains implicit, so the cut has an effect but no BGM, caption, route/mood, or landing continuity proof.",
                 "A random spin, flash, glitch, shake, or template effect appears in a candidate row.",
                 "A bridge-required row is marked ready without a materialized bridge sequence.",
                 "The script writes Resolve, queues render, downloads assets, or mutates source footage.",
@@ -1224,6 +1384,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Motion execution: {row.get('transitionMotionExecutionStatus')} / {row.get('choreographyFamily')} / intensity={row.get('choreographyIntensity')}",
                 f"- Three-beat/BGM/title-safe: {row.get('threeBeatChoreographyCount')} / {row.get('bgmHitChoreographyReady')} / {row.get('captionQuietZoneReady')}",
                 f"- Action anchors: {row.get('transitionActionAnchorPlanStatus')} / outgoing={row.get('actionAnchorOutgoingReady')} bridge-or-match={row.get('actionAnchorBridgeOrMatchReady')} landing={row.get('actionAnchorLandingReady')}",
+                f"- Sensory continuity: {row.get('transitionSensoryContinuityPlanStatus')} / cues={row.get('sensoryCueChannelCount')}/{row.get('sensoryRequiredCueChannelCount')} visual={row.get('sensoryVisualReady')} audio={row.get('sensoryAudioReady')} route-or-mood={row.get('sensoryRouteOrMoodReady')}",
                 f"- Clip match: from={row.get('fromClipMatched')} to={row.get('toClipMatched')}",
                 f"- Bridge satisfied: {row.get('bridgeSequenceSatisfied')}",
                 f"- Motion evidence: {row.get('motionStyle')} / {row.get('motionHasEvidence')}",

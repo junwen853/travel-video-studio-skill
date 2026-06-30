@@ -672,6 +672,15 @@ def summarize_transition_execution_blueprint(report: dict[str, Any] | None) -> d
         "rowsWithLandingActionAnchor": summary.get("rowsWithLandingActionAnchor"),
         "rowsWithDirectionalActionAnchor": summary.get("rowsWithDirectionalActionAnchor"),
         "blockedActionAnchorRowCount": summary.get("blockedActionAnchorRowCount"),
+        "rowsWithSensoryContinuityPlan": summary.get("rowsWithSensoryContinuityPlan"),
+        "rowsWithSensoryContinuityReady": summary.get("rowsWithSensoryContinuityReady"),
+        "rowsWithVisualSensoryContinuity": summary.get("rowsWithVisualSensoryContinuity"),
+        "rowsWithAudioSensoryContinuity": summary.get("rowsWithAudioSensoryContinuity"),
+        "rowsWithCaptionSensoryContinuity": summary.get("rowsWithCaptionSensoryContinuity"),
+        "rowsWithRouteOrMoodSensoryContinuity": summary.get("rowsWithRouteOrMoodSensoryContinuity"),
+        "rowsWithLandingSensoryContinuity": summary.get("rowsWithLandingSensoryContinuity"),
+        "rowsWithMotionSensoryContinuity": summary.get("rowsWithMotionSensoryContinuity"),
+        "blockedSensoryContinuityRowCount": summary.get("blockedSensoryContinuityRowCount"),
         "motionExecutionFromChoreographyCount": summary.get("motionExecutionFromChoreographyCount"),
         "blockedMotionExecutionRowCount": summary.get("blockedMotionExecutionRowCount"),
         "choreographyFamilyCounts": summary.get("choreographyFamilyCounts"),
@@ -949,6 +958,31 @@ def summarize_transition_action_anchor_contract(report: dict[str, Any] | None) -
         "importantBoundaryCount": summary.get("importantBoundaryCount"),
         "importantRowsResolved": summary.get("importantRowsResolved"),
         "rowsWithCutpointReady": summary.get("rowsWithCutpointReady"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
+def summarize_transition_sensory_continuity_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "readySensoryContinuityRowCount": summary.get("readySensoryContinuityRowCount"),
+        "blockedSensoryContinuityRowCount": summary.get("blockedSensoryContinuityRowCount"),
+        "rowsWithVisualSensoryContinuity": summary.get("rowsWithVisualSensoryContinuity"),
+        "rowsWithAudioSensoryContinuity": summary.get("rowsWithAudioSensoryContinuity"),
+        "rowsWithCaptionSensoryContinuity": summary.get("rowsWithCaptionSensoryContinuity"),
+        "rowsWithRouteOrMoodSensoryContinuity": summary.get("rowsWithRouteOrMoodSensoryContinuity"),
+        "rowsWithLandingSensoryContinuity": summary.get("rowsWithLandingSensoryContinuity"),
+        "motionSensoryRowCount": summary.get("motionSensoryRowCount"),
+        "rowsWithMotionSensoryContinuity": summary.get("rowsWithMotionSensoryContinuity"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantRowsWithRouteOrMoodContinuity": summary.get("importantRowsWithRouteOrMoodContinuity"),
         "blockedCheckCount": summary.get("blockedCheckCount"),
         "blockers": report.get("blockers") or [],
         "warnings": report.get("warnings") or [],
@@ -2593,9 +2627,12 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Cutpoint BGM/landing/handle rows: {execution_blueprint.get('rowsWithCutpointBgmHit')} / {execution_blueprint.get('rowsWithCutpointLandingHold')} / {execution_blueprint.get('rowsWithCutpointHandles')}",
                 f"- Action-anchor ready rows: {execution_blueprint.get('rowsWithActionAnchorReady')} / {execution_blueprint.get('executionRowCount')}",
                 f"- Action-anchor outgoing/bridge/landing rows: {execution_blueprint.get('rowsWithOutgoingActionAnchor')} / {execution_blueprint.get('rowsWithBridgeOrMatchActionAnchor')} / {execution_blueprint.get('rowsWithLandingActionAnchor')}",
+                f"- Sensory continuity ready rows: {execution_blueprint.get('rowsWithSensoryContinuityReady')} / {execution_blueprint.get('executionRowCount')}",
+                f"- Sensory visual/audio/caption rows: {execution_blueprint.get('rowsWithVisualSensoryContinuity')} / {execution_blueprint.get('rowsWithAudioSensoryContinuity')} / {execution_blueprint.get('rowsWithCaptionSensoryContinuity')}",
                 f"- Motion blockers: {execution_blueprint.get('blockedMotionExecutionRowCount')}",
                 f"- Cutpoint blockers: {execution_blueprint.get('blockedCutpointRowCount')}",
                 f"- Action-anchor blockers: {execution_blueprint.get('blockedActionAnchorRowCount')}",
+                f"- Sensory continuity blockers: {execution_blueprint.get('blockedSensoryContinuityRowCount')}",
                 f"- Blocked rows: {execution_blueprint.get('blockedRowCount')}",
                 f"- Missing clip matches: {execution_blueprint.get('rowsMissingClipMatch')}",
             ]
@@ -2626,6 +2663,20 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Outgoing/bridge/landing rows: {anchor.get('rowsWithOutgoingActionAnchor')} / {anchor.get('rowsWithBridgeOrMatchActionAnchor')} / {anchor.get('rowsWithLandingActionAnchor')}",
                 f"- Directional motion rows: {anchor.get('rowsWithDirectionalMotionAnchor')} / {anchor.get('motionAnchorRowCount')}",
                 f"- Important resolved rows: {anchor.get('importantRowsResolved')} / {anchor.get('importantBoundaryCount')}",
+            ]
+        )
+    if report.get("transitionSensoryContinuitySummary"):
+        sensory = report["transitionSensoryContinuitySummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Sensory Continuity Contract",
+                f"- Exists: `{sensory.get('exists')}`",
+                f"- Status: `{sensory.get('status')}`",
+                f"- Ready rows: {sensory.get('readySensoryContinuityRowCount')} / {sensory.get('transitionRowCount')}",
+                f"- Visual/audio/caption rows: {sensory.get('rowsWithVisualSensoryContinuity')} / {sensory.get('rowsWithAudioSensoryContinuity')} / {sensory.get('rowsWithCaptionSensoryContinuity')}",
+                f"- Route-or-mood/landing rows: {sensory.get('rowsWithRouteOrMoodSensoryContinuity')} / {sensory.get('rowsWithLandingSensoryContinuity')}",
+                f"- Motion rows: {sensory.get('rowsWithMotionSensoryContinuity')} / {sensory.get('motionSensoryRowCount')}",
             ]
         )
     if report.get("rhythmRecutBlueprintSummary"):
@@ -3128,6 +3179,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_action_anchor_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_action_anchor_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_action_anchor_contract", transition_action_anchor_cmd, ok_codes={0, 2}))
 
+    transition_sensory_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_sensory_continuity_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_transition_sensory_continuity_contract", transition_sensory_cmd, ok_codes={0, 2}))
+
     effect_motion_blueprint_cmd = ["python3", str(SCRIPTS_DIR / "prepare_effect_motion_blueprint.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_effect_motion_blueprint", effect_motion_blueprint_cmd, ok_codes={0, 2}))
 
@@ -3461,6 +3515,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_execution_blueprint_summary = None
     transition_cutpoint_summary = None
     transition_action_anchor_summary = None
+    transition_sensory_continuity_summary = None
     transition_motif_summary = None
     bridge_sequence_summary = None
     bridge_sequence_blueprint_summary = None
@@ -3682,6 +3737,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition action-anchor blocker: {item}" for item in transition_action_anchor_summary.get("blockers") or [])
             if transition_action_anchor_summary and transition_action_anchor_summary.get("warnings"):
                 warnings.extend(f"Transition action-anchor warning: {item}" for item in transition_action_anchor_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_sensory_continuity_contract":
+            transition_sensory_continuity_summary = summarize_transition_sensory_continuity_contract(payload)
+            if transition_sensory_continuity_summary and transition_sensory_continuity_summary.get("status") == "blocked":
+                blockers.extend(f"Transition sensory-continuity blocker: {item}" for item in transition_sensory_continuity_summary.get("blockers") or [])
+            if transition_sensory_continuity_summary and transition_sensory_continuity_summary.get("warnings"):
+                warnings.extend(f"Transition sensory-continuity warning: {item}" for item in transition_sensory_continuity_summary.get("warnings") or [])
         if step["id"] == "prepare_transition_motif_plan":
             transition_motif_summary = summarize_transition_motif_plan(payload)
         if step["id"] == "prepare_bridge_sequence_plan":
@@ -4108,6 +4169,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_action_anchor_summary = summarize_transition_action_anchor_contract(
             load_json(package_dir / "transition_action_anchor_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_sensory_continuity_contract_audit.json").exists():
+        transition_sensory_continuity_summary = summarize_transition_sensory_continuity_contract(
+            load_json(package_dir / "transition_sensory_continuity_contract_audit.json")
+        )
     if package_dir and (package_dir / "transition_motif_plan" / "transition_motif_plan.json").exists():
         transition_motif_summary = summarize_transition_motif_plan(
             load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json")
@@ -4373,6 +4438,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionExecutionBlueprintSummary": transition_execution_blueprint_summary,
         "transitionCutpointSummary": transition_cutpoint_summary,
         "transitionActionAnchorSummary": transition_action_anchor_summary,
+        "transitionSensoryContinuitySummary": transition_sensory_continuity_summary,
         "transitionMotifSummary": transition_motif_summary,
         "bridgeSequenceSummary": bridge_sequence_summary,
         "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,

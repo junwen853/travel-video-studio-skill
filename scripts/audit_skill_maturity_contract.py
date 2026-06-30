@@ -64,6 +64,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_motion_direction_contract.py",
         "audit_transition_cutpoint_contract.py",
         "audit_transition_action_anchor_contract.py",
+        "audit_transition_sensory_continuity_contract.py",
         "prepare_transition_preview_packet.py",
         "audit_transition_preview_quality_contract.py",
         "prepare_transition_audition_packet.py",
@@ -165,6 +166,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_motion_direction_contract_rule": "audit_transition_motion_direction_contract.py",
     "transition_cutpoint_contract_rule": "audit_transition_cutpoint_contract.py",
     "transition_action_anchor_contract_rule": "audit_transition_action_anchor_contract.py",
+    "transition_sensory_continuity_contract_rule": "audit_transition_sensory_continuity_contract.py",
     "transition_preview_packet_rule": "prepare_transition_preview_packet.py",
     "transition_preview_quality_contract_rule": "audit_transition_preview_quality_contract.py",
     "transition_audition_packet_rule": "prepare_transition_audition_packet.py",
@@ -269,6 +271,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_motion_direction_contract_reference_rule": "transition-motion-direction-contract.md",
     "transition_cutpoint_contract_reference_rule": "transition-cutpoint-contract.md",
     "transition_action_anchor_contract_reference_rule": "transition-action-anchor-contract.md",
+    "transition_sensory_continuity_contract_reference_rule": "transition-sensory-continuity-contract.md",
     "transition_preview_packet_reference_rule": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract_reference_rule": "transition-preview-quality-contract.md",
     "transition_audition_packet_reference_rule": "transition-audition-packet-engine.md",
@@ -323,6 +326,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
     "transition_cutpoint_contract": "transition-cutpoint-contract.md",
     "transition_action_anchor_contract": "transition-action-anchor-contract.md",
+    "transition_sensory_continuity_contract": "transition-sensory-continuity-contract.md",
     "transition_preview_packet_engine": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract": "transition-preview-quality-contract.md",
     "transition_audition_packet_engine": "transition-audition-packet-engine.md",
@@ -371,6 +375,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "reference_transition_profile_contract": "reference transition profile contract",
     "shot_transition_boundary_contract": "shot transition boundary contract",
     "transition_storyboard_contract": "transition storyboard contract",
+    "transition_sensory_continuity_contract": "transition sensory-continuity contract",
     "transition_breathing_room_contract": "transition breathing-room contract",
     "scene_flow_arc_contract": "scene flow arc contract",
     "final_cut_smoothness_contract": "final cut smoothness contract",
@@ -3015,6 +3020,13 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
     transition_rows_with_outgoing_action_anchor = 0
     transition_rows_with_bridge_match_action_anchor = 0
     transition_rows_with_landing_action_anchor = 0
+    transition_rows_with_sensory_continuity = 0
+    transition_rows_with_visual_sensory = 0
+    transition_rows_with_audio_sensory = 0
+    transition_rows_with_caption_sensory = 0
+    transition_rows_with_route_mood_sensory = 0
+    transition_rows_with_landing_sensory = 0
+    transition_rows_with_motion_sensory = 0
     for transition in transitions:
         if not isinstance(transition, dict):
             continue
@@ -3058,6 +3070,22 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
             transition_rows_with_bridge_match_action_anchor += 1
         if (action_anchor.get("landingAnchor") or {}).get("ready") is True:
             transition_rows_with_landing_action_anchor += 1
+        sensory = transition.get("transitionSensoryContinuityPlan") if isinstance(transition.get("transitionSensoryContinuityPlan"), dict) else {}
+        channels = sensory.get("cueChannels") if isinstance(sensory.get("cueChannels"), dict) else {}
+        if sensory.get("status") == "ready_with_transition_sensory_continuity_plan":
+            transition_rows_with_sensory_continuity += 1
+        if channels.get("visualContinuityReady") is True:
+            transition_rows_with_visual_sensory += 1
+        if channels.get("audioContinuityReady") is True:
+            transition_rows_with_audio_sensory += 1
+        if channels.get("captionQuietReady") is True:
+            transition_rows_with_caption_sensory += 1
+        if channels.get("routeOrMoodContinuityReady") is True:
+            transition_rows_with_route_mood_sensory += 1
+        if channels.get("landingContinuityReady") is True:
+            transition_rows_with_landing_sensory += 1
+        if channels.get("motionContinuityReady") is True:
+            transition_rows_with_motion_sensory += 1
     annotated_out = sum(len(clip.get("transitionExecutionOut") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionOut"), list))
     annotated_in = sum(len(clip.get("transitionExecutionIn") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionIn"), list))
     annotated_out_motion = sum(
@@ -3127,6 +3155,15 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         "rowsWithBridgeOrMatchActionAnchor": summary.get("rowsWithBridgeOrMatchActionAnchor"),
         "rowsWithLandingActionAnchor": summary.get("rowsWithLandingActionAnchor"),
         "blockedActionAnchorRowCount": summary.get("blockedActionAnchorRowCount"),
+        "rowsWithSensoryContinuityPlan": summary.get("rowsWithSensoryContinuityPlan"),
+        "rowsWithSensoryContinuityReady": summary.get("rowsWithSensoryContinuityReady"),
+        "rowsWithVisualSensoryContinuity": summary.get("rowsWithVisualSensoryContinuity"),
+        "rowsWithAudioSensoryContinuity": summary.get("rowsWithAudioSensoryContinuity"),
+        "rowsWithCaptionSensoryContinuity": summary.get("rowsWithCaptionSensoryContinuity"),
+        "rowsWithRouteOrMoodSensoryContinuity": summary.get("rowsWithRouteOrMoodSensoryContinuity"),
+        "rowsWithLandingSensoryContinuity": summary.get("rowsWithLandingSensoryContinuity"),
+        "rowsWithMotionSensoryContinuity": summary.get("rowsWithMotionSensoryContinuity"),
+        "blockedSensoryContinuityRowCount": summary.get("blockedSensoryContinuityRowCount"),
         "motionExecutionFromChoreographyCount": summary.get("motionExecutionFromChoreographyCount"),
         "motionExecutionDerivedCount": summary.get("motionExecutionDerivedCount"),
         "blockedMotionExecutionRowCount": summary.get("blockedMotionExecutionRowCount"),
@@ -3161,6 +3198,13 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         "transitionRowsWithOutgoingActionAnchor": transition_rows_with_outgoing_action_anchor,
         "transitionRowsWithBridgeMatchActionAnchor": transition_rows_with_bridge_match_action_anchor,
         "transitionRowsWithLandingActionAnchor": transition_rows_with_landing_action_anchor,
+        "transitionRowsWithSensoryContinuity": transition_rows_with_sensory_continuity,
+        "transitionRowsWithVisualSensory": transition_rows_with_visual_sensory,
+        "transitionRowsWithAudioSensory": transition_rows_with_audio_sensory,
+        "transitionRowsWithCaptionSensory": transition_rows_with_caption_sensory,
+        "transitionRowsWithRouteMoodSensory": transition_rows_with_route_mood_sensory,
+        "transitionRowsWithLandingSensory": transition_rows_with_landing_sensory,
+        "transitionRowsWithMotionSensory": transition_rows_with_motion_sensory,
         "markerMotionExecutionCount": marker_motion,
         "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
         "writesResolve": safety.get("writesResolve"),
@@ -3218,6 +3262,13 @@ def transition_execution_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("rowsWithBridgeOrMatchActionAnchor") or 0) == row_count
         and int(evidence.get("rowsWithLandingActionAnchor") or 0) == row_count
         and int(evidence.get("blockedActionAnchorRowCount") or 0) == 0
+        and int(evidence.get("rowsWithSensoryContinuityPlan") or 0) == row_count
+        and int(evidence.get("rowsWithSensoryContinuityReady") or 0) == row_count
+        and int(evidence.get("rowsWithVisualSensoryContinuity") or 0) == row_count
+        and int(evidence.get("rowsWithAudioSensoryContinuity") or 0) == row_count
+        and int(evidence.get("rowsWithCaptionSensoryContinuity") or 0) == row_count
+        and int(evidence.get("rowsWithLandingSensoryContinuity") or 0) == row_count
+        and int(evidence.get("blockedSensoryContinuityRowCount") or 0) == 0
         and int(evidence.get("motionExecutionFromChoreographyCount") or 0) == row_count
         and int(evidence.get("motionExecutionDerivedCount") or 0) == 0
         and int(evidence.get("blockedMotionExecutionRowCount") or 0) == 0
@@ -3242,6 +3293,11 @@ def transition_execution_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("transitionRowsWithOutgoingActionAnchor") or 0) == row_count
         and int(evidence.get("transitionRowsWithBridgeMatchActionAnchor") or 0) == row_count
         and int(evidence.get("transitionRowsWithLandingActionAnchor") or 0) == row_count
+        and int(evidence.get("transitionRowsWithSensoryContinuity") or 0) == row_count
+        and int(evidence.get("transitionRowsWithVisualSensory") or 0) == row_count
+        and int(evidence.get("transitionRowsWithAudioSensory") or 0) == row_count
+        and int(evidence.get("transitionRowsWithCaptionSensory") or 0) == row_count
+        and int(evidence.get("transitionRowsWithLandingSensory") or 0) == row_count
         and int(evidence.get("markerMotionExecutionCount") or 0) == row_count
         and evidence.get("candidatePlanHasReferenceSelection") is True
         and evidence.get("candidatePlanHasChoreography") is True
@@ -5957,6 +6013,71 @@ def transition_action_anchor_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_sensory_continuity_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_sensory_continuity_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "readySensoryContinuityRowCount": summary.get("readySensoryContinuityRowCount"),
+        "blockedSensoryContinuityRowCount": summary.get("blockedSensoryContinuityRowCount"),
+        "rowsWithVisualSensoryContinuity": summary.get("rowsWithVisualSensoryContinuity"),
+        "rowsWithAudioSensoryContinuity": summary.get("rowsWithAudioSensoryContinuity"),
+        "rowsWithCaptionSensoryContinuity": summary.get("rowsWithCaptionSensoryContinuity"),
+        "rowsWithRouteOrMoodSensoryContinuity": summary.get("rowsWithRouteOrMoodSensoryContinuity"),
+        "rowsWithLandingSensoryContinuity": summary.get("rowsWithLandingSensoryContinuity"),
+        "motionSensoryRowCount": summary.get("motionSensoryRowCount"),
+        "rowsWithMotionSensoryContinuity": summary.get("rowsWithMotionSensoryContinuity"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantRowsWithRouteOrMoodContinuity": summary.get("importantRowsWithRouteOrMoodContinuity"),
+        "rowsWithBgmOnlyNoSourceVoice": summary.get("rowsWithBgmOnlyNoSourceVoice"),
+        "rowsWithActionAnchorReady": summary.get("rowsWithActionAnchorReady"),
+        "rowsWithCutpointReady": summary.get("rowsWithCutpointReady"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_sensory_continuity_contract_ready(evidence: dict[str, Any]) -> bool:
+    rows = int(evidence.get("transitionRowCount") or 0)
+    motion_rows = int(evidence.get("motionSensoryRowCount") or 0)
+    important = int(evidence.get("importantBoundaryCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and rows >= 1
+        and int(evidence.get("readySensoryContinuityRowCount") or 0) == rows
+        and int(evidence.get("blockedSensoryContinuityRowCount") or 0) == 0
+        and int(evidence.get("rowsWithVisualSensoryContinuity") or 0) >= rows
+        and int(evidence.get("rowsWithAudioSensoryContinuity") or 0) >= rows
+        and int(evidence.get("rowsWithCaptionSensoryContinuity") or 0) >= rows
+        and int(evidence.get("rowsWithLandingSensoryContinuity") or 0) >= rows
+        and int(evidence.get("rowsWithBgmOnlyNoSourceVoice") or 0) >= rows
+        and int(evidence.get("rowsWithActionAnchorReady") or 0) >= rows
+        and int(evidence.get("rowsWithCutpointReady") or 0) >= rows
+        and (important == 0 or int(evidence.get("importantRowsWithRouteOrMoodContinuity") or 0) >= important)
+        and (motion_rows == 0 or int(evidence.get("rowsWithMotionSensoryContinuity") or 0) >= motion_rows)
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_breathing_room_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_breathing_room_contract_audit.json"
     data = load_json(path) or {}
@@ -7534,6 +7655,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition action-anchor contract proves every boundary leaves from readable action, bridges or matches through a motivated connector, and lands on a stable shot",
         transition_action_anchor_contract_ready(transition_action_anchor_evidence),
         transition_action_anchor_evidence,
+    )
+    transition_sensory_continuity_evidence = transition_sensory_continuity_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition sensory-continuity contract proves every boundary carries visual, BGM, caption, route/mood, motion, and landing continuity cues before preview or audition",
+        transition_sensory_continuity_contract_ready(transition_sensory_continuity_evidence),
+        transition_sensory_continuity_evidence,
     )
     transition_preview_packet = transition_preview_packet_evidence(package_dir)
     add_check(
