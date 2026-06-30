@@ -665,6 +665,13 @@ def summarize_transition_execution_blueprint(report: dict[str, Any] | None) -> d
         "rowsWithCutpointLandingHold": summary.get("rowsWithCutpointLandingHold"),
         "rowsWithCutpointHandles": summary.get("rowsWithCutpointHandles"),
         "blockedCutpointRowCount": summary.get("blockedCutpointRowCount"),
+        "rowsWithActionAnchorPlan": summary.get("rowsWithActionAnchorPlan"),
+        "rowsWithActionAnchorReady": summary.get("rowsWithActionAnchorReady"),
+        "rowsWithOutgoingActionAnchor": summary.get("rowsWithOutgoingActionAnchor"),
+        "rowsWithBridgeOrMatchActionAnchor": summary.get("rowsWithBridgeOrMatchActionAnchor"),
+        "rowsWithLandingActionAnchor": summary.get("rowsWithLandingActionAnchor"),
+        "rowsWithDirectionalActionAnchor": summary.get("rowsWithDirectionalActionAnchor"),
+        "blockedActionAnchorRowCount": summary.get("blockedActionAnchorRowCount"),
         "motionExecutionFromChoreographyCount": summary.get("motionExecutionFromChoreographyCount"),
         "blockedMotionExecutionRowCount": summary.get("blockedMotionExecutionRowCount"),
         "choreographyFamilyCounts": summary.get("choreographyFamilyCounts"),
@@ -880,6 +887,8 @@ def summarize_transition_microstructure_contract(report: dict[str, Any] | None) 
         "bgmOnlyBoundaryCount": summary.get("bgmOnlyBoundaryCount"),
         "readyCutpointRowCount": summary.get("readyCutpointRowCount"),
         "blockedCutpointRowCount": summary.get("blockedCutpointRowCount"),
+        "readyActionAnchorRowCount": summary.get("readyActionAnchorRowCount"),
+        "blockedActionAnchorRowCount": summary.get("blockedActionAnchorRowCount"),
         "handleReadyBoundaryCount": summary.get("handleReadyBoundaryCount"),
         "pairReadyBoundaryCount": summary.get("pairReadyBoundaryCount"),
         "weakPairFitCount": summary.get("weakPairFitCount"),
@@ -916,6 +925,30 @@ def summarize_transition_cutpoint_contract(report: dict[str, Any] | None) -> dic
         "rowsWithBgmOnlyNoSourceVoice": summary.get("rowsWithBgmOnlyNoSourceVoice"),
         "importantBoundaryCount": summary.get("importantBoundaryCount"),
         "importantRowsResolved": summary.get("importantRowsResolved"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
+def summarize_transition_action_anchor_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "readyActionAnchorRowCount": summary.get("readyActionAnchorRowCount"),
+        "blockedActionAnchorRowCount": summary.get("blockedActionAnchorRowCount"),
+        "rowsWithOutgoingActionAnchor": summary.get("rowsWithOutgoingActionAnchor"),
+        "rowsWithBridgeOrMatchActionAnchor": summary.get("rowsWithBridgeOrMatchActionAnchor"),
+        "rowsWithLandingActionAnchor": summary.get("rowsWithLandingActionAnchor"),
+        "motionAnchorRowCount": summary.get("motionAnchorRowCount"),
+        "rowsWithDirectionalMotionAnchor": summary.get("rowsWithDirectionalMotionAnchor"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantRowsResolved": summary.get("importantRowsResolved"),
+        "rowsWithCutpointReady": summary.get("rowsWithCutpointReady"),
         "blockedCheckCount": summary.get("blockedCheckCount"),
         "blockers": report.get("blockers") or [],
         "warnings": report.get("warnings") or [],
@@ -1749,6 +1782,11 @@ def summarize_transition_audition_packet(report: dict[str, Any] | None) -> dict[
         "rowsWithCutpointBgm": summary.get("rowsWithCutpointBgm"),
         "rowsWithCutpointLanding": summary.get("rowsWithCutpointLanding"),
         "rowsWithCutpointHandles": summary.get("rowsWithCutpointHandles"),
+        "rowsWithActionAnchor": summary.get("rowsWithActionAnchor"),
+        "rowsWithOutgoingActionAnchor": summary.get("rowsWithOutgoingActionAnchor"),
+        "rowsWithBridgeOrMatchActionAnchor": summary.get("rowsWithBridgeOrMatchActionAnchor"),
+        "rowsWithLandingActionAnchor": summary.get("rowsWithLandingActionAnchor"),
+        "rowsWithDirectionalActionAnchor": summary.get("rowsWithDirectionalActionAnchor"),
         "ffmpegAvailable": summary.get("ffmpegAvailable"),
         "builtClips": summary.get("builtClips"),
         "blockers": report.get("blockers") or [],
@@ -1780,6 +1818,11 @@ def summarize_transition_audition_quality_contract(report: dict[str, Any] | None
         "rowsWithCutpointBgm": summary.get("rowsWithCutpointBgm"),
         "rowsWithCutpointLanding": summary.get("rowsWithCutpointLanding"),
         "rowsWithCutpointHandles": summary.get("rowsWithCutpointHandles"),
+        "rowsWithActionAnchor": summary.get("rowsWithActionAnchor"),
+        "rowsWithOutgoingActionAnchor": summary.get("rowsWithOutgoingActionAnchor"),
+        "rowsWithBridgeOrMatchActionAnchor": summary.get("rowsWithBridgeOrMatchActionAnchor"),
+        "rowsWithLandingActionAnchor": summary.get("rowsWithLandingActionAnchor"),
+        "rowsWithDirectionalActionAnchor": summary.get("rowsWithDirectionalActionAnchor"),
         "rowsWithResolveKeyframeEffect": summary.get("rowsWithResolveKeyframeEffect"),
         "warningCount": summary.get("warningCount"),
         "blockers": report.get("blockers") or [],
@@ -2548,8 +2591,11 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Motion direction rows: {execution_blueprint.get('rowsWithMotionDirectionPlan')} / {execution_blueprint.get('rowsWithMotionDirectionMatch')}",
                 f"- Cutpoint ready rows: {execution_blueprint.get('rowsWithCutpointReady')} / {execution_blueprint.get('executionRowCount')}",
                 f"- Cutpoint BGM/landing/handle rows: {execution_blueprint.get('rowsWithCutpointBgmHit')} / {execution_blueprint.get('rowsWithCutpointLandingHold')} / {execution_blueprint.get('rowsWithCutpointHandles')}",
+                f"- Action-anchor ready rows: {execution_blueprint.get('rowsWithActionAnchorReady')} / {execution_blueprint.get('executionRowCount')}",
+                f"- Action-anchor outgoing/bridge/landing rows: {execution_blueprint.get('rowsWithOutgoingActionAnchor')} / {execution_blueprint.get('rowsWithBridgeOrMatchActionAnchor')} / {execution_blueprint.get('rowsWithLandingActionAnchor')}",
                 f"- Motion blockers: {execution_blueprint.get('blockedMotionExecutionRowCount')}",
                 f"- Cutpoint blockers: {execution_blueprint.get('blockedCutpointRowCount')}",
+                f"- Action-anchor blockers: {execution_blueprint.get('blockedActionAnchorRowCount')}",
                 f"- Blocked rows: {execution_blueprint.get('blockedRowCount')}",
                 f"- Missing clip matches: {execution_blueprint.get('rowsMissingClipMatch')}",
             ]
@@ -2566,6 +2612,20 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Outgoing/bridge/landing rows: {cutpoint.get('rowsWithOutgoingTail')} / {cutpoint.get('rowsWithBridgeOrEffectHit')} / {cutpoint.get('rowsWithLandingHold')}",
                 f"- BGM/title/audio rows: {cutpoint.get('rowsWithBgmHit')} / {cutpoint.get('rowsWithTitleSubtitleQuietZone')} / {cutpoint.get('rowsWithBgmOnlyNoSourceVoice')}",
                 f"- Important resolved rows: {cutpoint.get('importantRowsResolved')} / {cutpoint.get('importantBoundaryCount')}",
+            ]
+        )
+    if report.get("transitionActionAnchorSummary"):
+        anchor = report["transitionActionAnchorSummary"]
+        lines.extend(
+            [
+                "",
+                "## Transition Action Anchor Contract",
+                f"- Exists: `{anchor.get('exists')}`",
+                f"- Status: `{anchor.get('status')}`",
+                f"- Ready rows: {anchor.get('readyActionAnchorRowCount')} / {anchor.get('transitionRowCount')}",
+                f"- Outgoing/bridge/landing rows: {anchor.get('rowsWithOutgoingActionAnchor')} / {anchor.get('rowsWithBridgeOrMatchActionAnchor')} / {anchor.get('rowsWithLandingActionAnchor')}",
+                f"- Directional motion rows: {anchor.get('rowsWithDirectionalMotionAnchor')} / {anchor.get('motionAnchorRowCount')}",
+                f"- Important resolved rows: {anchor.get('importantRowsResolved')} / {anchor.get('importantBoundaryCount')}",
             ]
         )
     if report.get("rhythmRecutBlueprintSummary"):
@@ -3065,6 +3125,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_cutpoint_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_cutpoint_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_cutpoint_contract", transition_cutpoint_cmd, ok_codes={0, 2}))
 
+    transition_action_anchor_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_action_anchor_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_transition_action_anchor_contract", transition_action_anchor_cmd, ok_codes={0, 2}))
+
     effect_motion_blueprint_cmd = ["python3", str(SCRIPTS_DIR / "prepare_effect_motion_blueprint.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_effect_motion_blueprint", effect_motion_blueprint_cmd, ok_codes={0, 2}))
 
@@ -3397,6 +3460,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_reference_selection_summary = None
     transition_execution_blueprint_summary = None
     transition_cutpoint_summary = None
+    transition_action_anchor_summary = None
     transition_motif_summary = None
     bridge_sequence_summary = None
     bridge_sequence_blueprint_summary = None
@@ -3612,6 +3676,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition cutpoint blocker: {item}" for item in transition_cutpoint_summary.get("blockers") or [])
             if transition_cutpoint_summary and transition_cutpoint_summary.get("warnings"):
                 warnings.extend(f"Transition cutpoint warning: {item}" for item in transition_cutpoint_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_action_anchor_contract":
+            transition_action_anchor_summary = summarize_transition_action_anchor_contract(payload)
+            if transition_action_anchor_summary and transition_action_anchor_summary.get("status") == "blocked":
+                blockers.extend(f"Transition action-anchor blocker: {item}" for item in transition_action_anchor_summary.get("blockers") or [])
+            if transition_action_anchor_summary and transition_action_anchor_summary.get("warnings"):
+                warnings.extend(f"Transition action-anchor warning: {item}" for item in transition_action_anchor_summary.get("warnings") or [])
         if step["id"] == "prepare_transition_motif_plan":
             transition_motif_summary = summarize_transition_motif_plan(payload)
         if step["id"] == "prepare_bridge_sequence_plan":
@@ -4034,6 +4104,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_cutpoint_summary = summarize_transition_cutpoint_contract(
             load_json(package_dir / "transition_cutpoint_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_action_anchor_contract_audit.json").exists():
+        transition_action_anchor_summary = summarize_transition_action_anchor_contract(
+            load_json(package_dir / "transition_action_anchor_contract_audit.json")
+        )
     if package_dir and (package_dir / "transition_motif_plan" / "transition_motif_plan.json").exists():
         transition_motif_summary = summarize_transition_motif_plan(
             load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json")
@@ -4298,6 +4372,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionReferenceSelectionSummary": transition_reference_selection_summary,
         "transitionExecutionBlueprintSummary": transition_execution_blueprint_summary,
         "transitionCutpointSummary": transition_cutpoint_summary,
+        "transitionActionAnchorSummary": transition_action_anchor_summary,
         "transitionMotifSummary": transition_motif_summary,
         "bridgeSequenceSummary": bridge_sequence_summary,
         "bridgeSequenceBlueprintSummary": bridge_sequence_blueprint_summary,

@@ -56,6 +56,10 @@ REPORT_SPECS = {
         "path": "transition_cutpoint_contract_audit.json",
         "accepted": {"passed"},
     },
+    "transitionActionAnchor": {
+        "path": "transition_action_anchor_contract_audit.json",
+        "accepted": {"passed"},
+    },
 }
 MOTION_STYLES = {"whip_pan", "rotation", "speed_ramp", "push_slide"}
 
@@ -151,6 +155,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     lineage = reports["finalBlueprintLineage"]["summary"]
     cadence = reports["transitionCadence"]["summary"]
     cutpoint = reports["transitionCutpoint"]["summary"]
+    anchor = reports["transitionActionAnchor"]["summary"]
 
     boundary_names = (
         "transitionQuality",
@@ -174,6 +179,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     applied_bridge_beats = as_int(bridge.get("appliedBeatClipCount"))
     repeated_run = max_decorative_run(reports)
     cutpoint_rows = as_int(cutpoint.get("transitionRowCount"))
+    anchor_rows = as_int(anchor.get("transitionRowCount"))
 
     checks: list[dict[str, Any]] = []
     add_check(
@@ -233,7 +239,13 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         and as_int(cutpoint.get("rowsWithHandles")) == cutpoint_rows
         and as_int(cutpoint.get("rowsWithBgmHit")) == cutpoint_rows
         and as_int(cutpoint.get("rowsWithTitleSubtitleQuietZone")) == cutpoint_rows
-        and as_int(cutpoint.get("rowsWithBgmOnlyNoSourceVoice")) == cutpoint_rows,
+        and as_int(cutpoint.get("rowsWithBgmOnlyNoSourceVoice")) == cutpoint_rows
+        and anchor_rows >= 1
+        and as_int(anchor.get("readyActionAnchorRowCount")) == anchor_rows
+        and as_int(anchor.get("blockedActionAnchorRowCount")) == 0
+        and as_int(anchor.get("rowsWithOutgoingActionAnchor")) == anchor_rows
+        and as_int(anchor.get("rowsWithBridgeOrMatchActionAnchor")) == anchor_rows
+        and as_int(anchor.get("rowsWithLandingActionAnchor")) == anchor_rows,
         {
             "recipeReadyBoundaryCount": readiness.get("recipeReadyBoundaryCount"),
             "bgmHitBoundaryCount": readiness.get("bgmHitBoundaryCount"),
@@ -253,6 +265,12 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "cutpointRowsWithBgmHit": cutpoint.get("rowsWithBgmHit"),
             "cutpointRowsWithTitleSubtitleQuietZone": cutpoint.get("rowsWithTitleSubtitleQuietZone"),
             "cutpointRowsWithBgmOnlyNoSourceVoice": cutpoint.get("rowsWithBgmOnlyNoSourceVoice"),
+            "actionAnchorTransitionRowCount": anchor.get("transitionRowCount"),
+            "readyActionAnchorRowCount": anchor.get("readyActionAnchorRowCount"),
+            "blockedActionAnchorRowCount": anchor.get("blockedActionAnchorRowCount"),
+            "rowsWithOutgoingActionAnchor": anchor.get("rowsWithOutgoingActionAnchor"),
+            "rowsWithBridgeOrMatchActionAnchor": anchor.get("rowsWithBridgeOrMatchActionAnchor"),
+            "rowsWithLandingActionAnchor": anchor.get("rowsWithLandingActionAnchor"),
         },
     )
     add_check(
@@ -373,6 +391,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "bgmOnlyBoundaryCount": readiness.get("bgmOnlyBoundaryCount"),
             "readyCutpointRowCount": cutpoint.get("readyCutpointRowCount"),
             "blockedCutpointRowCount": cutpoint.get("blockedCutpointRowCount"),
+            "readyActionAnchorRowCount": anchor.get("readyActionAnchorRowCount"),
+            "blockedActionAnchorRowCount": anchor.get("blockedActionAnchorRowCount"),
             "handleReadyBoundaryCount": readiness.get("handleReadyBoundaryCount"),
             "pairReadyBoundaryCount": readiness.get("pairReadyBoundaryCount"),
             "weakPairFitCount": pair.get("weakPairFitCount"),

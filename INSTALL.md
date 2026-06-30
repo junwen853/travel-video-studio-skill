@@ -41,9 +41,9 @@ python3 scripts/install_for_agent.py \
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.71.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.71/travel-video-studio-skill-v0.1.71.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.71.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.72.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.72/travel-video-studio-skill-v0.1.72.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.72.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 ## Install From Source
@@ -110,6 +110,7 @@ test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_audition_vi
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_audition_role_integrity_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_motion_direction_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_cutpoint_contract.py
+test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_action_anchor_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_storyboard_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_breathing_room_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_scene_flow_arc_contract.py
@@ -133,6 +134,7 @@ test -f ~/.codex/skills/travel-video-studio/references/transition-audition-visua
 test -f ~/.codex/skills/travel-video-studio/references/transition-audition-role-integrity-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-motion-direction-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-cutpoint-contract.md
+test -f ~/.codex/skills/travel-video-studio/references/transition-action-anchor-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-storyboard-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/transition-breathing-room-contract.md
 test -f ~/.codex/skills/travel-video-studio/references/scene-flow-arc-contract.md

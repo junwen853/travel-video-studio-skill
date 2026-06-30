@@ -128,6 +128,7 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
     warnings: list[str] = []
     motion = row.get("motionExecution") if isinstance(row.get("motionExecution"), dict) else {}
     cutpoint = row.get("cutpoint") if isinstance(row.get("cutpoint"), dict) else {}
+    action_anchor = row.get("actionAnchor") if isinstance(row.get("actionAnchor"), dict) else {}
     if row.get("status") != "ready_with_transition_audition":
         issues.append("audition_row_not_ready")
     if motion.get("ready") is not True:
@@ -159,6 +160,18 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
         issues.append("cutpoint_title_subtitle_quiet_zone_not_ready")
     if cutpoint.get("bgmOnlyNoSourceVoice") is not True:
         issues.append("cutpoint_audio_not_bgm_only")
+    if action_anchor.get("ready") is not True:
+        issues.append("action_anchor_plan_not_ready")
+    if action_anchor.get("outgoingReady") is not True:
+        issues.append("action_anchor_missing_outgoing")
+    if action_anchor.get("bridgeOrMatchReady") is not True:
+        issues.append("action_anchor_missing_bridge_or_match")
+    if action_anchor.get("landingReady") is not True:
+        issues.append("action_anchor_missing_landing")
+    if action_anchor.get("directionalMotionAnchorReady") is not True:
+        issues.append("action_anchor_missing_directional_motion")
+    if action_anchor.get("importantBoundary") is True and action_anchor.get("importantBoundaryResolved") is not True:
+        issues.append("action_anchor_important_boundary_not_resolved")
     if not clip_path:
         issues.append("audition_clip_path_missing")
         probe = {"ok": False}
@@ -198,6 +211,7 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
         "bridgeSampleCount": row.get("bridgeSampleCount"),
         "motionExecution": motion,
         "cutpoint": cutpoint,
+        "actionAnchor": action_anchor,
         "probe": probe,
         "issues": issues,
         "warnings": warnings,
@@ -238,6 +252,11 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "rowsWithCutpointBgm": sum(1 for row in audited if (row.get("cutpoint") or {}).get("bgmHitAligned") is True),
         "rowsWithCutpointLanding": sum(1 for row in audited if as_int((row.get("cutpoint") or {}).get("landingHoldFrames")) >= (10 if (row.get("cutpoint") or {}).get("importantBoundary") else 6)),
         "rowsWithCutpointHandles": sum(1 for row in audited if (row.get("cutpoint") or {}).get("handlesReady") is True),
+        "rowsWithActionAnchor": sum(1 for row in audited if (row.get("actionAnchor") or {}).get("ready") is True),
+        "rowsWithOutgoingActionAnchor": sum(1 for row in audited if (row.get("actionAnchor") or {}).get("outgoingReady") is True),
+        "rowsWithBridgeOrMatchActionAnchor": sum(1 for row in audited if (row.get("actionAnchor") or {}).get("bridgeOrMatchReady") is True),
+        "rowsWithLandingActionAnchor": sum(1 for row in audited if (row.get("actionAnchor") or {}).get("landingReady") is True),
+        "rowsWithDirectionalActionAnchor": sum(1 for row in audited if (row.get("actionAnchor") or {}).get("directionalMotionAnchorReady") is True),
         "rowsWithResolveKeyframeEffect": sum(1 for row in audited if bool((row.get("motionExecution") or {}).get("resolveKeyframeEffect"))),
         "warningCount": len(warnings),
     }

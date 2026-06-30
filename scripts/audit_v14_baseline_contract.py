@@ -64,6 +64,7 @@ SKILL_PATTERNS = {
     "transition_choreography_contract": "audit_transition_choreography_contract.py",
     "transition_motion_direction": "audit_transition_motion_direction_contract.py",
     "transition_cutpoint": "audit_transition_cutpoint_contract.py",
+    "transition_action_anchor": "audit_transition_action_anchor_contract.py",
     "transition_preview_packet": "prepare_transition_preview_packet.py",
     "transition_preview_quality": "audit_transition_preview_quality_contract.py",
     "transition_audition_packet": "prepare_transition_audition_packet.py",
@@ -156,6 +157,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_choreography_contract.py",
     "audit_transition_motion_direction_contract.py",
     "audit_transition_cutpoint_contract.py",
+    "audit_transition_action_anchor_contract.py",
     "prepare_transition_preview_packet.py",
     "audit_transition_preview_quality_contract.py",
     "prepare_transition_audition_packet.py",
@@ -321,6 +323,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     transition_motion_direction = load_json(package_dir / "transition_motion_direction_contract_audit.json") or {}
     transition_cutpoint = load_json(package_dir / "transition_cutpoint_contract_audit.json") or {}
+    transition_action_anchor = load_json(package_dir / "transition_action_anchor_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
     transition_preview_quality = load_json(package_dir / "transition_preview_quality_contract_audit.json") or {}
     transition_audition_packet = load_json(package_dir / "transition_audition_packet" / "transition_audition_packet.json") or {}
@@ -958,6 +961,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     cutpoint_bgm_count = 0
     cutpoint_landing_count = 0
     cutpoint_handle_count = 0
+    action_anchor_count = 0
+    outgoing_action_anchor_count = 0
+    bridge_match_action_anchor_count = 0
+    landing_action_anchor_count = 0
     for transition in transition_candidates:
         if not isinstance(transition, dict):
             continue
@@ -981,6 +988,15 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             cutpoint_landing_count += 1
         if cutpoint.get("handlesReady") is True:
             cutpoint_handle_count += 1
+        action_anchor = transition.get("transitionActionAnchorPlan") if isinstance(transition.get("transitionActionAnchorPlan"), dict) else {}
+        if action_anchor.get("status") == "ready_with_transition_action_anchor_plan":
+            action_anchor_count += 1
+        if (action_anchor.get("outgoingAnchor") or {}).get("ready") is True:
+            outgoing_action_anchor_count += 1
+        if action_anchor.get("bridgeOrMatchReady") is True:
+            bridge_match_action_anchor_count += 1
+        if (action_anchor.get("landingAnchor") or {}).get("ready") is True:
+            landing_action_anchor_count += 1
     motion_marker_count = sum(
         1
         for marker in transition_markers
@@ -1017,6 +1033,11 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(transition_execution_blueprint_summary.get("rowsWithCutpointLandingHold") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("rowsWithCutpointHandles") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("blockedCutpointRowCount") or 0) == 0
+        and int(transition_execution_blueprint_summary.get("rowsWithActionAnchorReady") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithOutgoingActionAnchor") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithBridgeOrMatchActionAnchor") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithLandingActionAnchor") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("blockedActionAnchorRowCount") or 0) == 0
         and int(transition_execution_blueprint_summary.get("motionExecutionFromChoreographyCount") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("motionExecutionDerivedCount") or 0) == 0
         and int(transition_execution_blueprint_summary.get("blockedMotionExecutionRowCount") or 0) == 0
@@ -1037,6 +1058,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and cutpoint_bgm_count == transition_execution_blueprint_rows
         and cutpoint_landing_count == transition_execution_blueprint_rows
         and cutpoint_handle_count == transition_execution_blueprint_rows
+        and action_anchor_count == transition_execution_blueprint_rows
+        and outgoing_action_anchor_count == transition_execution_blueprint_rows
+        and bridge_match_action_anchor_count == transition_execution_blueprint_rows
+        and landing_action_anchor_count == transition_execution_blueprint_rows
         and len(transition_markers) == transition_execution_blueprint_rows
         and motion_marker_count == transition_execution_blueprint_rows
         and annotated_out >= transition_execution_blueprint_rows
@@ -1055,6 +1080,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "cutpointBgmCount": cutpoint_bgm_count,
             "cutpointLandingCount": cutpoint_landing_count,
             "cutpointHandleCount": cutpoint_handle_count,
+            "actionAnchorCount": action_anchor_count,
+            "outgoingActionAnchorCount": outgoing_action_anchor_count,
+            "bridgeMatchActionAnchorCount": bridge_match_action_anchor_count,
+            "landingActionAnchorCount": landing_action_anchor_count,
             "markerCount": len(transition_markers),
             "motionMarkerCount": motion_marker_count,
             "annotatedOutClipCount": annotated_out,
@@ -1775,6 +1804,36 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionCutpointSummary": transition_cutpoint_summary,
         },
     )
+    transition_action_anchor_summary = get_summary(transition_action_anchor)
+    action_anchor_rows = int(transition_action_anchor_summary.get("transitionRowCount") or 0)
+    important_action_anchor_rows = int(transition_action_anchor_summary.get("importantBoundaryCount") or 0)
+    motion_action_anchor_rows = int(transition_action_anchor_summary.get("motionAnchorRowCount") or 0)
+    add_check(
+        checks,
+        "Transition action-anchor contract proves V14 transitions leave from readable action, bridge or match through a motivated connector, and land on a stable shot",
+        transition_action_anchor.get("status") == "passed"
+        and action_anchor_rows >= 1
+        and int(transition_action_anchor_summary.get("readyActionAnchorRowCount") or 0) == action_anchor_rows
+        and int(transition_action_anchor_summary.get("blockedActionAnchorRowCount") or 0) == 0
+        and int(transition_action_anchor_summary.get("rowsWithOutgoingActionAnchor") or 0) >= action_anchor_rows
+        and int(transition_action_anchor_summary.get("rowsWithBridgeOrMatchActionAnchor") or 0) >= action_anchor_rows
+        and int(transition_action_anchor_summary.get("rowsWithLandingActionAnchor") or 0) >= action_anchor_rows
+        and (
+            motion_action_anchor_rows == 0
+            or int(transition_action_anchor_summary.get("rowsWithDirectionalMotionAnchor") or 0) >= motion_action_anchor_rows
+        )
+        and (
+            important_action_anchor_rows == 0
+            or int(transition_action_anchor_summary.get("importantRowsResolved") or 0) >= important_action_anchor_rows
+        )
+        and int(transition_action_anchor_summary.get("rowsWithCutpointReady") or 0) >= action_anchor_rows
+        and int(transition_action_anchor_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_action_anchor.get("blockers"),
+        {
+            "transitionActionAnchorStatus": transition_action_anchor.get("status"),
+            "transitionActionAnchorSummary": transition_action_anchor_summary,
+        },
+    )
     transition_preview_summary = get_summary(transition_preview_packet)
     transition_preview_quality_summary = get_summary(transition_preview_quality)
     transition_audition_summary = get_summary(transition_audition_packet)
@@ -1862,6 +1921,22 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         )
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithActionAnchor") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithOutgoingActionAnchor") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithBridgeOrMatchActionAnchor") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithLandingActionAnchor") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("auditionQualityReadyRowCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
         )
         and (
@@ -1903,6 +1978,22 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("rowsWithCutpointHandles") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithActionAnchor") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithOutgoingActionAnchor") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithBridgeOrMatchActionAnchor") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithLandingActionAnchor") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
         )
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
@@ -2293,6 +2384,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionExecutionBlueprintSummary": transition_execution_blueprint_summary,
             "transitionCutpointStatus": transition_cutpoint.get("status"),
             "transitionCutpointSummary": transition_cutpoint_summary,
+            "transitionActionAnchorStatus": transition_action_anchor.get("status"),
+            "transitionActionAnchorSummary": transition_action_anchor_summary,
             "transitionMotifStatus": transition_motif.get("status"),
             "transitionMotifSummary": transition_motif_summary,
             "bridgeSequenceStatus": bridge_sequence.get("status"),

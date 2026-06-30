@@ -4,7 +4,7 @@ Use this reference after `transition-execution-engine.md` when transition recipe
 
 ## Purpose
 
-`prepare_transition_execution_blueprint.py` materializes transition execution rows, transition reference selections, transition choreography, motion-direction plans, and cutpoint timing into blueprint-level candidate transition objects. It prevents "Cross Dissolve here", "rotation match cut here", "candidate A/B/C selected", or "add a cool rotation" from remaining a prose instruction with no timeline evidence.
+`prepare_transition_execution_blueprint.py` materializes transition execution rows, transition reference selections, transition choreography, motion-direction plans, cutpoint timing, and transition action anchors into blueprint-level candidate transition objects. It prevents "Cross Dissolve here", "rotation match cut here", "candidate A/B/C selected", or "add a cool rotation" from remaining a prose instruction with no timeline evidence.
 
 The default behavior is non-destructive:
 
@@ -37,11 +37,13 @@ The script adds:
 - `transitionExecutionIn` metadata on incoming clips
 - timeline markers with role `transition_execution_candidate_marker`
 
-Each candidate transition records the approved transition type, Resolve effect name, duration frames, selected candidate rank/type/family/intensity, selected Resolve recipe, selected preview hint, keyframe plan, BGM cue, subtitle policy, audio policy, bridge requirement, motion evidence, `transitionMotionExecution`, `transitionCutpointPlan`, and decision/readback fields.
+Each candidate transition records the approved transition type, Resolve effect name, duration frames, selected candidate rank/type/family/intensity, selected Resolve recipe, selected preview hint, keyframe plan, BGM cue, subtitle policy, audio policy, bridge requirement, motion evidence, `transitionMotionExecution`, `transitionCutpointPlan`, `transitionActionAnchorPlan`, and decision/readback fields.
 
 `transitionMotionExecution` must carry the choreography family, source transition style, restrained intensity, outgoing/bridge-or-motion/landing three-beat choreography, BGM phrase-hit target, caption/title quiet-zone policy, `motionDirectionPlan`, Resolve keyframe recipe, and safety checks for BGM-only/no-source-voice, title safety, direction match, and no template motion.
 
 `transitionCutpointPlan` must carry the boundary frame, outgoing tail frames, bridge/effect hit frames, landing hold frames, available pre/post roll, required handles, BGM hit offset/tolerance, title/subtitle quiet-zone readiness, BGM-only audio proof, and important-boundary resolution. This is the guard that makes transitions feel edited rather than merely effect-labeled.
+
+`transitionActionAnchorPlan` must carry outgoing, bridge-or-match, and landing anchors, plus directional motion-anchor readiness for visible motion transitions. It blocks when a transition has timing and an effect but the viewer cannot tell what action is being left, why the bridge/match exists, or what stable shot they land on.
 
 ## Required Follow-Up
 
@@ -70,8 +72,9 @@ Pass:
 - `rowsWithAppliedReferenceSelection` equals execution row count
 - `rowsWithMotionExecution`, `rowsWithThreeBeatMotion`, `rowsWithBgmHitMotion`, and `rowsWithCaptionQuietMotion` equal execution row count
 - `rowsWithCutpointReady`, `rowsWithCutpointBgmHit`, `rowsWithCutpointLandingHold`, and `rowsWithCutpointHandles` equal execution row count
+- `rowsWithActionAnchorReady`, `rowsWithOutgoingActionAnchor`, `rowsWithBridgeOrMatchActionAnchor`, and `rowsWithLandingActionAnchor` equal execution row count
 - `motionExecutionFromChoreographyCount` equals execution row count and `motionExecutionDerivedCount` is zero
-- transition objects, clip annotations, and markers carry the selected candidate type/family plus ready `transitionMotionExecution` and transition objects carry ready `transitionCutpointPlan`
+- transition objects, clip annotations, and markers carry the selected candidate type/family plus ready `transitionMotionExecution`, and transition objects carry ready `transitionCutpointPlan` plus ready `transitionActionAnchorPlan`
 - every transition row has decision fields
 - adjacent clips have in/out transition metadata
 - bridge-required rows are not marked ready until bridge sequences are materialized
@@ -84,6 +87,7 @@ Reject:
 - reference selection rows exist but do not appear in the candidate blueprint
 - choreography rows exist but do not appear as `transitionMotionExecution` in transitions, clip annotations, and markers
 - cutpoint timing remains implicit, so the chosen effect has no readable leave point, BGM hit point, or landing hold
+- action anchors remain implicit, so the transition has no readable outgoing action, motivated bridge/match, or stable landing proof
 - random spin, flash, glitch, shake, or template effects appear as selected recipes
 - bridge-required rows are marked ready without a materialized bridge sequence
 - the active blueprint is changed without explicit `--update-blueprint`

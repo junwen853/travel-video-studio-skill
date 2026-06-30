@@ -33,6 +33,33 @@ FORBIDDEN_TERMS = (
     "particle",
     "whoosh pack",
 )
+ANCHOR_TEXT_KEYS = (
+    "role",
+    "purpose",
+    "place",
+    "city",
+    "chapter",
+    "creatorFunction",
+    "editorialTier",
+    "sourceName",
+    "sourcePath",
+    "name",
+    "notes",
+    "description",
+    "visualSummary",
+    "motionSummary",
+)
+ANCHOR_LIST_KEYS = (
+    "tags",
+    "visualTerms",
+    "motionTerms",
+    "routeTerms",
+    "ocrTerms",
+    "objectTerms",
+    "landmarkTerms",
+)
+WEAK_ANCHOR_TERMS = ("black", "placeholder", "slate", "test", "sample", "duplicate", "unknown")
+MOTION_ANCHOR_STYLES = {"whip_pan", "rotation", "speed_ramp", "push_slide"}
 
 
 def load_json(path: Path) -> Any | None:
@@ -424,6 +451,137 @@ def cutpoint_plan(
     }
 
 
+def anchor_terms_from_obj(obj: Any, *, limit: int = 12) -> list[str]:
+    if not isinstance(obj, dict):
+        return []
+    terms: list[str] = []
+    for key in ANCHOR_TEXT_KEYS:
+        text = str(obj.get(key) or "").strip()
+        if text:
+            terms.append(source_name(text) if key == "sourcePath" else text[:160])
+    for key in ANCHOR_LIST_KEYS:
+        raw = obj.get(key)
+        if isinstance(raw, list):
+            terms.extend(str(item).strip()[:120] for item in raw if str(item).strip())
+    seen: set[str] = set()
+    out: list[str] = []
+    for term in terms:
+        normalized = term.lower()
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            out.append(term)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def row_anchor_terms(row: dict[str, Any], key: str) -> list[str]:
+    value = row.get(key)
+    if isinstance(value, list):
+        return [str(item).strip()[:120] for item in value if str(item).strip()][:10]
+    if isinstance(value, dict):
+        return anchor_terms_from_obj(value, limit=10)
+    return []
+
+
+def weak_anchor(terms: list[str]) -> bool:
+    text = " ".join(terms).lower()
+    return any(term in text for term in WEAK_ANCHOR_TERMS)
+
+
+def action_anchor_summary(label: str, terms: list[str], role: str) -> dict[str, Any]:
+    return {
+        "role": role,
+        "label": label,
+        "terms": terms[:10],
+        "ready": bool(terms),
+        "weakOrPlaceholder": weak_anchor(terms),
+    }
+
+
+def action_anchor_plan(
+    row: dict[str, Any],
+    *,
+    motion_execution: dict[str, Any],
+    cutpoint: dict[str, Any],
+    bridge_satisfied: bool,
+) -> dict[str, Any]:
+    family = str(motion_execution.get("choreographyFamily") or "")
+    style = str(motion_execution.get("sourceTransitionStyle") or "")
+    category = str(row.get("boundaryCategory") or "")
+    important = category in {"chapter_boundary", "timeline_gap", "title_boundary", "ending_transition"} or cutpoint.get("importantBoundary") is True
+    from_clip = row.get("fromClip") if isinstance(row.get("fromClip"), dict) else {}
+    to_clip = row.get("toClip") if isinstance(row.get("toClip"), dict) else {}
+    motion = row.get("motionEvidence") if isinstance(row.get("motionEvidence"), dict) else {}
+    direction = motion_execution.get("motionDirectionPlan") if isinstance(motion_execution.get("motionDirectionPlan"), dict) else {}
+    direction_terms = direction.get("directionEvidenceTerms") if isinstance(direction.get("directionEvidenceTerms"), dict) else {}
+    outgoing_terms = anchor_terms_from_obj(from_clip) + row_anchor_terms(row, "fromMotionTerms") + row_anchor_terms(motion, "fromMotionTerms")
+    landing_terms = anchor_terms_from_obj(to_clip) + row_anchor_terms(row, "toMotionTerms") + row_anchor_terms(motion, "toMotionTerms")
+    bridge_terms = (
+        row_anchor_terms(row, "bridgeTerms")
+        + row_anchor_terms(row, "bridgeEvidence")
+        + row_anchor_terms(motion, "bridgeTerms")
+        + row_anchor_terms(direction_terms, "bridge")
+    )
+    match_terms = row_anchor_terms(row, "visualMatchTerms") + row_anchor_terms(row, "sharedVisualTerms") + row_anchor_terms(motion, "sharedVisualTerms")
+    outgoing = action_anchor_summary(
+        "outgoing readable action, scenic edge, gesture, signage, route movement, or object cue",
+        outgoing_terms,
+        "outgoing",
+    )
+    bridge = action_anchor_summary(
+        "bridge, visual match, dissolve reason, or restrained motion connector",
+        bridge_terms + match_terms,
+        "bridge_or_match",
+    )
+    landing = action_anchor_summary(
+        "stable landing shot with place, subject, route, texture, or payoff orientation",
+        landing_terms,
+        "landing",
+    )
+    motion_style = style in MOTION_ANCHOR_STYLES
+    direction_ready = not motion_style or (
+        direction.get("status") == "ready_with_motion_direction_plan"
+        and direction.get("directionMatch") is True
+        and bool(direction.get("effectDirection"))
+        and bool(direction.get("landingDirection"))
+    )
+    bridge_or_match_ready = (
+        bridge["ready"]
+        or bridge_satisfied
+        or family in {"visual_match_cut", "mood_dissolve_breath", "route_bridge_triptych", "texture_bridge_cutaway", "scenic_title_breath", "ending_aftertaste_hold"}
+    )
+    important_resolved = (not important) or bridge_or_match_ready or cutpoint.get("importantBoundaryResolved") is True
+    issues: list[str] = []
+    if not outgoing["ready"]:
+        issues.append("missing_outgoing_action_anchor")
+    if not landing["ready"]:
+        issues.append("missing_landing_action_anchor")
+    if not bridge_or_match_ready:
+        issues.append("missing_bridge_or_match_action_anchor")
+    if important and not important_resolved:
+        issues.append("important_boundary_missing_action_anchor_resolution")
+    if motion_style and not direction_ready:
+        issues.append("motion_accent_missing_directional_action_anchor")
+    if outgoing["weakOrPlaceholder"] or bridge["weakOrPlaceholder"] or landing["weakOrPlaceholder"]:
+        issues.append("weak_or_placeholder_action_anchor")
+    return {
+        "status": "ready_with_transition_action_anchor_plan" if not issues else "needs_transition_action_anchor_repair",
+        "importantBoundary": important,
+        "choreographyFamily": family,
+        "sourceTransitionStyle": style,
+        "outgoingAnchor": outgoing,
+        "bridgeOrMatchAnchor": bridge,
+        "landingAnchor": landing,
+        "bridgeOrMatchReady": bridge_or_match_ready,
+        "directionalMotionAnchorReady": direction_ready,
+        "importantBoundaryResolved": important_resolved,
+        "cutpointReady": cutpoint.get("status") == "ready_with_transition_cutpoint_plan",
+        "repairGuidance": "Choose a readable outgoing action, bridge/match connector, and stable landing shot; downgrade motion effects when directional action evidence is weak.",
+        "issues": issues,
+    }
+
+
 def motion_execution_payload(
     row: dict[str, Any],
     *,
@@ -578,6 +736,12 @@ def transition_payload(
         motion_execution=motion_execution,
         bridge_satisfied=bridge_satisfied,
     )
+    action_anchor = action_anchor_plan(
+        row,
+        motion_execution=motion_execution,
+        cutpoint=cutpoint,
+        bridge_satisfied=bridge_satisfied,
+    )
     return {
         "role": "transition_execution_candidate",
         "rowIndex": row.get("rowIndex"),
@@ -614,6 +778,7 @@ def transition_payload(
         "referenceSelectionDecision": auto_decision if selection_applied else {},
         "transitionMotionExecution": motion_execution,
         "transitionCutpointPlan": cutpoint,
+        "transitionActionAnchorPlan": action_anchor,
         "decision": dict(DECISION_FIELDS),
     }
 
@@ -689,6 +854,13 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     rows_with_cutpoint_landing_hold = 0
     rows_with_cutpoint_handles = 0
     blocked_cutpoint_rows = 0
+    rows_with_action_anchor_plan = 0
+    rows_with_action_anchor_ready = 0
+    rows_with_outgoing_action_anchor = 0
+    rows_with_bridge_or_match_action_anchor = 0
+    rows_with_landing_action_anchor = 0
+    rows_with_directional_action_anchor = 0
+    blocked_action_anchor_rows = 0
     motion_execution_from_choreography = 0
     motion_execution_derived = 0
     blocked_motion_execution_rows = 0
@@ -738,6 +910,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             rows_with_caption_quiet_motion += 1
         direction_plan = motion_execution.get("motionDirectionPlan") if isinstance(motion_execution.get("motionDirectionPlan"), dict) else {}
         cutpoint = payload.get("transitionCutpointPlan") if isinstance(payload.get("transitionCutpointPlan"), dict) else {}
+        action_anchor = payload.get("transitionActionAnchorPlan") if isinstance(payload.get("transitionActionAnchorPlan"), dict) else {}
         if direction_plan:
             rows_with_motion_direction_plan += 1
         if direction_plan.get("required") is not True or direction_plan.get("directionMatch") is True:
@@ -754,6 +927,20 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             rows_with_cutpoint_landing_hold += 1
         if cutpoint.get("handlesReady") is True:
             rows_with_cutpoint_handles += 1
+        if action_anchor:
+            rows_with_action_anchor_plan += 1
+        if action_anchor.get("status") == "ready_with_transition_action_anchor_plan":
+            rows_with_action_anchor_ready += 1
+        else:
+            blocked_action_anchor_rows += 1
+        if (action_anchor.get("outgoingAnchor") or {}).get("ready") is True:
+            rows_with_outgoing_action_anchor += 1
+        if action_anchor.get("bridgeOrMatchReady") is True:
+            rows_with_bridge_or_match_action_anchor += 1
+        if (action_anchor.get("landingAnchor") or {}).get("ready") is True:
+            rows_with_landing_action_anchor += 1
+        if action_anchor.get("directionalMotionAnchorReady") is True:
+            rows_with_directional_action_anchor += 1
         if motion_execution.get("source") == "transition_choreography_plan":
             motion_execution_from_choreography += 1
         if motion_execution.get("source") == "derived_from_reference_selection":
@@ -790,6 +977,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             or choreography_status != "ready_with_transition_choreography"
             or motion_execution.get("status") != "ready_with_transition_motion_execution"
             or cutpoint.get("status") != "ready_with_transition_cutpoint_plan"
+            or action_anchor.get("status") != "ready_with_transition_action_anchor_plan"
             or not bridge_satisfied
             or bool(payload.get("forbiddenRecipeHits"))
             or (payload.get("motionStyle") and not payload.get("motionHasEvidence"))
@@ -825,6 +1013,11 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "cutpointBgmHitAligned": cutpoint.get("bgmHitAligned"),
                 "cutpointHandlesReady": cutpoint.get("handlesReady"),
                 "cutpointTitleSubtitleQuietZoneReady": cutpoint.get("titleSubtitleQuietZoneReady"),
+                "transitionActionAnchorPlanStatus": action_anchor.get("status"),
+                "actionAnchorOutgoingReady": (action_anchor.get("outgoingAnchor") or {}).get("ready"),
+                "actionAnchorBridgeOrMatchReady": action_anchor.get("bridgeOrMatchReady"),
+                "actionAnchorLandingReady": (action_anchor.get("landingAnchor") or {}).get("ready"),
+                "actionAnchorDirectionalMotionReady": action_anchor.get("directionalMotionAnchorReady"),
                 "bgmHitChoreographyReady": bgm_choreography.get("target") == "cut_or_effect_on_bgm_phrase_hit"
                 and bgm_choreography.get("allowOffPhrase") is False,
                 "captionQuietZoneReady": caption_policy.get("avoidTitleCollision") is True
@@ -883,6 +1076,9 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                         "choreographyIntensity": (transition.get("transitionMotionExecution") or {}).get("intensity")
                         if isinstance(transition.get("transitionMotionExecution"), dict)
                         else "",
+                        "transitionActionAnchorStatus": (transition.get("transitionActionAnchorPlan") or {}).get("status")
+                        if isinstance(transition.get("transitionActionAnchorPlan"), dict)
+                        else "",
                     },
                 }
             )
@@ -939,6 +1135,13 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "rowsWithCutpointLandingHold": rows_with_cutpoint_landing_hold,
             "rowsWithCutpointHandles": rows_with_cutpoint_handles,
             "blockedCutpointRowCount": blocked_cutpoint_rows,
+            "rowsWithActionAnchorPlan": rows_with_action_anchor_plan,
+            "rowsWithActionAnchorReady": rows_with_action_anchor_ready,
+            "rowsWithOutgoingActionAnchor": rows_with_outgoing_action_anchor,
+            "rowsWithBridgeOrMatchActionAnchor": rows_with_bridge_or_match_action_anchor,
+            "rowsWithLandingActionAnchor": rows_with_landing_action_anchor,
+            "rowsWithDirectionalActionAnchor": rows_with_directional_action_anchor,
+            "blockedActionAnchorRowCount": blocked_action_anchor_rows,
             "motionExecutionFromChoreographyCount": motion_execution_from_choreography,
             "motionExecutionDerivedCount": motion_execution_derived,
             "blockedMotionExecutionRowCount": blocked_motion_execution_rows,
@@ -953,6 +1156,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "Every transition execution row consumes the auto-selected reference candidate when transition reference selection is ready.",
                 "Every transition execution row consumes a ready choreography row and carries transitionMotionExecution metadata.",
                 "Every transition execution row carries a transitionCutpointPlan with outgoing tail, BGM-hit bridge/effect, landing hold, handles, and title/subtitle quiet-zone proof.",
+                "Every transition execution row carries a transitionActionAnchorPlan with outgoing, bridge-or-match, landing, and directional motion anchors.",
                 "Adjacent source clips are annotated with in/out transition execution metadata.",
                 "Motion effects are present only when the execution plan recorded route or two-sided motion evidence.",
                 "Bridge-required transitions are not marked ready until bridge sequence rows are materialized.",
@@ -962,6 +1166,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "Reference selection exists but selected candidates are not present in transitions, clip annotations, or markers.",
                 "Choreography exists but three-beat/BGM-hit/title-safe motion execution is not present in transitions, clip annotations, or markers.",
                 "Cutpoint timing remains implicit, so an effect can hide a hard or unlanded boundary.",
+                "Action anchors remain implicit, so a transition effect connects two visually unreadable or unmotivated clip moments.",
                 "A random spin, flash, glitch, shake, or template effect appears in a candidate row.",
                 "A bridge-required row is marked ready without a materialized bridge sequence.",
                 "The script writes Resolve, queues render, downloads assets, or mutates source footage.",
@@ -1018,6 +1223,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Reference selection: {row.get('referenceSelectionStatus')} / {row.get('selectedCandidateType')} / {row.get('selectedStyleFamily')}",
                 f"- Motion execution: {row.get('transitionMotionExecutionStatus')} / {row.get('choreographyFamily')} / intensity={row.get('choreographyIntensity')}",
                 f"- Three-beat/BGM/title-safe: {row.get('threeBeatChoreographyCount')} / {row.get('bgmHitChoreographyReady')} / {row.get('captionQuietZoneReady')}",
+                f"- Action anchors: {row.get('transitionActionAnchorPlanStatus')} / outgoing={row.get('actionAnchorOutgoingReady')} bridge-or-match={row.get('actionAnchorBridgeOrMatchReady')} landing={row.get('actionAnchorLandingReady')}",
                 f"- Clip match: from={row.get('fromClipMatched')} to={row.get('toClipMatched')}",
                 f"- Bridge satisfied: {row.get('bridgeSequenceSatisfied')}",
                 f"- Motion evidence: {row.get('motionStyle')} / {row.get('motionHasEvidence')}",

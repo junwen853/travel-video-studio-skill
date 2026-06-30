@@ -1,6 +1,6 @@
 # Transition Cutpoint Contract
 
-Run `scripts/audit_transition_cutpoint_contract.py` after `prepare_transition_execution_blueprint.py` and before transition preview, audition, storyboard, Resolve apply, final QA, maturity, unattended first-draft, or V14 baseline claims.
+Run `scripts/audit_transition_cutpoint_contract.py` after `prepare_transition_execution_blueprint.py` and before `audit_transition_action_anchor_contract.py`, transition preview, audition, storyboard, Resolve apply, final QA, maturity, unattended first-draft, or V14 baseline claims.
 
 ## Command
 
@@ -35,7 +35,7 @@ Repair upstream rather than forcing a stronger effect:
 - suppress subtitles around the title or fast-motion boundary
 - downgrade to a clean match cut when the cutpoint is strong without an effect
 
-After repair, rerun transition execution blueprint, cutpoint contract, microstructure, breathing-room, preview packet, audition packet, storyboard, unattended first-draft, V14 baseline, and maturity checks.
+After repair, rerun transition execution blueprint, cutpoint contract, action-anchor contract, microstructure, breathing-room, preview packet, audition packet, storyboard, unattended first-draft, V14 baseline, and maturity checks.
 
 ## Safety
 
