@@ -587,6 +587,27 @@ def summarize_transition_execution_plan(plan: dict[str, Any] | None) -> dict[str
     }
 
 
+def summarize_transition_reference_candidates(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "candidateRowCount": summary.get("candidateRowCount"),
+        "rowsWithAtLeastThreeCandidates": summary.get("rowsWithAtLeastThreeCandidates"),
+        "motionCandidateRowCount": summary.get("motionCandidateRowCount"),
+        "maxMotionCandidateRows": summary.get("maxMotionCandidateRows"),
+        "rowsNeedingBridgeBeforeEffect": summary.get("rowsNeedingBridgeBeforeEffect"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantBridgeOrBreathCoverage": summary.get("importantBridgeOrBreathCoverage"),
+        "primaryStyleFamilyCounts": summary.get("primaryStyleFamilyCounts"),
+        "referenceStatus": summary.get("referenceStatus"),
+        "referenceVideoCount": summary.get("referenceVideoCount"),
+    }
+
+
 def summarize_transition_execution_blueprint(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -2775,6 +2796,14 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     transition_execution_cmd = ["python3", str(SCRIPTS_DIR / "prepare_transition_execution_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_transition_execution_plan", transition_execution_cmd, ok_codes={0, 2}))
 
+    transition_reference_candidates_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "prepare_transition_reference_candidates.py"),
+        "--package-dir",
+        str(package_dir),
+    ]
+    steps.append(run_step("prepare_transition_reference_candidates", transition_reference_candidates_cmd, ok_codes={0, 2}))
+
     transition_motif_cmd = ["python3", str(SCRIPTS_DIR / "prepare_transition_motif_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_transition_motif_plan", transition_motif_cmd, ok_codes={0, 2}))
 
@@ -3095,6 +3124,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     creator_cut_summary = None
     transition_grammar_summary = None
     transition_execution_summary = None
+    transition_reference_candidates_summary = None
     transition_execution_blueprint_summary = None
     transition_motif_summary = None
     bridge_sequence_summary = None
@@ -3288,6 +3318,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             transition_grammar_summary = summarize_transition_grammar_plan(payload)
         if step["id"] == "prepare_transition_execution_plan":
             transition_execution_summary = summarize_transition_execution_plan(payload)
+        if step["id"] == "prepare_transition_reference_candidates":
+            transition_reference_candidates_summary = summarize_transition_reference_candidates(payload)
+            if transition_reference_candidates_summary and str(transition_reference_candidates_summary.get("status") or "").startswith("blocked"):
+                blockers.append("Transition reference candidates are blocked; run transition grammar/execution before motif, preview, or Resolve apply.")
         if step["id"] == "prepare_transition_execution_blueprint":
             transition_execution_blueprint_summary = summarize_transition_execution_blueprint(payload)
         if step["id"] == "prepare_transition_motif_plan":
@@ -3674,6 +3708,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_execution_summary = summarize_transition_execution_plan(
             load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json")
         )
+    if package_dir and (package_dir / "transition_reference_candidates" / "transition_reference_candidates.json").exists():
+        transition_reference_candidates_summary = summarize_transition_reference_candidates(
+            load_json(package_dir / "transition_reference_candidates" / "transition_reference_candidates.json")
+        )
     if package_dir and (package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json").exists():
         transition_execution_blueprint_summary = summarize_transition_execution_blueprint(
             load_json(package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json")
@@ -3925,6 +3963,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "creatorCutSummary": creator_cut_summary,
         "transitionGrammarSummary": transition_grammar_summary,
         "transitionExecutionSummary": transition_execution_summary,
+        "transitionReferenceCandidatesSummary": transition_reference_candidates_summary,
         "transitionExecutionBlueprintSummary": transition_execution_blueprint_summary,
         "transitionMotifSummary": transition_motif_summary,
         "bridgeSequenceSummary": bridge_sequence_summary,
@@ -4013,6 +4052,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",
             "Review rhythm_recut_application_contract_audit.json before Resolve apply so rhythm-recut main segments and cutaways actually survived into the final candidate blueprint.",
             "Review transition_grammar_plan.json and transition_execution_plan.json before Resolve apply so every adjacent pair has an approved, source-backed execution recipe.",
+            "Review transition_reference_candidates/transition_reference_candidates.md before motif, preview, storyboard, or Resolve apply so every boundary has non-copying reference-calibrated A/B/C candidates instead of generic hard cuts or random effects.",
             "Preflight transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json before approving transition effects for Resolve.",
             "Review transition_motif_plan.json before Resolve apply so the film does not rely on repeated dissolves, random motion, or effects hiding weak route jumps.",
             "Review bridge_sequence_plan.json before rhythm recut or Resolve apply so important route/title/timeline-gap transitions become 2-5 shot bridge sequences instead of single effects.",

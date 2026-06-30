@@ -168,6 +168,17 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Every final boundary has package-local Resolve recipe, BGM hit, title-safe window, pair readiness, and handles.",
         "forbiddenWorkaround": "Do not mark transitions ready when they are marker-only metadata or missing handles/pair evidence.",
     },
+    "transition_reference_candidates": {
+        "path": "transition_reference_candidates/transition_reference_candidates.json",
+        "accepted": {"ready_with_transition_reference_candidates"},
+        "phase": "transition_flow",
+        "priority": "P0",
+        "ownerScript": "prepare_transition_reference_candidates.py",
+        "requiredArtifact": "transition_reference_candidates/transition_reference_candidates.json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_reference_candidates.py --package-dir <package> --json",
+        "acceptanceEvidence": "Every adjacent boundary has non-copying A/B/C transition candidates, rare motion accents, bridge/breath coverage for important boundaries, and decision/readback fields.",
+        "forbiddenWorkaround": "Do not approve generic hard cuts, random rotation, or template effects before candidate rows explain why the boundary should cut, bridge, breathe, dissolve, or use a rare motion accent.",
+    },
     "transition_breathing_room_contract_audit": {
         "path": "transition_breathing_room_contract_audit.json",
         "accepted": {"passed"},

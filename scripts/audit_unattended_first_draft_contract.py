@@ -508,6 +508,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
+    transition_reference_candidates = load_json(package_dir / "transition_reference_candidates" / "transition_reference_candidates.json") or {}
     transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
     transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
@@ -541,6 +542,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tsa_summary = summary_of(transition_scene_arc)
     tep_summary = summary_of(transition_effect_palette)
     tvm_summary = summary_of(transition_visual_match)
+    trc_summary = summary_of(transition_reference_candidates)
     tcp_summary = summary_of(transition_choreography_plan)
     tcc_summary = summary_of(transition_choreography_contract)
     tpp_summary = summary_of(transition_preview_packet)
@@ -554,6 +556,23 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tbr_summary = summary_of(transition_breathing_room)
     sfa_summary = summary_of(scene_flow_arc)
     fcs_summary = summary_of(final_cut_smoothness)
+    add_gate(
+        gates,
+        "Transition reference candidates turn every adjacent boundary into non-copying A/B/C choices before preview, storyboard, or Resolve apply",
+        transition_reference_candidates.get("status") == "ready_with_transition_reference_candidates"
+        and as_int(trc_summary.get("transitionRowCount")) >= 1
+        and as_int(trc_summary.get("candidateRowCount")) == as_int(trc_summary.get("transitionRowCount"))
+        and as_int(trc_summary.get("rowsWithAtLeastThreeCandidates")) == as_int(trc_summary.get("candidateRowCount"))
+        and as_int(trc_summary.get("motionCandidateRowCount")) <= as_int(trc_summary.get("maxMotionCandidateRows"))
+        and (
+            as_int(trc_summary.get("importantBoundaryCount")) == 0
+            or float(trc_summary.get("importantBridgeOrBreathCoverage") or 0.0) >= 1.0
+        ),
+        {
+            "transitionReferenceCandidatesStatus": transition_reference_candidates.get("status"),
+            "transitionReferenceCandidatesSummary": trc_summary,
+        },
+    )
     add_gate(
         gates,
         "Transition cadence, execution, scene arcs, effect palette, visual match, preview packet quality, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",

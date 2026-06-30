@@ -40,6 +40,7 @@ SKILL_PATTERNS = {
     "final_source_usage": "audit_final_source_usage_contract.py",
     "transition_grammar": "prepare_transition_grammar_plan.py",
     "transition_execution": "prepare_transition_execution_plan.py",
+    "transition_reference_candidates": "prepare_transition_reference_candidates.py",
     "transition_execution_blueprint": "prepare_transition_execution_blueprint.py",
     "transition_motif": "prepare_transition_motif_plan.py",
     "bridge_sequence": "prepare_bridge_sequence_plan.py",
@@ -124,6 +125,7 @@ REQUIRED_SCRIPTS = [
     "audit_final_source_usage_contract.py",
     "prepare_transition_grammar_plan.py",
     "prepare_transition_execution_plan.py",
+    "prepare_transition_reference_candidates.py",
     "prepare_transition_execution_blueprint.py",
     "prepare_transition_motif_plan.py",
     "prepare_bridge_sequence_plan.py",
@@ -283,6 +285,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     final_source_usage = load_json(package_dir / "final_source_usage_contract_audit.json") or {}
     transition_grammar = load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json") or {}
     transition_execution = load_json(package_dir / "transition_execution_plan" / "transition_execution_plan.json") or {}
+    transition_reference_candidates = load_json(package_dir / "transition_reference_candidates" / "transition_reference_candidates.json") or {}
     transition_execution_blueprint = load_json(package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json") or {}
     transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
@@ -1518,6 +1521,24 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "transitionVisualMatchStatus": transition_visual_match.get("status"),
             "transitionVisualMatchSummary": transition_visual_match_summary,
+        },
+    )
+    transition_reference_candidates_summary = get_summary(transition_reference_candidates)
+    add_check(
+        checks,
+        "Transition reference candidates prove V14 first drafts get non-copying A/B/C transition options before Resolve apply, not generic hard cuts or random effects",
+        transition_reference_candidates.get("status") == "ready_with_transition_reference_candidates"
+        and int(transition_reference_candidates_summary.get("transitionRowCount") or 0) >= 1
+        and int(transition_reference_candidates_summary.get("candidateRowCount") or 0) == int(transition_reference_candidates_summary.get("transitionRowCount") or 0)
+        and int(transition_reference_candidates_summary.get("rowsWithAtLeastThreeCandidates") or 0) == int(transition_reference_candidates_summary.get("candidateRowCount") or 0)
+        and int(transition_reference_candidates_summary.get("motionCandidateRowCount") or 0) <= int(transition_reference_candidates_summary.get("maxMotionCandidateRows") or 0)
+        and (
+            int(transition_reference_candidates_summary.get("importantBoundaryCount") or 0) == 0
+            or float(transition_reference_candidates_summary.get("importantBridgeOrBreathCoverage") or 0.0) >= 1.0
+        ),
+        {
+            "transitionReferenceCandidatesStatus": transition_reference_candidates.get("status"),
+            "transitionReferenceCandidatesSummary": transition_reference_candidates_summary,
         },
     )
     transition_choreography_plan_summary = get_summary(transition_choreography_plan)
