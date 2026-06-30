@@ -223,6 +223,18 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Rerun transition-flow repair planning, close every owner-script row, then rerun transition cadence/microstructure/scene-arc/visual-match/cutpoint/action/sensory/preview/audition/breathing/smoothness/narrative/orientation/settlement audits plus final QA, V14, and maturity.",
         "forbiddenWorkaround": "Do not treat scattered transition audit failures as optional polish, and do not hide weak adjacent-shot flow with random effects, templates, marker-only visible transitions, or stronger motion.",
     },
+    "transition_reference_readiness_contract_audit": {
+        "path": "transition_reference_readiness_contract_audit.json",
+        "accepted": {"passed"},
+        "phase": "transition_flow",
+        "priority": "P0",
+        "ownerScript": "audit_transition_reference_readiness_contract.py",
+        "requiredArtifact": "transition_reference_readiness_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_transition_reference_readiness_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun transition reference-readiness aggregation and prove every transition craft/report/watch-reel/rendered-proof/repair-closure gate has zero open readiness rows.",
+        "forbiddenWorkaround": "Do not claim Parallel World/Malta-level transition quality while the aggregate transition readiness gate still has open rows or metric issues.",
+        "allowKeywordRoutes": False,
+    },
     "transition_breathing_room_contract_audit": {
         "path": "transition_breathing_room_contract_audit.json",
         "accepted": {"passed"},
@@ -429,6 +441,17 @@ FINAL_QA_META_STAGES = {
 }
 
 FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
+    (
+        ("transition_reference_readiness", "transition readiness"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "audit_transition_reference_readiness_contract.py",
+            "requiredArtifact": "transition_reference_readiness_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_transition_reference_readiness_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition reference-readiness aggregation, repair open transition rows, and rerun final QA until this stage passes.",
+            "forbiddenWorkaround": "Do not hand off a cut whose transition chain only passes isolated checks while the aggregate transition readiness stage is blocked.",
+        },
+    ),
     (
         ("final_viewer_friction", "viewer_friction"),
         {
@@ -691,6 +714,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/prepare_transition_motif_plan.py --package-dir <package> --json",
             "acceptanceEvidence": "Rerun transition motif planning/coherence and final QA until the whole film uses one restrained motif language instead of random per-cut effects.",
             "forbiddenWorkaround": "Do not pass motif coherence by repeating one template transition or hiding weak jumps with unrelated effects.",
+        },
+    ),
+    (
+        ("transition_reference_readiness", "transition readiness", "reference transition readiness"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "audit_transition_reference_readiness_contract.py",
+            "requiredArtifact": "transition_reference_readiness_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_transition_reference_readiness_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition reference-readiness aggregation and repair owner-script rows until it returns passed.",
+            "forbiddenWorkaround": "Do not treat scattered transition passes as enough when the aggregate transition readiness gate is blocked.",
         },
     ),
     (

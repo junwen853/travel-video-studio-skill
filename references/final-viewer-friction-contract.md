@@ -1,6 +1,6 @@
 # Final Viewer Friction Contract
 
-Run this contract after final technical/style reports exist and before unattended repair queue, final QA handoff, V14 baseline claims, Skill maturity claims, or release.
+Run this contract after final technical/style reports and `transition-reference-readiness-contract.md` exist, and before unattended repair queue, final QA handoff, V14 baseline claims, Skill maturity claims, or release.
 
 ## Required Command
 
@@ -40,7 +40,7 @@ Every open row must include:
 - acceptance evidence
 - forbidden workaround
 
-If this contract blocks, repair via the listed owner scripts and rerun the source audits, this contract, unattended repair queue, final QA, V14 baseline, and Skill maturity.
+If this contract blocks, repair via the listed owner scripts and rerun the source audits, transition reference-readiness, this contract, unattended repair queue, final QA, V14 baseline, and Skill maturity.
 
 ## Safety
 

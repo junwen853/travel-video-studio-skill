@@ -595,6 +595,25 @@ def summarize_final_viewer_friction_contract(report: dict[str, Any] | None) -> d
     }
 
 
+def summarize_transition_reference_readiness_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "requiredTransitionReportCount": summary.get("requiredTransitionReportCount"),
+        "passedTransitionReportCount": summary.get("passedTransitionReportCount"),
+        "transitionReadinessRowCount": summary.get("transitionReadinessRowCount"),
+        "p0TransitionReadinessRowCount": summary.get("p0TransitionReadinessRowCount"),
+        "p1TransitionReadinessRowCount": summary.get("p1TransitionReadinessRowCount"),
+        "metricIssueCount": summary.get("metricIssueCount"),
+        "phaseCounts": summary.get("phaseCounts"),
+        "ownerScripts": summary.get("ownerScripts"),
+        "blockers": [row.get("repairId") for row in report.get("transitionReadinessRows") or []],
+    }
+
+
 def summarize_edit_rhythm_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -4075,6 +4094,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("prepare_transition_flow_repair_plan", transition_flow_repair_cmd, ok_codes={0, 2}))
 
+    transition_reference_readiness_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_transition_reference_readiness_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_transition_reference_readiness_contract", transition_reference_readiness_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -4278,6 +4306,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_viewer_orientation_summary = None
     transition_scene_settlement_summary = None
     transition_flow_repair_summary = None
+    transition_reference_readiness_summary = None
     scene_flow_arc_summary = None
     final_cut_smoothness_summary = None
     unattended_first_draft_summary = None
@@ -4827,6 +4856,13 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                     f"Transition flow repair blocker: {item}"
                     for item in transition_flow_repair_summary.get("blockers") or []
                 )
+        if step["id"] == "audit_transition_reference_readiness_contract":
+            transition_reference_readiness_summary = summarize_transition_reference_readiness_contract(payload)
+            if transition_reference_readiness_summary and str(transition_reference_readiness_summary.get("status") or "").startswith("blocked"):
+                blockers.extend(
+                    f"Transition reference readiness blocker: {item}"
+                    for item in transition_reference_readiness_summary.get("blockers") or []
+                )
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -5007,6 +5043,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "final_viewer_friction_contract_audit.json").exists():
         final_viewer_friction_summary = summarize_final_viewer_friction_contract(
             load_json(package_dir / "final_viewer_friction_contract_audit.json")
+        )
+    if package_dir and (package_dir / "transition_reference_readiness_contract_audit.json").exists():
+        transition_reference_readiness_summary = summarize_transition_reference_readiness_contract(
+            load_json(package_dir / "transition_reference_readiness_contract_audit.json")
         )
     if package_dir and (package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json").exists():
         audio_scene_policy_summary = summarize_audio_scene_policy_plan(
@@ -5433,6 +5473,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionViewerOrientationSummary": transition_viewer_orientation_summary,
         "transitionSceneSettlementSummary": transition_scene_settlement_summary,
         "transitionFlowRepairSummary": transition_flow_repair_summary,
+        "transitionReferenceReadinessSummary": transition_reference_readiness_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
@@ -5485,6 +5526,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review reference_review_repair_plan/reference_review_repair_plan.json when local reference videos are supplied so full-film review evidence is closed before reference learning, final QA, V14, or Skill maturity claims.",
             "Review editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json before handoff; ready_with_editorial_watchdown_repair_plan means the current final MP4 still has open full-film viewer-review rows.",
             "Review final_viewer_friction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_final_viewer_friction means title, BGM, caption, source, story, transition, reference-fit, route-texture, or whole-film watchdown issues still need owner-script repairs.",
+            "Review transition_reference_readiness_contract_audit.json before final viewer friction, final QA, V14, or handoff; blocked_transition_reference_readiness means the transition chain still has open craft/report/watch-reel/rendered-proof/repair-closure rows.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",
             "Review edit_rhythm_plan.json before Resolve apply so long raw clips, missing cutaways, and weak chapter variety are fixed before the edit feels AI-assembled.",
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",

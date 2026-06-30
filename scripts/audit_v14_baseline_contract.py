@@ -102,6 +102,7 @@ SKILL_PATTERNS = {
     "editorial_watchdown_repair": "prepare_editorial_watchdown_repair_plan.py",
     "editorial_watchdown_closed": "ready_no_editorial_watchdown_repairs_needed",
     "final_viewer_friction": "audit_final_viewer_friction_contract.py",
+    "transition_reference_readiness": "audit_transition_reference_readiness_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure": "audit_reference_repair_closure.py",
     "route_texture": "audit_route_texture_contract.py",
@@ -211,6 +212,7 @@ REQUIRED_SCRIPTS = [
     "audit_unattended_first_draft_contract.py",
     "prepare_editorial_watchdown_repair_plan.py",
     "audit_final_viewer_friction_contract.py",
+    "audit_transition_reference_readiness_contract.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_repair_closure.py",
     "audit_reference_style_alignment.py",
@@ -388,6 +390,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     unattended_first_draft = load_json(package_dir / "unattended_first_draft_contract_audit.json") or {}
     editorial_watchdown = load_json(package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json") or {}
     final_viewer_friction = load_json(package_dir / "final_viewer_friction_contract_audit.json") or {}
+    transition_reference_readiness = load_json(package_dir / "transition_reference_readiness_contract_audit.json") or {}
     unattended_repair_queue = load_json(package_dir / "unattended_repair_queue" / "unattended_repair_queue.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
@@ -2685,6 +2688,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     route_summary = get_summary(route_texture)
     director_summary = get_summary(director_intent)
     final_viewer_friction_summary = get_summary(final_viewer_friction)
+    transition_reference_readiness_summary = get_summary(transition_reference_readiness)
     add_check(
         checks,
         "Bilibili/Malta style, reference-profile application, raw footage selection, creator cut, route texture, rhythm, and director polish gates pass",
@@ -2818,6 +2822,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and final_viewer_friction.get("status") == "passed"
         and int(final_viewer_friction_summary.get("viewerFrictionRowCount") or 0) == 0
         and int(final_viewer_friction_summary.get("p0ViewerFrictionRowCount") or 0) == 0
+        and transition_reference_readiness.get("status") == "passed"
+        and int(transition_reference_readiness_summary.get("requiredTransitionReportCount") or 0) >= 40
+        and int(transition_reference_readiness_summary.get("transitionReadinessRowCount") or 0) == 0
+        and int(transition_reference_readiness_summary.get("metricIssueCount") or 0) == 0
         and int(route_summary.get("matchedTransitions") or 0) >= 1
         and int(rhythm_summary.get("primaryVisualShotCount") or 0) >= 40,
         {
@@ -2951,6 +2959,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "referenceRepairClosureSummary": reference_repair_closure_summary,
             "finalViewerFrictionStatus": final_viewer_friction.get("status"),
             "finalViewerFrictionSummary": final_viewer_friction_summary,
+            "transitionReferenceReadinessStatus": transition_reference_readiness.get("status"),
+            "transitionReferenceReadinessSummary": transition_reference_readiness_summary,
         },
     )
 
@@ -2983,6 +2993,22 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "finalViewerFrictionStatus": final_viewer_friction.get("status"),
             "finalViewerFrictionSummary": final_viewer_friction_summary,
+        },
+    )
+    transition_reference_readiness_summary = get_summary(transition_reference_readiness)
+    add_check(
+        checks,
+        "Transition reference-readiness contract proves V14 handoff has no open transition craft, watch-reel, rendered-proof, or repair-closure rows",
+        transition_reference_readiness.get("status") == "passed"
+        and int(transition_reference_readiness_summary.get("requiredTransitionReportCount") or 0) >= 40
+        and int(transition_reference_readiness_summary.get("passedTransitionReportCount") or 0) == int(transition_reference_readiness_summary.get("requiredTransitionReportCount") or 0)
+        and int(transition_reference_readiness_summary.get("transitionReadinessRowCount") or 0) == 0
+        and int(transition_reference_readiness_summary.get("p0TransitionReadinessRowCount") or 0) == 0
+        and int(transition_reference_readiness_summary.get("p1TransitionReadinessRowCount") or 0) == 0
+        and int(transition_reference_readiness_summary.get("metricIssueCount") or 0) == 0,
+        {
+            "transitionReferenceReadinessStatus": transition_reference_readiness.get("status"),
+            "transitionReferenceReadinessSummary": transition_reference_readiness_summary,
         },
     )
 
