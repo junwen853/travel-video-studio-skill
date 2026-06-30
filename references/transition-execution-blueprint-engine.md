@@ -4,11 +4,12 @@ Use this reference after `transition-execution-engine.md` when transition recipe
 
 ## Purpose
 
-`prepare_transition_execution_blueprint.py` materializes transition execution rows into blueprint-level candidate transition objects. It prevents "Cross Dissolve here" or "rotation match cut here" from remaining a prose instruction with no timeline evidence.
+`prepare_transition_execution_blueprint.py` materializes transition execution rows and transition reference selections into blueprint-level candidate transition objects. It prevents "Cross Dissolve here", "rotation match cut here", or "candidate A/B/C selected" from remaining a prose instruction with no timeline evidence.
 
 The default behavior is non-destructive:
 
 - reads `transition_execution_plan/transition_execution_plan.json`
+- reads `transition_reference_selection/transition_reference_selection.json`
 - uses `bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json` as the base when it is ready, otherwise `resolve_timeline_blueprint.json`
 - writes `transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json`
 - writes `transition_execution_blueprint/transition_execution_blueprint_report.json` and `.md`
@@ -35,7 +36,7 @@ The script adds:
 - `transitionExecutionIn` metadata on incoming clips
 - timeline markers with role `transition_execution_candidate_marker`
 
-Each candidate transition records the approved transition type, Resolve effect name, duration frames, keyframe plan, BGM cue, subtitle policy, audio policy, bridge requirement, motion evidence, and decision/readback fields.
+Each candidate transition records the approved transition type, Resolve effect name, duration frames, selected candidate rank/type/family/intensity, selected Resolve recipe, selected preview hint, keyframe plan, BGM cue, subtitle policy, audio policy, bridge requirement, motion evidence, and decision/readback fields.
 
 ## Required Follow-Up
 
@@ -61,6 +62,8 @@ Pass:
 - report status is `ready_with_transition_execution_blueprint`
 - candidate blueprint exists
 - candidate `transitions[]` count equals execution row count
+- `rowsWithAppliedReferenceSelection` equals execution row count
+- transition objects, clip annotations, and markers carry the selected candidate type/family
 - every transition row has decision fields
 - adjacent clips have in/out transition metadata
 - bridge-required rows are not marked ready until bridge sequences are materialized
@@ -70,6 +73,7 @@ Pass:
 Reject:
 
 - transition recipes remain prose-only
+- reference selection rows exist but do not appear in the candidate blueprint
 - random spin, flash, glitch, shake, or template effects appear as selected recipes
 - bridge-required rows are marked ready without a materialized bridge sequence
 - the active blueprint is changed without explicit `--update-blueprint`

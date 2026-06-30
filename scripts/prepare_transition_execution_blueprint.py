@@ -146,18 +146,72 @@ def select_clip_index(clips: list[dict[str, Any]], row_clip: dict[str, Any], bou
     return scored[0][1]
 
 
-def forbidden_hits(row: dict[str, Any]) -> list[str]:
+def reference_selection_plan(package_dir: Path) -> tuple[dict[str, Any], dict[int, dict[str, Any]]]:
+    path = package_dir / "transition_reference_selection" / "transition_reference_selection.json"
+    data = load_json(path) or {}
+    rows = data.get("selectionRows") if isinstance(data.get("selectionRows"), list) else []
+    out: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        index = as_int(row.get("rowIndex"), -1)
+        if index >= 0:
+            out[index] = row
+    return data, out
+
+
+def selected_candidate(selection_row: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(selection_row, dict):
+        return {}
+    candidate = selection_row.get("selectedCandidate")
+    return candidate if isinstance(candidate, dict) else {}
+
+
+def selection_decision(selection_row: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(selection_row, dict):
+        return {}
+    decision = selection_row.get("autoDecision")
+    return decision if isinstance(decision, dict) else {}
+
+
+def resolve_effect_from_selection(candidate: dict[str, Any], fallback: Any) -> str:
+    family = str(candidate.get("styleFamily") or "").lower()
+    candidate_type = str(candidate.get("candidateType") or "").lower()
+    if family in {"clean_cut", "visual_match", "physical_bridge"}:
+        return "Cut"
+    if family == "title_breath":
+        return "Opacity/Scale Title Breath"
+    if family == "mood_dissolve" or "dissolve" in candidate_type:
+        return "Cross Dissolve"
+    if family == "motion_accent":
+        if "rotation" in candidate_type:
+            return "Transform Rotation Match"
+        if "whip" in candidate_type:
+            return "Transform Whip Pan"
+        if "speed" in candidate_type or "ramp" in candidate_type:
+            return "Speed Ramp"
+        return "Restrained Transform Motion"
+    return str(fallback or "")
+
+
+def forbidden_hits(row: dict[str, Any], selection_row: dict[str, Any] | None = None) -> list[str]:
     upstream = row.get("forbiddenRecipeHits") if isinstance(row.get("forbiddenRecipeHits"), list) else []
     if upstream:
         return [str(item) for item in upstream if str(item).strip()]
     recipe = row.get("executionRecipe") if isinstance(row.get("executionRecipe"), dict) else {}
     decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+    candidate = selected_candidate(selection_row)
+    auto_decision = selection_decision(selection_row)
     selected_fields = {
         "resolveEffectName": recipe.get("resolveEffectName"),
         "trackOperation": recipe.get("trackOperation"),
         "style": recipe.get("style"),
         "approvedTransitionType": decision.get("approvedTransitionType"),
         "approvedResolveEffectName": decision.get("approvedResolveEffectName"),
+        "selectedCandidateType": candidate.get("candidateType"),
+        "selectedStyleFamily": candidate.get("styleFamily"),
+        "selectedResolveRecipe": candidate.get("resolveRecipe"),
+        "selectedResolveImplementation": auto_decision.get("resolveImplementation"),
     }
     text = json.dumps(selected_fields, ensure_ascii=False).lower()
     return [term for term in FORBIDDEN_TERMS if term in text]
@@ -195,11 +249,32 @@ def safety_policy() -> dict[str, bool]:
     }
 
 
-def transition_payload(row: dict[str, Any], *, fps: float, boundary: float, bridge_satisfied: bool) -> dict[str, Any]:
+def transition_payload(
+    row: dict[str, Any],
+    *,
+    fps: float,
+    boundary: float,
+    bridge_satisfied: bool,
+    selection_row: dict[str, Any] | None,
+) -> dict[str, Any]:
     recipe = row.get("executionRecipe") if isinstance(row.get("executionRecipe"), dict) else {}
     decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
-    duration_frames = as_int(recipe.get("durationFrames") or decision.get("durationFrames"), 0)
+    selected = selected_candidate(selection_row)
+    auto_decision = selection_decision(selection_row)
+    selection_status = str((selection_row or {}).get("selectionStatus") or "")
+    selection_applied = selection_status == "auto_selected" and bool(selected)
+    duration_frames = as_int(
+        selected.get("durationFrames") if selection_applied else recipe.get("durationFrames") or decision.get("durationFrames"),
+        0,
+    )
     duration_seconds = duration_frames / fps if fps > 0 else 0.0
+    fallback_effect = decision.get("approvedResolveEffectName") or recipe.get("resolveEffectName")
+    selected_effect = resolve_effect_from_selection(selected, fallback_effect) if selection_applied else str(fallback_effect or "")
+    approved_type = (
+        selected.get("candidateType")
+        if selection_applied
+        else decision.get("approvedTransitionType") or recipe.get("style") or (row.get("grammarRecommendation") or {}).get("recommendedTransitionType")
+    )
     return {
         "role": "transition_execution_candidate",
         "rowIndex": row.get("rowIndex"),
@@ -208,8 +283,8 @@ def transition_payload(row: dict[str, Any], *, fps: float, boundary: float, brid
         "boundarySeconds": round3(boundary),
         "fromSourcePath": candidate_source_path(row.get("fromClip") if isinstance(row.get("fromClip"), dict) else {}),
         "toSourcePath": candidate_source_path(row.get("toClip") if isinstance(row.get("toClip"), dict) else {}),
-        "approvedTransitionType": decision.get("approvedTransitionType") or recipe.get("style") or (row.get("grammarRecommendation") or {}).get("recommendedTransitionType"),
-        "resolveEffectName": decision.get("approvedResolveEffectName") or recipe.get("resolveEffectName"),
+        "approvedTransitionType": approved_type,
+        "resolveEffectName": selected_effect,
         "durationFrames": duration_frames,
         "durationSeconds": round3(duration_seconds),
         "preRollFrames": as_int(recipe.get("preRollFrames"), 0),
@@ -224,7 +299,16 @@ def transition_payload(row: dict[str, Any], *, fps: float, boundary: float, brid
         "bridgeSequenceSatisfied": bridge_satisfied,
         "motionStyle": row.get("motionStyle") is True,
         "motionHasEvidence": row.get("motionHasEvidence") is True,
-        "forbiddenRecipeHits": forbidden_hits(row),
+        "forbiddenRecipeHits": forbidden_hits(row, selection_row),
+        "referenceSelectionStatus": selection_status,
+        "referenceSelectionApplied": selection_applied,
+        "selectedCandidateRank": selected.get("rank") if selection_applied else "",
+        "selectedCandidateType": selected.get("candidateType") if selection_applied else "",
+        "selectedStyleFamily": selected.get("styleFamily") if selection_applied else "",
+        "selectedIntensity": selected.get("intensity") if selection_applied else "",
+        "selectedResolveRecipe": selected.get("resolveRecipe") if selection_applied else "",
+        "selectedPreviewHint": selected.get("ffmpegPreviewHint") if selection_applied else "",
+        "referenceSelectionDecision": auto_decision if selection_applied else {},
         "decision": dict(DECISION_FIELDS),
     }
 
@@ -238,6 +322,9 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     markdown_path = output_dir / "transition_execution_blueprint_report.md"
     base_blueprint, base_path, base_kind = choose_base_blueprint(package_dir)
     plan = load_json(plan_path)
+    selection_plan, selection_rows = reference_selection_plan(package_dir)
+    selection_plan_path = package_dir / "transition_reference_selection" / "transition_reference_selection.json"
+    selection_ready = selection_plan.get("status") == "ready_with_transition_reference_selection"
 
     if not isinstance(base_blueprint, dict) or not isinstance(plan, dict):
         report = {
@@ -277,13 +364,29 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     motion_rows_with_evidence = 0
     bridge_required_rows = 0
     bridge_satisfied_rows = 0
+    rows_with_reference_selection = 0
+    rows_with_applied_reference_selection = 0
+    blocked_reference_selection_rows = 0
+    selected_family_counts: dict[str, int] = {}
 
     for row in sorted(rows, key=boundary_seconds):
         boundary = boundary_seconds(row)
         row_index = as_int(row.get("rowIndex"), -1)
         requires_bridge = row.get("requiresBridgeInsert") is True
         bridge_satisfied = (not requires_bridge) or row_index in satisfied_bridge_rows
-        payload = transition_payload(row, fps=fps, boundary=boundary, bridge_satisfied=bridge_satisfied)
+        selection_row = selection_rows.get(row_index)
+        selected = selected_candidate(selection_row)
+        selection_status = str((selection_row or {}).get("selectionStatus") or "")
+        if selection_row:
+            rows_with_reference_selection += 1
+        if selection_ready and selection_status == "auto_selected" and selected:
+            rows_with_applied_reference_selection += 1
+            family = str(selected.get("styleFamily") or "")
+            if family:
+                selected_family_counts[family] = selected_family_counts.get(family, 0) + 1
+        else:
+            blocked_reference_selection_rows += 1
+        payload = transition_payload(row, fps=fps, boundary=boundary, bridge_satisfied=bridge_satisfied, selection_row=selection_row)
         transitions.append(payload)
 
         from_index = select_clip_index(clips, row.get("fromClip") if isinstance(row.get("fromClip"), dict) else {}, boundary, side="from")
@@ -307,6 +410,8 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 bridge_satisfied_rows += 1
         row_blocked = (
             row.get("status") != "ready_with_transition_execution_recipe"
+            or not selection_ready
+            or selection_status != "auto_selected"
             or not bridge_satisfied
             or bool(payload.get("forbiddenRecipeHits"))
             or (payload.get("motionStyle") and not payload.get("motionHasEvidence"))
@@ -321,6 +426,11 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "resolveEffectName": payload.get("resolveEffectName"),
                 "approvedTransitionType": payload.get("approvedTransitionType"),
                 "durationFrames": payload.get("durationFrames"),
+                "referenceSelectionStatus": payload.get("referenceSelectionStatus"),
+                "referenceSelectionApplied": payload.get("referenceSelectionApplied"),
+                "selectedCandidateRank": payload.get("selectedCandidateRank"),
+                "selectedCandidateType": payload.get("selectedCandidateType"),
+                "selectedStyleFamily": payload.get("selectedStyleFamily"),
                 "fromClipMatched": from_index is not None,
                 "toClipMatched": to_index is not None,
                 "requiresBridgeInsert": requires_bridge,
@@ -341,6 +451,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         "baseBlueprint": str(base_path),
         "baseBlueprintKind": base_kind,
         "sourceTransitionExecutionPlan": str(plan_path),
+        "sourceTransitionReferenceSelection": str(selection_plan_path),
         "report": str(report_path),
         "candidateBlueprint": str(candidate_path),
         "fps": fps,
@@ -361,6 +472,9 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                         "rowIndex": transition.get("rowIndex"),
                         "resolveEffectName": transition.get("resolveEffectName"),
                         "durationFrames": transition.get("durationFrames"),
+                        "referenceSelectionApplied": transition.get("referenceSelectionApplied"),
+                        "selectedCandidateType": transition.get("selectedCandidateType"),
+                        "selectedStyleFamily": transition.get("selectedStyleFamily"),
                     },
                 }
             )
@@ -376,6 +490,8 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "baseBlueprint": str(base_path),
             "baseBlueprintKind": base_kind,
             "transitionExecutionPlan": str(plan_path),
+            "transitionReferenceSelectionPlan": str(selection_plan_path),
+            "transitionReferenceSelectionStatus": selection_plan.get("status"),
             "bridgeSequenceBlueprintRowsSatisfied": sorted(satisfied_bridge_rows),
         },
         "outputs": {
@@ -394,6 +510,11 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "motionEffectRowsWithEvidence": motion_rows_with_evidence,
             "bridgeRequiredRowCount": bridge_required_rows,
             "bridgeSatisfiedRowCount": bridge_satisfied_rows,
+            "referenceSelectionRowCount": len(selection_rows),
+            "rowsWithReferenceSelection": rows_with_reference_selection,
+            "rowsWithAppliedReferenceSelection": rows_with_applied_reference_selection,
+            "blockedReferenceSelectionRowCount": blocked_reference_selection_rows,
+            "selectedStyleFamilyCounts": selected_family_counts,
             "candidateClipCount": len(clips),
             "candidateTransitionCount": len(transitions),
         },
@@ -401,12 +522,14 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         "selectionRubric": {
             "pass": [
                 "Every transition execution row becomes a candidate transition object in the blueprint.",
+                "Every transition execution row consumes the auto-selected reference candidate when transition reference selection is ready.",
                 "Adjacent source clips are annotated with in/out transition execution metadata.",
                 "Motion effects are present only when the execution plan recorded route or two-sided motion evidence.",
                 "Bridge-required transitions are not marked ready until bridge sequence rows are materialized.",
             ],
             "reject": [
                 "Transition recipes remain prose-only and do not appear in the candidate blueprint.",
+                "Reference selection exists but selected candidates are not present in transitions, clip annotations, or markers.",
                 "A random spin, flash, glitch, shake, or template effect appears in a candidate row.",
                 "A bridge-required row is marked ready without a materialized bridge sequence.",
                 "The script writes Resolve, queues render, downloads assets, or mutates source footage.",
@@ -459,6 +582,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Boundary: {row.get('boundarySeconds')}s",
                 f"- Resolve effect: `{row.get('resolveEffectName')}`",
                 f"- Duration: {row.get('durationFrames')} frames",
+                f"- Reference selection: {row.get('referenceSelectionStatus')} / {row.get('selectedCandidateType')} / {row.get('selectedStyleFamily')}",
                 f"- Clip match: from={row.get('fromClipMatched')} to={row.get('toClipMatched')}",
                 f"- Bridge satisfied: {row.get('bridgeSequenceSatisfied')}",
                 f"- Motion evidence: {row.get('motionStyle')} / {row.get('motionHasEvidence')}",

@@ -1,6 +1,6 @@
 # Transition Reference Selection Engine
 
-Use this engine after `prepare_transition_reference_candidates.py` and before motif, bridge-sequence, choreography, preview, audition, storyboard, transition polish, unattended-first-draft, V14, maturity, final QA, or Resolve apply claims.
+Use this engine after `prepare_transition_reference_candidates.py` and before `prepare_transition_execution_blueprint.py`, motif, bridge-sequence, choreography, preview, audition, storyboard, transition polish, unattended-first-draft, V14, maturity, final QA, or Resolve apply claims.
 
 The candidate engine creates A/B/C choices. This selection engine chooses one safe default per boundary for unattended first drafts. It does not copy a reference creator's exact transition. It converts the learned reference balance into deterministic selection rules: important route changes prefer real bridge footage, title boundaries prefer clean scenic title breath, endings prefer aftertaste, normal cuts prefer visual match or clean continuity, and motion accents stay rare, source-motivated, and separated.
 
@@ -47,6 +47,7 @@ Each selected row includes:
 - Blocked selection row count is zero.
 - Selected motion rows do not exceed the candidate budget.
 - Important boundaries have bridge, title-breath, or mood-breath selections.
+- The following transition execution blueprint report shows `rowsWithAppliedReferenceSelection` equals the execution row count.
 - Safety flags prove the command did not write Resolve, queue renders, download assets, or modify source footage.
 
 ## Repair Route

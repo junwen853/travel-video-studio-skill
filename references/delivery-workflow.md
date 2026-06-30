@@ -45,7 +45,7 @@ Expected files:
 - `resolve_timeline_enrichment.json`: subtitle cues, voiceover/BGM mix plan, stock/aerial placeholders, transition cues, and Resolve timeline markers
 - `resolve_timeline_blueprint.json`: input for DaVinci Resolve API timeline creation
 - `transition_execution_plan/transition_execution_plan.json` / `.md`: Resolve-ready transition recipes for adjacent-pair cuts, dissolves, whip/rotation/speed ramps, bridge inserts, BGM cues, and readback evidence
-- `transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json`: non-destructive Resolve candidate containing transition execution metadata, markers, and clip in/out transition annotations
+- `transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json`: non-destructive Resolve candidate containing transition execution metadata, selected reference-candidate payloads, markers, and clip in/out transition annotations
 - `transition_execution_blueprint/transition_execution_blueprint_report.json` / `.md`: transition materialization summary, safety flags, and approval/follow-up instructions
 - `transition_motif_plan/transition_motif_plan.json` / `.md`: film-level transition motif audit for repeated dissolves, random motion effects, BGM phrase cues, title-zone safety, and owner-script repairs
 - `bridge_sequence_plan/bridge_sequence_plan.json` / `.md`: 2-5 shot route/title bridge sequence plan for important transitions that cannot be solved by a single effect

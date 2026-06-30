@@ -2913,6 +2913,7 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
     transition_rows_without_forbidden = 0
     transition_rows_bridge_safe = 0
     transition_rows_motion_safe = 0
+    transition_rows_with_reference_selection = 0
     for transition in transitions:
         if not isinstance(transition, dict):
             continue
@@ -2925,8 +2926,11 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
             transition_rows_bridge_safe += 1
         if not transition.get("motionStyle") or transition.get("motionHasEvidence") is True:
             transition_rows_motion_safe += 1
+        if transition.get("referenceSelectionApplied") is True and transition.get("selectedCandidateType") and transition.get("selectedStyleFamily"):
+            transition_rows_with_reference_selection += 1
     annotated_out = sum(len(clip.get("transitionExecutionOut") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionOut"), list))
     annotated_in = sum(len(clip.get("transitionExecutionIn") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionIn"), list))
+    plan = candidate.get("transitionExecutionBlueprintPlan") if isinstance(candidate.get("transitionExecutionBlueprintPlan"), dict) else {}
     return {
         "path": str(path),
         "exists": path.exists(),
@@ -2943,7 +2947,13 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         "motionEffectRowsWithEvidence": summary.get("motionEffectRowsWithEvidence"),
         "bridgeRequiredRowCount": summary.get("bridgeRequiredRowCount"),
         "bridgeSatisfiedRowCount": summary.get("bridgeSatisfiedRowCount"),
+        "referenceSelectionRowCount": summary.get("referenceSelectionRowCount"),
+        "rowsWithReferenceSelection": summary.get("rowsWithReferenceSelection"),
+        "rowsWithAppliedReferenceSelection": summary.get("rowsWithAppliedReferenceSelection"),
+        "blockedReferenceSelectionRowCount": summary.get("blockedReferenceSelectionRowCount"),
+        "selectedStyleFamilyCounts": summary.get("selectedStyleFamilyCounts"),
         "candidateTransitionCount": summary.get("candidateTransitionCount"),
+        "candidatePlanHasReferenceSelection": bool(plan.get("sourceTransitionReferenceSelection")),
         "rowCount": len(rows),
         "rowsMaterializedByRow": rows_materialized,
         "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
@@ -2956,6 +2966,7 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         "transitionRowsWithoutForbiddenHits": transition_rows_without_forbidden,
         "transitionRowsBridgeSafe": transition_rows_bridge_safe,
         "transitionRowsMotionSafe": transition_rows_motion_safe,
+        "transitionRowsWithReferenceSelectionApplied": transition_rows_with_reference_selection,
         "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
         "writesResolve": safety.get("writesResolve"),
         "queuesRender": safety.get("queuesRender"),
@@ -2988,12 +2999,18 @@ def transition_execution_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("rowsMissingClipMatch") or 0) == 0
         and int(evidence.get("motionEffectRowsWithEvidence") or 0) == int(evidence.get("motionEffectRowCount") or 0)
         and int(evidence.get("bridgeSatisfiedRowCount") or 0) == int(evidence.get("bridgeRequiredRowCount") or 0)
+        and int(evidence.get("referenceSelectionRowCount") or 0) >= row_count
+        and int(evidence.get("rowsWithReferenceSelection") or 0) == row_count
+        and int(evidence.get("rowsWithAppliedReferenceSelection") or 0) == row_count
+        and int(evidence.get("blockedReferenceSelectionRowCount") or 0) == 0
         and int(evidence.get("annotatedOutClipCount") or 0) >= row_count
         and int(evidence.get("annotatedInClipCount") or 0) >= row_count
         and int(evidence.get("transitionRowsWithDecisionFields") or 0) == row_count
         and int(evidence.get("transitionRowsWithoutForbiddenHits") or 0) == row_count
         and int(evidence.get("transitionRowsBridgeSafe") or 0) == row_count
         and int(evidence.get("transitionRowsMotionSafe") or 0) == row_count
+        and int(evidence.get("transitionRowsWithReferenceSelectionApplied") or 0) == row_count
+        and evidence.get("candidatePlanHasReferenceSelection") is True
         and evidence.get("activeBlueprintUpdated") is False
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False

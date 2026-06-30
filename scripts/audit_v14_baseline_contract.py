@@ -903,21 +903,39 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     ] if isinstance(transition_candidate.get("timelineMarkers"), list) else []
     annotated_out = sum(len(clip.get("transitionExecutionOut") or []) for clip in transition_candidate.get("clips", []) if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionOut"), list))
     annotated_in = sum(len(clip.get("transitionExecutionIn") or []) for clip in transition_candidate.get("clips", []) if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionIn"), list))
+    selected_transition_count = sum(
+        1
+        for transition in transition_candidates
+        if isinstance(transition, dict)
+        and transition.get("referenceSelectionApplied") is True
+        and transition.get("selectedCandidateType")
+        and transition.get("selectedStyleFamily")
+    )
+    transition_execution_plan = (
+        transition_candidate.get("transitionExecutionBlueprintPlan")
+        if isinstance(transition_candidate.get("transitionExecutionBlueprintPlan"), dict)
+        else {}
+    )
     add_check(
         checks,
-        "Transition execution blueprint materializes adjacent-pair recipes into candidate transition metadata",
+        "Transition execution blueprint materializes selected reference transitions into candidate transition metadata",
         transition_execution_blueprint.get("status") == "ready_with_transition_execution_blueprint"
         and transition_execution_blueprint_rows >= 3
         and int(transition_execution_blueprint_summary.get("materializedTransitionCount") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("candidateTransitionCount") or 0) == len(transition_candidates)
         and int(transition_execution_blueprint_summary.get("candidateTransitionCount") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("rowsWithDecisionFields") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithReferenceSelection") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithAppliedReferenceSelection") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("blockedReferenceSelectionRowCount") or 0) == 0
         and int(transition_execution_blueprint_summary.get("blockedRowCount") or 0) == 0
         and int(transition_execution_blueprint_summary.get("rowsMissingClipMatch") or 0) == 0
         and int(transition_execution_blueprint_summary.get("motionEffectRowsWithEvidence") or 0) == int(transition_execution_blueprint_summary.get("motionEffectRowCount") or 0)
         and int(transition_execution_blueprint_summary.get("bridgeSatisfiedRowCount") or 0) == int(transition_execution_blueprint_summary.get("bridgeRequiredRowCount") or 0)
         and transition_candidate_path.exists()
         and isinstance(transition_candidate.get("transitionExecutionBlueprintPlan"), dict)
+        and bool(transition_execution_plan.get("sourceTransitionReferenceSelection"))
+        and selected_transition_count == transition_execution_blueprint_rows
         and len(transition_markers) == transition_execution_blueprint_rows
         and annotated_out >= transition_execution_blueprint_rows
         and annotated_in >= transition_execution_blueprint_rows,
@@ -926,6 +944,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionExecutionBlueprintSummary": transition_execution_blueprint_summary,
             "candidateBlueprint": str(transition_candidate_path),
             "candidateTransitionCount": len(transition_candidates),
+            "selectedTransitionCount": selected_transition_count,
             "markerCount": len(transition_markers),
             "annotatedOutClipCount": annotated_out,
             "annotatedInClipCount": annotated_in,

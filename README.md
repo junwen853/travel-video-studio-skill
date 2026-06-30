@@ -18,7 +18,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
 - Learns from multiple local reference videos as an aggregate, non-copying batch profile.
 - Plans BGM, BGM phrase cues, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, visual bridge material, and restrained effect-motion candidates with final application proof.
-- Converts transition decisions into Resolve-ready recipes, non-copying reference-calibrated A/B/C candidate ladders, and unattended-safe default transition selections, audits the whole transition motif/cadence chain, plans 2-5 shot bridge sequences, materializes those beats, proves those bridge inserts survive into the final candidate, and proves final BGM-hit/title-safe/motion-proven/pair-continuous/execution-ready transition polish metadata plus Resolve marker/readback payloads and latest candidate-chain lineage survive into the active/final Resolve blueprint.
+- Converts transition decisions into Resolve-ready recipes, non-copying reference-calibrated A/B/C candidate ladders, unattended-safe default transition selections, and execution-blueprint transition payloads that carry the selected candidate into Resolve markers/clip metadata; audits the whole transition motif/cadence chain, plans 2-5 shot bridge sequences, materializes those beats, proves those bridge inserts survive into the final candidate, and proves final BGM-hit/title-safe/motion-proven/pair-continuous/execution-ready transition polish metadata plus Resolve marker/readback payloads and latest candidate-chain lineage survive into the active/final Resolve blueprint.
 - Runs rhythm recut candidates from the latest BGM phrase blueprint and audits final application so long-shot repairs preserve transition, effect, music-cue metadata, and actual main-segment/cutaway survival in the final candidate.
 - Converts blocked reference/director/QA style gaps into concrete repair rows with owner scripts, required artifacts, and acceptance evidence.
 - Audits transition execution readiness so final transitions have package-local Resolve recipes, BGM hits, title-safe windows, pair readiness, and handle evidence before Resolve apply.
@@ -87,9 +87,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.63.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.63/travel-video-studio-skill-v0.1.63.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.63.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.64.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.64/travel-video-studio-skill-v0.1.64.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.64.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
