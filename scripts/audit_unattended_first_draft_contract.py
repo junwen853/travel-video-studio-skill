@@ -784,6 +784,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(rta_summary.get("transitionApplyRowCount")) >= 1
         and as_int(rta_summary.get("passedRowCount")) == as_int(rta_summary.get("transitionApplyRowCount"))
         and as_int(rta_summary.get("visibleEffectRowsWithApplyPath")) == as_int(rta_summary.get("visibleEffectRowCount"))
+        and as_int(rta_summary.get("pendingManualVisibleEffectRowCount")) == 0
         and as_int(rta_summary.get("markerOnlyBlockedRowCount")) == 0
         and as_int(rta_summary.get("decisionFieldRowCount")) == as_int(rta_summary.get("transitionApplyRowCount"))
         and as_int(bsa_summary.get("blockedSequenceRowCount")) == 0

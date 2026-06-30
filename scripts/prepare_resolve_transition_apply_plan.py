@@ -317,6 +317,11 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         blockers.append("resolve_transition_materialization_contract_audit.json is not passed")
     if not materialization_path.exists():
         warnings.append("resolve_transition_materialization_contract_audit.json is missing; run it before Resolve apply approval")
+    if manual_rows and not args.allow_planned_manual_visible_effects:
+        blockers.append(
+            "visible manual Resolve/Fusion transition rows are pending; replace them with clean cuts or materialized bridge clips, "
+            "or rerun with --allow-planned-manual-visible-effects only for an explicitly supervised Resolve handoff"
+        )
     blockers.extend(f"transition row {row.get('rowIndex')}: {', '.join(row.get('issues') or [])}" for row in blocked_rows[:80])
     if marker_only_rows:
         blockers.append("one or more visible transitions are marker-only with no apply path")
@@ -332,6 +337,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "visibleEffectRowCount": len(visible_rows),
         "visibleEffectRowsWithApplyPath": len([row for row in visible_rows if row.get("applyMethod") != "timeline_marker_handoff_only"]),
         "manualResolveRowCount": len(manual_rows),
+        "pendingManualVisibleEffectRowCount": 0 if args.allow_planned_manual_visible_effects else len(manual_rows),
+        "plannedManualVisibleEffectsAllowed": bool(args.allow_planned_manual_visible_effects),
         "apiSupportedRowCount": len([row for row in rows if row.get("applyMethod") in {"append_adjacent_clips_cut_on_bgm_hit", "blueprint_bridge_sequence_video_clips"}]),
         "fallbackBridgeRequiredRowCount": len([row for row in rows if row.get("fallbackBridgeInsertRequired")]),
         "markerOnlyBlockedRowCount": len(marker_only_rows),
@@ -362,6 +369,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "safety": safety(),
         "nextActions": [
             "Run audit_resolve_transition_apply_contract.py before Resolve apply approval.",
+            "For unattended first drafts, do not leave manual visible effects pending; use API-supported clean cuts, materialized bridge clips, or completed Resolve readback/frame evidence.",
             "After Resolve apply, run audit_resolve_timeline.py and sample frames around manual/bridge transitions.",
             "Do not call a visible transition applied when only marker customData exists.",
         ],
@@ -376,6 +384,11 @@ def main() -> int:
     parser.add_argument("--package-dir", required=True)
     parser.add_argument("--blueprint")
     parser.add_argument("--skill-dir")
+    parser.add_argument(
+        "--allow-planned-manual-visible-effects",
+        action="store_true",
+        help="Allow supervised manual Resolve/Fusion visible-effect rows in the apply plan; default blocks them for unattended delivery.",
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     report = build_report(Path(args.package_dir), args)

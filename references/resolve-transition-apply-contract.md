@@ -20,11 +20,12 @@ The apply audit may pass only when:
 - every transition row has an `applyMethod`;
 - no visible transition uses `timeline_marker_handoff_only`;
 - visible effects either have a manual Resolve/Fusion instruction with required readback/frame evidence, or are replaced by materialized bridge clips;
+- unattended/default workflow has zero pending manual visible-effect rows; a planned manual instruction is not evidence of application;
 - every row has apply decision fields, acceptance evidence, marker payload readiness, and clip annotation readiness;
 - the Resolve transition materialization audit is present and passed when available.
 
 ## Failure Policy
 
-If this audit blocks, do not approve Resolve apply, final QA, V14 baseline, or Skill maturity claims. Repair the final blueprint, add real bridge clips, or perform the manual Resolve/Fusion/effect step with readback/frame evidence. Do not claim a rotation, whip, dissolve, or speed ramp is applied when only marker customData exists.
+If this audit blocks, do not approve Resolve apply, final QA, V14 baseline, or Skill maturity claims. Repair the final blueprint, add real bridge clips, or perform the manual Resolve/Fusion/effect step with readback/frame evidence. For unattended first drafts, prefer API-supported clean cuts and materialized bridge clips over pending manual effects; do not claim a rotation, whip, dissolve, or speed ramp is applied when only marker customData or an editor instruction exists.
 
 This contract is intentionally strict because the Resolve Python API can reliably create timelines, clips, tracks, markers, and render plans, but the local scripting README does not document a stable direct API for applying arbitrary adjacent-clip transitions.

@@ -1447,6 +1447,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(resolve_transition_apply_summary.get("passedRowCount") or 0) == resolve_transition_apply_rows
         and int(resolve_transition_apply_summary.get("blockedRowCount") or 0) == 0
         and int(resolve_transition_apply_summary.get("visibleEffectRowsWithApplyPath") or 0) == int(resolve_transition_apply_summary.get("visibleEffectRowCount") or 0)
+        and int(resolve_transition_apply_summary.get("pendingManualVisibleEffectRowCount") or 0) == 0
         and int(resolve_transition_apply_summary.get("readbackEvidenceRequiredRowCount") or 0) == resolve_transition_apply_rows
         and int(resolve_transition_apply_summary.get("decisionFieldRowCount") or 0) == resolve_transition_apply_rows
         and int(resolve_transition_apply_summary.get("markerOnlyBlockedRowCount") or 0) == 0

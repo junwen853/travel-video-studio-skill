@@ -1317,6 +1317,9 @@ def summarize_resolve_transition_apply_contract(report: dict[str, Any] | None) -
         "visibleEffectRowCount": summary.get("visibleEffectRowCount"),
         "visibleEffectRowsWithApplyPath": summary.get("visibleEffectRowsWithApplyPath"),
         "manualResolveRowCount": summary.get("manualResolveRowCount"),
+        "pendingManualVisibleEffectRowCount": summary.get("pendingManualVisibleEffectRowCount"),
+        "manualResolveEvidenceReadyRowCount": summary.get("manualResolveEvidenceReadyRowCount"),
+        "fallbackBridgeEvidenceReadyRowCount": summary.get("fallbackBridgeEvidenceReadyRowCount"),
         "fallbackBridgeRequiredRowCount": summary.get("fallbackBridgeRequiredRowCount"),
         "readbackEvidenceRequiredRowCount": summary.get("readbackEvidenceRequiredRowCount"),
         "decisionFieldRowCount": summary.get("decisionFieldRowCount"),
@@ -3159,6 +3162,21 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Motion transitions: {source_coverage.get('motionTransitionCount')}",
                 f"- Bridge/motion source ready: {source_coverage.get('bridgeReadyRowCount')} / {source_coverage.get('motionSourceReadyRowCount')}",
                 f"- Blocked checks: {source_coverage.get('blockedCheckCount')}",
+            ]
+        )
+    if report.get("resolveTransitionApplySummary"):
+        transition_apply = report["resolveTransitionApplySummary"]
+        lines.extend(
+            [
+                "",
+                "## Resolve Transition Apply Contract",
+                f"- Exists: `{transition_apply.get('exists')}`",
+                f"- Status: `{transition_apply.get('status')}`",
+                f"- Apply/materialization status: `{transition_apply.get('applyPlanStatus')}` / `{transition_apply.get('materializationStatus')}`",
+                f"- Passed/blocked rows: {transition_apply.get('passedRowCount')} / {transition_apply.get('blockedRowCount')}",
+                f"- Visible effects/apply paths: {transition_apply.get('visibleEffectRowCount')} / {transition_apply.get('visibleEffectRowsWithApplyPath')}",
+                f"- Pending manual visible effects: {transition_apply.get('pendingManualVisibleEffectRowCount')}",
+                f"- Manual evidence/bridge evidence ready: {transition_apply.get('manualResolveEvidenceReadyRowCount')} / {transition_apply.get('fallbackBridgeEvidenceReadyRowCount')}",
             ]
         )
     if report.get("unattendedFirstDraftSummary"):

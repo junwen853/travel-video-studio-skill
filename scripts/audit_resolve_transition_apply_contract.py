@@ -90,11 +90,28 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def evidence_filled(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    text = str(value or "").strip().lower()
+    return bool(text) and text not in {"false", "no", "none", "null", "pending", "todo", "tbd", "0"}
+
+
 def audit_row(row: dict[str, Any]) -> dict[str, Any]:
     issues: list[str] = []
     method = str(row.get("applyMethod") or "")
     decision_fields = row.get("decisionFields") if isinstance(row.get("decisionFields"), dict) else {}
     acceptance = row.get("acceptanceEvidence") if isinstance(row.get("acceptanceEvidence"), list) else []
+    manual_completed = (
+        evidence_filled(decision_fields.get("resolveStepCompleted"))
+        and evidence_filled(decision_fields.get("resolveReadbackEvidence"))
+        and evidence_filled(decision_fields.get("frameSampleEvidence"))
+    )
+    bridge_completed = (
+        evidence_filled(decision_fields.get("fallbackBridgeInserted"))
+        and evidence_filled(decision_fields.get("resolveReadbackEvidence"))
+        and evidence_filled(decision_fields.get("frameSampleEvidence"))
+    )
     if not method:
         issues.append("missing_apply_method")
     if method == "timeline_marker_handoff_only":
@@ -107,6 +124,8 @@ def audit_row(row: dict[str, Any]) -> dict[str, Any]:
         issues.append("manual_resolve_step_missing_instruction")
     if row.get("fallbackBridgeInsertRequired") and not row.get("manualInstruction"):
         issues.append("fallback_bridge_requirement_missing_instruction")
+    if row.get("manualResolveStepRequired") and not (manual_completed or bridge_completed):
+        issues.append("pending_manual_visible_effect_without_resolve_readback_frame_or_bridge_evidence")
     if row.get("readbackEvidenceRequired") is not True:
         issues.append("readback_evidence_not_required")
     if not REQUIRED_DECISION_FIELDS.issubset(set(decision_fields.keys())):
@@ -124,6 +143,8 @@ def audit_row(row: dict[str, Any]) -> dict[str, Any]:
         "visibleEffect": bool(row.get("visibleEffect")),
         "manualResolveStepRequired": bool(row.get("manualResolveStepRequired")),
         "fallbackBridgeInsertRequired": bool(row.get("fallbackBridgeInsertRequired")),
+        "manualResolveEvidenceReady": manual_completed,
+        "fallbackBridgeEvidenceReady": bridge_completed,
         "decisionFieldCount": len(decision_fields),
         "acceptanceEvidenceCount": len(acceptance),
         "issues": issues,
@@ -178,6 +199,16 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             [row for row in audited if row.get("visibleEffect") and row.get("applyMethod") != "timeline_marker_handoff_only"]
         ),
         "manualResolveRowCount": len([row for row in audited if row.get("manualResolveStepRequired")]),
+        "pendingManualVisibleEffectRowCount": len(
+            [
+                row
+                for row in audited
+                if row.get("manualResolveStepRequired")
+                and not (row.get("manualResolveEvidenceReady") or row.get("fallbackBridgeEvidenceReady"))
+            ]
+        ),
+        "manualResolveEvidenceReadyRowCount": len([row for row in audited if row.get("manualResolveEvidenceReady")]),
+        "fallbackBridgeEvidenceReadyRowCount": len([row for row in audited if row.get("fallbackBridgeEvidenceReady")]),
         "fallbackBridgeRequiredRowCount": len([row for row in audited if row.get("fallbackBridgeInsertRequired")]),
         "readbackEvidenceRequiredRowCount": len([row for row in rows if isinstance(row, dict) and row.get("readbackEvidenceRequired") is True]),
         "decisionFieldRowCount": len(

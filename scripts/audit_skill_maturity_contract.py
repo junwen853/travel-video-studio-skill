@@ -5510,6 +5510,9 @@ def resolve_transition_apply_contract_evidence(package_dir: Path) -> dict[str, A
         "visibleEffectRowCount": summary.get("visibleEffectRowCount"),
         "visibleEffectRowsWithApplyPath": summary.get("visibleEffectRowsWithApplyPath"),
         "manualResolveRowCount": summary.get("manualResolveRowCount"),
+        "pendingManualVisibleEffectRowCount": summary.get("pendingManualVisibleEffectRowCount"),
+        "manualResolveEvidenceReadyRowCount": summary.get("manualResolveEvidenceReadyRowCount"),
+        "fallbackBridgeEvidenceReadyRowCount": summary.get("fallbackBridgeEvidenceReadyRowCount"),
         "fallbackBridgeRequiredRowCount": summary.get("fallbackBridgeRequiredRowCount"),
         "readbackEvidenceRequiredRowCount": summary.get("readbackEvidenceRequiredRowCount"),
         "decisionFieldRowCount": summary.get("decisionFieldRowCount"),
@@ -5536,6 +5539,7 @@ def resolve_transition_apply_contract_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("passedRowCount") or 0) == row_count
         and int(evidence.get("blockedRowCount") or 0) == 0
         and int(evidence.get("visibleEffectRowsWithApplyPath") or 0) == int(evidence.get("visibleEffectRowCount") or 0)
+        and int(evidence.get("pendingManualVisibleEffectRowCount") or 0) == 0
         and int(evidence.get("readbackEvidenceRequiredRowCount") or 0) == row_count
         and int(evidence.get("decisionFieldRowCount") or 0) == row_count
         and int(evidence.get("markerOnlyBlockedRowCount") or 0) == 0
