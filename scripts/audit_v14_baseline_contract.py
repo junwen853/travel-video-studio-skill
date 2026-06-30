@@ -87,6 +87,7 @@ SKILL_PATTERNS = {
     "transition_continuity_rehearsal_contract": "audit_transition_continuity_rehearsal_contract.py",
     "pacing_watchability_contract": "audit_pacing_watchability_contract.py",
     "narrative_adjacency_contract": "audit_narrative_adjacency_contract.py",
+    "transition_viewer_orientation_contract": "audit_transition_viewer_orientation_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_repair_queue": "prepare_unattended_repair_queue.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
@@ -185,6 +186,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_continuity_rehearsal_contract.py",
     "audit_pacing_watchability_contract.py",
     "audit_narrative_adjacency_contract.py",
+    "audit_transition_viewer_orientation_contract.py",
     "audit_timeline_variety_contract.py",
     "prepare_unattended_repair_queue.py",
     "audit_unattended_first_draft_contract.py",
@@ -298,6 +300,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_continuity_rehearsal = load_json(package_dir / "transition_continuity_rehearsal_contract_audit.json") or {}
     pacing_watchability = load_json(package_dir / "pacing_watchability_contract_audit.json") or {}
     narrative_adjacency = load_json(package_dir / "narrative_adjacency_contract_audit.json") or {}
+    transition_viewer_orientation = load_json(package_dir / "transition_viewer_orientation_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -2161,6 +2164,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_continuity_rehearsal_summary = get_summary(transition_continuity_rehearsal)
     pacing_watchability_summary = get_summary(pacing_watchability)
     narrative_adjacency_summary = get_summary(narrative_adjacency)
+    transition_viewer_orientation_summary = get_summary(transition_viewer_orientation)
     add_check(
         checks,
         "Transition breathing-room contract proves V14 transitions land on stable footage and do not become motion-effect spam",
@@ -2311,6 +2315,26 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "narrativeAdjacencyStatus": narrative_adjacency.get("status"),
             "narrativeAdjacencySummary": narrative_adjacency_summary,
             "blockers": narrative_adjacency.get("blockers"),
+        },
+    )
+    add_check(
+        checks,
+        "Transition viewer orientation contract proves V14 route, title, chapter, and ending transitions keep the audience oriented",
+        transition_viewer_orientation.get("status") == "passed"
+        and int(transition_viewer_orientation_summary.get("transitionRowCount") or 0) >= 3
+        and int(transition_viewer_orientation_summary.get("importantBoundaryCount") or 0) >= 1
+        and int(transition_viewer_orientation_summary.get("importantBlockedRowCount") or 0) == 0
+        and int(transition_viewer_orientation_summary.get("blockedRowCount") or 0) == 0
+        and int(transition_viewer_orientation_summary.get("routeCueImportantCount") or 0) == int(transition_viewer_orientation_summary.get("importantBoundaryCount") or 0)
+        and int(transition_viewer_orientation_summary.get("stableLandingImportantCount") or 0) == int(transition_viewer_orientation_summary.get("importantBoundaryCount") or 0)
+        and int(transition_viewer_orientation_summary.get("narrativeReadyImportantCount") or 0) == int(transition_viewer_orientation_summary.get("importantBoundaryCount") or 0)
+        and int(transition_viewer_orientation_summary.get("blockedCheckCount") or 0) == 0
+        and int(transition_viewer_orientation_summary.get("blockerCount") or 0) == 0
+        and not transition_viewer_orientation.get("blockers"),
+        {
+            "transitionViewerOrientationStatus": transition_viewer_orientation.get("status"),
+            "transitionViewerOrientationSummary": transition_viewer_orientation_summary,
+            "blockers": transition_viewer_orientation.get("blockers"),
         },
     )
     reference_transition_profile_summary = get_summary(reference_transition_profile)
@@ -2515,6 +2539,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_continuity_rehearsal.get("status") == "passed"
         and pacing_watchability.get("status") == "passed"
         and narrative_adjacency.get("status") == "passed"
+        and transition_viewer_orientation.get("status") == "passed"
         and int(transition_continuity_rehearsal_summary.get("blockedRehearsalRowCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("blockedAdjacentPairCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("adjacentMotionPairCount") or 0) == 0
@@ -2528,6 +2553,9 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(narrative_adjacency_summary.get("unmotivatedPairCount") or 0) == 0
         and int(narrative_adjacency_summary.get("payoffJumpWithoutBridgeCount") or 0) == 0
         and int(narrative_adjacency_summary.get("blockedCheckCount") or 0) == 0
+        and int(transition_viewer_orientation_summary.get("importantBlockedRowCount") or 0) == 0
+        and int(transition_viewer_orientation_summary.get("blockedRowCount") or 0) == 0
+        and int(transition_viewer_orientation_summary.get("blockedCheckCount") or 0) == 0
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("rowsWithMotionExecution") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
@@ -2651,6 +2679,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "pacingWatchabilitySummary": pacing_watchability_summary,
             "narrativeAdjacencyStatus": narrative_adjacency.get("status"),
             "narrativeAdjacencySummary": narrative_adjacency_summary,
+            "transitionViewerOrientationStatus": transition_viewer_orientation.get("status"),
+            "transitionViewerOrientationSummary": transition_viewer_orientation_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": reference_scene_grammar_summary,
             "unattendedFirstDraftStatus": unattended_first_draft.get("status"),

@@ -80,6 +80,7 @@ ACCEPTED_STATUSES = {
     "transition_continuity_rehearsal_contract_audit": {"passed"},
     "pacing_watchability_contract_audit": {"passed"},
     "narrative_adjacency_contract_audit": {"passed"},
+    "transition_viewer_orientation_contract_audit": {"passed"},
     "unattended_repair_queue": {"ready_no_unattended_repairs_needed", "ready_with_unattended_repair_queue"},
     "unattended_first_draft_contract_audit": {"passed", "passed_with_warnings"},
     "skill_maturity_contract_audit": {"passed", "passed_with_warnings"},
@@ -927,6 +928,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "audit_narrative_adjacency_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_viewer_orientation_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_transition_viewer_orientation_contract.py"),
                     "--package-dir",
                     str(package_dir),
                 ],

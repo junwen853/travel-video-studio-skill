@@ -569,6 +569,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_continuity_rehearsal = load_json(package_dir / "transition_continuity_rehearsal_contract_audit.json") or {}
     pacing_watchability = load_json(package_dir / "pacing_watchability_contract_audit.json") or {}
     narrative_adjacency = load_json(package_dir / "narrative_adjacency_contract_audit.json") or {}
+    transition_viewer_orientation = load_json(package_dir / "transition_viewer_orientation_contract_audit.json") or {}
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
@@ -614,6 +615,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tcr_summary = summary_of(transition_continuity_rehearsal)
     pw_summary = summary_of(pacing_watchability)
     na_summary = summary_of(narrative_adjacency)
+    tvo_summary = summary_of(transition_viewer_orientation)
     sfa_summary = summary_of(scene_flow_arc)
     fcs_summary = summary_of(final_cut_smoothness)
     add_gate(
@@ -1266,6 +1268,26 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": narrative_adjacency.get("status"),
             "summary": na_summary,
             "blockers": narrative_adjacency.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Transition viewer orientation proves important route, day, title, and ending transitions tell viewers where they are and why the film moved",
+        transition_viewer_orientation.get("status") == "passed"
+        and as_int(tvo_summary.get("transitionRowCount")) >= 3
+        and as_int(tvo_summary.get("importantBoundaryCount")) >= 1
+        and as_int(tvo_summary.get("importantBlockedRowCount")) == 0
+        and as_int(tvo_summary.get("blockedRowCount")) == 0
+        and as_int(tvo_summary.get("routeCueImportantCount")) == as_int(tvo_summary.get("importantBoundaryCount"))
+        and as_int(tvo_summary.get("stableLandingImportantCount")) == as_int(tvo_summary.get("importantBoundaryCount"))
+        and as_int(tvo_summary.get("narrativeReadyImportantCount")) == as_int(tvo_summary.get("importantBoundaryCount"))
+        and as_int(tvo_summary.get("blockedCheckCount")) == 0
+        and not transition_viewer_orientation.get("blockers"),
+        {
+            "status": transition_viewer_orientation.get("status"),
+            "summary": tvo_summary,
+            "blockers": transition_viewer_orientation.get("blockers") or [],
         },
     )
 
