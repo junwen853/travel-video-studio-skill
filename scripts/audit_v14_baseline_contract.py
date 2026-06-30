@@ -62,6 +62,7 @@ SKILL_PATTERNS = {
     "transition_scene_arc": "audit_transition_scene_arc_contract.py",
     "transition_effect_palette": "audit_transition_effect_palette_contract.py",
     "transition_visual_match": "audit_transition_visual_match_contract.py",
+    "transition_source_coverage": "audit_transition_source_coverage_contract.py",
     "transition_choreography_plan": "prepare_transition_choreography_plan.py",
     "transition_choreography_contract": "audit_transition_choreography_contract.py",
     "transition_motion_direction": "audit_transition_motion_direction_contract.py",
@@ -166,6 +167,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_scene_arc_contract.py",
     "audit_transition_effect_palette_contract.py",
     "audit_transition_visual_match_contract.py",
+    "audit_transition_source_coverage_contract.py",
     "prepare_transition_choreography_plan.py",
     "audit_transition_choreography_contract.py",
     "audit_transition_motion_direction_contract.py",
@@ -348,6 +350,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_scene_arc = load_json(package_dir / "transition_scene_arc_contract_audit.json") or {}
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
+    transition_source_coverage = load_json(package_dir / "transition_source_coverage_contract_audit.json") or {}
     transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
     transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
     transition_motion_direction = load_json(package_dir / "transition_motion_direction_contract_audit.json") or {}
@@ -1804,6 +1807,30 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionVisualMatchSummary": transition_visual_match_summary,
         },
     )
+    transition_source_coverage_summary = get_summary(transition_source_coverage)
+    add_check(
+        checks,
+        "Transition source coverage contract proves V14 first drafts have selected outgoing, bridge, motion, and landing source evidence before effects are trusted",
+        transition_source_coverage.get("status") == "passed"
+        and int(transition_source_coverage_summary.get("transitionRowCount") or 0) >= 1
+        and int(transition_source_coverage_summary.get("readySourceCoverageRowCount") or 0) == int(transition_source_coverage_summary.get("transitionRowCount") or 0)
+        and int(transition_source_coverage_summary.get("blockedSourceCoverageRowCount") or 0) == 0
+        and (
+            int(transition_source_coverage_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_source_coverage_summary.get("bridgeReadyRowCount") or 0) >= int(transition_source_coverage_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_source_coverage_summary.get("motionTransitionCount") or 0) == 0
+            or int(transition_source_coverage_summary.get("bridgeReadyRowCount") or 0) >= int(transition_source_coverage_summary.get("motionTransitionCount") or 0)
+        )
+        and int(transition_source_coverage_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_source_coverage.get("blockers"),
+        {
+            "transitionSourceCoverageStatus": transition_source_coverage.get("status"),
+            "transitionSourceCoverageSummary": transition_source_coverage_summary,
+            "blockers": transition_source_coverage.get("blockers"),
+        },
+    )
     transition_reference_candidates_summary = get_summary(transition_reference_candidates)
     add_check(
         checks,
@@ -2636,6 +2663,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and creator_cut_application.get("status") == "passed"
         and final_source_usage.get("status") == "passed"
         and transition_grammar.get("status") == "ready_with_transition_grammar_plan"
+        and transition_source_coverage.get("status") == "passed"
+        and int(transition_source_coverage_summary.get("transitionRowCount") or 0) >= 1
+        and int(transition_source_coverage_summary.get("blockedSourceCoverageRowCount") or 0) == 0
+        and int(transition_source_coverage_summary.get("blockedCheckCount") or 0) == 0
         and transition_execution.get("status") == "ready_with_transition_execution_plan"
         and transition_execution_blueprint.get("status") == "ready_with_transition_execution_blueprint"
         and transition_motif.get("status") == "ready_with_transition_motif_plan"
@@ -2766,6 +2797,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "finalSourceUsageSummary": final_source_summary,
             "transitionGrammarStatus": transition_grammar.get("status"),
             "transitionGrammarSummary": transition_grammar_summary,
+            "transitionSourceCoverageStatus": transition_source_coverage.get("status"),
+            "transitionSourceCoverageSummary": transition_source_coverage_summary,
             "transitionExecutionStatus": transition_execution.get("status"),
             "transitionExecutionSummary": transition_execution_summary,
             "transitionExecutionBlueprintStatus": transition_execution_blueprint.get("status"),

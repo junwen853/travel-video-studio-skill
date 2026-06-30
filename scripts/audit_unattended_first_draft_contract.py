@@ -582,6 +582,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_effect_palette = load_json(package_dir / "transition_effect_palette_contract_audit.json") or {}
     transition_motif_coherence = load_json(package_dir / "transition_motif_coherence_contract_audit.json") or {}
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
+    transition_source_coverage = load_json(package_dir / "transition_source_coverage_contract_audit.json") or {}
     transition_reference_candidates = load_json(package_dir / "transition_reference_candidates" / "transition_reference_candidates.json") or {}
     transition_reference_selection = load_json(package_dir / "transition_reference_selection" / "transition_reference_selection.json") or {}
     transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
@@ -629,6 +630,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tep_summary = summary_of(transition_effect_palette)
     tmc_summary = summary_of(transition_motif_coherence)
     tvm_summary = summary_of(transition_visual_match)
+    tscov_summary = summary_of(transition_source_coverage)
     trc_summary = summary_of(transition_reference_candidates)
     trs_summary = summary_of(transition_reference_selection)
     tcp_summary = summary_of(transition_choreography_plan)
@@ -714,7 +716,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     )
     add_gate(
         gates,
-        "Transition cadence, execution, scene arcs, effect palette, visual match, preview packet quality, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, restrained, previewed, and reference-like",
+        "Transition cadence, execution, scene arcs, effect palette, visual match, source coverage, preview packet quality, storyboard, reference-profile application, scene grammar, and timeline variety prove every boundary and shot function are executable, matched, sourced, restrained, previewed, and reference-like",
         transition_quality.get("status") == "passed"
         and shot_boundary.get("status") == "passed"
         and transition_motivation.get("status") == "passed"
@@ -735,6 +737,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_scene_arc.get("status") == "passed"
         and transition_effect_palette.get("status") == "passed"
         and transition_visual_match.get("status") == "passed"
+        and transition_source_coverage.get("status") == "passed"
         and transition_choreography_plan.get("status") == "ready_with_transition_choreography_plan"
         and transition_choreography_contract.get("status") == "passed"
         and transition_motion_direction.get("status") == "passed"
@@ -866,6 +869,9 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             as_int(tvm_summary.get("importantBoundaryCount")) == 0
             or as_int(tvm_summary.get("importantBridgeOrSceneHandoffCount")) >= as_int(tvm_summary.get("importantBoundaryCount"))
         )
+        and as_int(tscov_summary.get("readySourceCoverageRowCount")) == as_int(tscov_summary.get("transitionRowCount"))
+        and as_int(tscov_summary.get("blockedSourceCoverageRowCount")) == 0
+        and as_int(tscov_summary.get("blockedCheckCount")) == 0
         and as_int(tsb_summary.get("blockedRowCount")) == 0
         and as_int(tsb_summary.get("visualBoundaryCount")) >= 1
         and as_int(tsb_summary.get("storyboardReadyRowCount")) == as_int(tsb_summary.get("transitionRowCount"))
@@ -1084,6 +1090,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_scene_arc.get("blockers")
         and not transition_effect_palette.get("blockers")
         and not transition_visual_match.get("blockers")
+        and not transition_source_coverage.get("blockers")
         and not transition_choreography_plan.get("blockers")
         and not transition_choreography_contract.get("blockers")
         and not transition_motion_direction.get("blockers")
@@ -1145,6 +1152,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionEffectPaletteSummary": tep_summary,
             "transitionVisualMatchStatus": transition_visual_match.get("status"),
             "transitionVisualMatchSummary": tvm_summary,
+            "transitionSourceCoverageStatus": transition_source_coverage.get("status"),
+            "transitionSourceCoverageSummary": tscov_summary,
             "transitionChoreographyPlanStatus": transition_choreography_plan.get("status"),
             "transitionChoreographyPlanSummary": tcp_summary,
             "transitionChoreographyContractStatus": transition_choreography_contract.get("status"),

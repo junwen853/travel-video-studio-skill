@@ -60,6 +60,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_scene_arc_contract.py",
         "audit_transition_effect_palette_contract.py",
         "audit_transition_visual_match_contract.py",
+        "audit_transition_source_coverage_contract.py",
         "prepare_transition_choreography_plan.py",
         "audit_transition_choreography_contract.py",
         "audit_transition_motion_direction_contract.py",
@@ -172,6 +173,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_scene_arc_contract_rule": "audit_transition_scene_arc_contract.py",
     "transition_effect_palette_contract_rule": "audit_transition_effect_palette_contract.py",
     "transition_visual_match_contract_rule": "audit_transition_visual_match_contract.py",
+    "transition_source_coverage_contract_rule": "audit_transition_source_coverage_contract.py",
     "transition_choreography_plan_rule": "prepare_transition_choreography_plan.py",
     "transition_choreography_contract_rule": "audit_transition_choreography_contract.py",
     "transition_motion_direction_contract_rule": "audit_transition_motion_direction_contract.py",
@@ -293,6 +295,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_scene_arc_contract_reference_rule": "transition-scene-arc-contract.md",
     "transition_effect_palette_contract_reference_rule": "transition-effect-palette-contract.md",
     "transition_visual_match_contract_reference_rule": "transition-visual-match-contract.md",
+    "transition_source_coverage_contract_reference_rule": "transition-source-coverage-contract.md",
     "transition_choreography_engine_reference_rule": "transition-choreography-engine.md",
     "transition_choreography_contract_reference_rule": "transition-choreography-contract.md",
     "transition_motion_direction_contract_reference_rule": "transition-motion-direction-contract.md",
@@ -360,6 +363,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_motion_accent_contract": "transition-motion-accent-contract.md",
     "transition_effect_recipe_contract": "transition-effect-recipe-contract.md",
     "rendered_transition_proof_contract": "rendered-transition-proof-contract.md",
+    "transition_source_coverage_contract": "transition-source-coverage-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
@@ -428,6 +432,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_motion_accent_contract": "transition motion accent",
     "transition_effect_recipe_contract": "transition effect recipe",
     "rendered_transition_proof_contract": "rendered transition proof",
+    "transition_source_coverage_contract": "transition source coverage",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -5855,6 +5860,59 @@ def transition_visual_match_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_source_coverage_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_source_coverage_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "readySourceCoverageRowCount": summary.get("readySourceCoverageRowCount"),
+        "blockedSourceCoverageRowCount": summary.get("blockedSourceCoverageRowCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "motionTransitionCount": summary.get("motionTransitionCount"),
+        "bridgeReadyRowCount": summary.get("bridgeReadyRowCount"),
+        "issueCounts": summary.get("issueCounts"),
+        "styleCounts": summary.get("styleCounts"),
+        "passedCheckCount": summary.get("passedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_source_coverage_contract_ready(evidence: dict[str, Any]) -> bool:
+    row_count = int(evidence.get("transitionRowCount") or 0)
+    important_count = int(evidence.get("importantBoundaryCount") or 0)
+    motion_count = int(evidence.get("motionTransitionCount") or 0)
+    bridge_ready = int(evidence.get("bridgeReadyRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and row_count >= 1
+        and int(evidence.get("readySourceCoverageRowCount") or 0) == row_count
+        and int(evidence.get("blockedSourceCoverageRowCount") or 0) == 0
+        and (important_count == 0 or bridge_ready >= important_count)
+        and (motion_count == 0 or bridge_ready >= motion_count)
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_reference_candidates_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_reference_candidates" / "transition_reference_candidates.json"
     data = load_json(path) or {}
@@ -8421,6 +8479,17 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Transition visual match contract proves every adjacent pair has concrete visual, bridge, motion, mood, title, local, or BGM continuity evidence",
         transition_visual_match_contract_ready(transition_visual_match_evidence),
         transition_visual_match_evidence,
+    )
+    transition_source_coverage_evidence = transition_source_coverage_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition source coverage contract proves transition rows are backed by selected outgoing, bridge, motion, and landing source material before effects are trusted",
+        transition_visual_match_contract_ready(transition_visual_match_evidence)
+        and transition_source_coverage_contract_ready(transition_source_coverage_evidence),
+        {
+            "transitionVisualMatch": transition_visual_match_evidence,
+            "transitionSourceCoverage": transition_source_coverage_evidence,
+        },
     )
     transition_reference_candidates = transition_reference_candidates_evidence(package_dir)
     add_check(
