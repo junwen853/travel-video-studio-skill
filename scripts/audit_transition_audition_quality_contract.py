@@ -126,8 +126,19 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
     clip_path = resolve_package_path(package_dir, row.get("auditionClip"))
     issues: list[str] = []
     warnings: list[str] = []
+    motion = row.get("motionExecution") if isinstance(row.get("motionExecution"), dict) else {}
     if row.get("status") != "ready_with_transition_audition":
         issues.append("audition_row_not_ready")
+    if motion.get("ready") is not True:
+        issues.append("motion_execution_not_ready")
+    if as_int(motion.get("threeBeatCount")) < 3:
+        issues.append("motion_execution_missing_three_beat_choreography")
+    if motion.get("bgmHitTarget") != "cut_or_effect_on_bgm_phrase_hit" or motion.get("bgmAllowsOffPhrase") is not False:
+        issues.append("motion_execution_missing_bgm_hit_policy")
+    if motion.get("captionQuietZone") is not True:
+        issues.append("motion_execution_missing_caption_title_quiet_zone")
+    if not motion.get("resolveKeyframeEffect"):
+        issues.append("motion_execution_missing_resolve_keyframe_effect")
     if not clip_path:
         issues.append("audition_clip_path_missing")
         probe = {"ok": False}
@@ -165,6 +176,7 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
         "packageLocal": package_local,
         "fileSizeBytes": file_size,
         "bridgeSampleCount": row.get("bridgeSampleCount"),
+        "motionExecution": motion,
         "probe": probe,
         "issues": issues,
         "warnings": warnings,
@@ -195,6 +207,11 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "probeReadyClipCount": sum(1 for row in audited if (row.get("probe") or {}).get("ok")),
         "noAudioClipCount": sum(1 for row in audited if as_int((row.get("probe") or {}).get("audioStreamCount")) == 0 and row.get("exists")),
         "rowsWithBridgeSamples": sum(1 for row in audited if as_int(row.get("bridgeSampleCount")) > 0),
+        "rowsWithMotionExecution": sum(1 for row in audited if (row.get("motionExecution") or {}).get("ready") is True),
+        "rowsWithThreeBeatMotion": sum(1 for row in audited if as_int((row.get("motionExecution") or {}).get("threeBeatCount")) >= 3),
+        "rowsWithBgmHitMotion": sum(1 for row in audited if (row.get("motionExecution") or {}).get("bgmHitTarget") == "cut_or_effect_on_bgm_phrase_hit" and (row.get("motionExecution") or {}).get("bgmAllowsOffPhrase") is False),
+        "rowsWithCaptionQuietMotion": sum(1 for row in audited if (row.get("motionExecution") or {}).get("captionQuietZone") is True),
+        "rowsWithResolveKeyframeEffect": sum(1 for row in audited if bool((row.get("motionExecution") or {}).get("resolveKeyframeEffect"))),
         "warningCount": len(warnings),
     }
     return {
@@ -216,6 +233,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "warnings": warnings,
         "policy": {
             "watchableAuditionClipsRequired": True,
+            "motionExecutionRequired": True,
+            "threeBeatBgmHitCaptionQuietRequired": True,
             "auditionClipsMustBePackageLocal": True,
             "auditionClipsMustBeMuted": bool(args.require_no_audio),
             "ffprobeEvidenceRequired": True,
@@ -252,6 +271,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"### Row {row.get('rowIndex')}: `{row.get('boundaryCategory')}`",
                 f"- Status: `{row.get('status')}`",
                 f"- Clip: `{row.get('auditionClip')}`",
+                f"- Motion execution: `{(row.get('motionExecution') or {}).get('status')}` / `{(row.get('motionExecution') or {}).get('choreographyFamily')}` / `{(row.get('motionExecution') or {}).get('resolveKeyframeEffect')}`",
                 f"- Duration: `{probe.get('durationSeconds')}`",
                 f"- Size: `{probe.get('width')}x{probe.get('height')}`",
                 f"- Audio streams: `{probe.get('audioStreamCount')}`",

@@ -5995,6 +5995,10 @@ def transition_audition_packet_evidence(package_dir: Path) -> dict[str, Any]:
         "readyAuditionRowCount": summary.get("readyAuditionRowCount"),
         "blockedAuditionRowCount": summary.get("blockedAuditionRowCount"),
         "auditionClipCount": summary.get("auditionClipCount"),
+        "rowsWithMotionExecution": summary.get("rowsWithMotionExecution"),
+        "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
+        "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
+        "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
         "ffmpegAvailable": summary.get("ffmpegAvailable"),
         "builtClips": summary.get("builtClips"),
         "blockerCount": len(data.get("blockers") or []),
@@ -6015,6 +6019,10 @@ def transition_audition_packet_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("blockedAuditionRowCount") or 0) == 0
         and (important_rows == 0 or int(evidence.get("readyAuditionRowCount") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("auditionClipCount") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithMotionExecution") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithThreeBeatMotion") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithBgmHitMotion") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCaptionQuietMotion") or 0) >= important_rows)
         and int(evidence.get("blockerCount") or 0) == 0
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False
@@ -6040,6 +6048,11 @@ def transition_audition_quality_contract_evidence(package_dir: Path) -> dict[str
         "auditionClipCount": summary.get("auditionClipCount"),
         "probeReadyClipCount": summary.get("probeReadyClipCount"),
         "noAudioClipCount": summary.get("noAudioClipCount"),
+        "rowsWithMotionExecution": summary.get("rowsWithMotionExecution"),
+        "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
+        "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
+        "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
+        "rowsWithResolveKeyframeEffect": summary.get("rowsWithResolveKeyframeEffect"),
         "warningCount": summary.get("warningCount"),
         "blockerCount": len(data.get("blockers") or []),
         "blockers": data.get("blockers") or [],
@@ -6060,6 +6073,11 @@ def transition_audition_quality_contract_ready(evidence: dict[str, Any]) -> bool
         and int(evidence.get("blockedAuditionQualityRowCount") or 0) == 0
         and int(evidence.get("blockerCount") or 0) == 0
         and (important_rows == 0 or int(evidence.get("auditionQualityReadyRowCount") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithMotionExecution") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithThreeBeatMotion") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithBgmHitMotion") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCaptionQuietMotion") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithResolveKeyframeEffect") or 0) >= important_rows)
         and int(evidence.get("probeReadyClipCount") or 0) >= clip_count
         and int(evidence.get("noAudioClipCount") or 0) >= clip_count
         and not evidence.get("blockers")

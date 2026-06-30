@@ -1696,7 +1696,43 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         )
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithMotionExecution") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithThreeBeatMotion") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithBgmHitMotion") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithCaptionQuietMotion") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("auditionQualityReadyRowCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithMotionExecution") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithThreeBeatMotion") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithBgmHitMotion") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithCaptionQuietMotion") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithResolveKeyframeEffect") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
         )
         and int(transition_audition_quality_summary.get("blockedAuditionQualityRowCount") or 0) == 0
         and int(transition_audition_quality_summary.get("probeReadyClipCount") or 0) >= int(transition_audition_quality_summary.get("auditionClipCount") or 0)
@@ -1994,6 +2030,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_execution_readiness.get("status") == "passed"
         and transition_audition_packet.get("status") in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}
         and transition_audition_quality.get("status") == "passed"
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithMotionExecution") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
         and transition_storyboard.get("status") == "passed"
         and reference_scene_grammar.get("status") == "passed"
         and unattended_first_draft.get("status") in {"passed", "passed_with_warnings"}

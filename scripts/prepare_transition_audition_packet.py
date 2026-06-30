@@ -95,6 +95,77 @@ def bridge_visual_clip_reports(report: dict[str, Any]) -> dict[int, list[dict[st
     return out
 
 
+def transition_execution_rows(package_dir: Path) -> tuple[dict[str, Any], dict[int, dict[str, Any]]]:
+    report_path = package_dir / "transition_execution_blueprint" / "transition_execution_blueprint_report.json"
+    report = load_json(report_path) or {}
+    outputs = report.get("outputs") if isinstance(report.get("outputs"), dict) else {}
+    candidate_path = resolve_path(
+        package_dir,
+        outputs.get("candidateBlueprint") or package_dir / "transition_execution_blueprint" / "resolve_timeline_blueprint_transition_execution.json",
+    )
+    candidate = load_json(candidate_path) if candidate_path else {}
+    transitions = candidate.get("transitions") if isinstance(candidate, dict) and isinstance(candidate.get("transitions"), list) else []
+    out: dict[int, dict[str, Any]] = {}
+    for row in transitions:
+        if not isinstance(row, dict):
+            continue
+        row_index = as_int(row.get("rowIndex"), -1)
+        if row_index >= 0:
+            out[row_index] = row
+    return {
+        "reportPath": str(report_path),
+        "reportExists": report_path.exists(),
+        "reportStatus": report.get("status"),
+        "candidatePath": str(candidate_path) if candidate_path else "",
+        "candidateExists": bool(candidate_path and candidate_path.exists()),
+        "transitionCount": len(out),
+    }, out
+
+
+def motion_execution_for(row_index: int, transition_by_row: dict[int, dict[str, Any]]) -> dict[str, Any]:
+    transition = transition_by_row.get(row_index) if isinstance(transition_by_row.get(row_index), dict) else {}
+    motion = transition.get("transitionMotionExecution") if isinstance(transition.get("transitionMotionExecution"), dict) else {}
+    return motion if isinstance(motion, dict) else {}
+
+
+def motion_execution_ready(motion: dict[str, Any]) -> bool:
+    bgm = motion.get("bgmChoreography") if isinstance(motion.get("bgmChoreography"), dict) else {}
+    caption = motion.get("captionAndTitlePolicy") if isinstance(motion.get("captionAndTitlePolicy"), dict) else {}
+    safety_checks = motion.get("safetyChecks") if isinstance(motion.get("safetyChecks"), dict) else {}
+    return (
+        motion.get("status") == "ready_with_transition_motion_execution"
+        and len(motion.get("threeBeatChoreography") or []) >= 3
+        and bgm.get("target") == "cut_or_effect_on_bgm_phrase_hit"
+        and bgm.get("allowOffPhrase") is False
+        and caption.get("avoidTitleCollision") is True
+        and caption.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True
+        and safety_checks.get("bgmOnlyNoSourceVoice") is True
+        and safety_checks.get("forbidTemplateMotion") is True
+    )
+
+
+def motion_execution_summary(motion: dict[str, Any]) -> dict[str, Any]:
+    bgm = motion.get("bgmChoreography") if isinstance(motion.get("bgmChoreography"), dict) else {}
+    caption = motion.get("captionAndTitlePolicy") if isinstance(motion.get("captionAndTitlePolicy"), dict) else {}
+    keyframe = motion.get("resolveKeyframeRecipe") if isinstance(motion.get("resolveKeyframeRecipe"), dict) else {}
+    beats = motion.get("threeBeatChoreography") if isinstance(motion.get("threeBeatChoreography"), list) else []
+    return {
+        "status": motion.get("status"),
+        "source": motion.get("source"),
+        "choreographyFamily": motion.get("choreographyFamily"),
+        "sourceTransitionStyle": motion.get("sourceTransitionStyle"),
+        "intensity": motion.get("intensity"),
+        "threeBeatCount": len(beats),
+        "beatRoles": [clean(beat.get("role")) for beat in beats if isinstance(beat, dict)],
+        "bridgeOrMotionAction": next((clean(beat.get("action")) for beat in beats if isinstance(beat, dict) and beat.get("role") == "bridge_or_motion"), ""),
+        "bgmHitTarget": bgm.get("target"),
+        "bgmAllowsOffPhrase": bgm.get("allowOffPhrase"),
+        "captionQuietZone": bool(caption.get("avoidTitleCollision") and caption.get("suppressSubtitlesDuringHeroTitleOrFastMotion")),
+        "resolveKeyframeEffect": keyframe.get("effect"),
+        "ready": motion_execution_ready(motion),
+    }
+
+
 def normalized_sample(sample: dict[str, Any], package_dir: Path) -> dict[str, Any]:
     source = resolve_path(package_dir, sample.get("sourcePath"))
     return {
@@ -245,15 +316,22 @@ def build_row(
     package_dir: Path,
     output_dir: Path,
     bridge_by_row: dict[int, list[dict[str, Any]]],
+    transition_by_row: dict[int, dict[str, Any]],
     args: argparse.Namespace,
     ffmpeg_available: bool,
 ) -> dict[str, Any]:
     row_index = as_int(row.get("rowIndex"))
     category = clean(row.get("boundaryCategory")).lower()
     samples = ordered_samples(row, package_dir, bridge_by_row)
+    motion_execution = motion_execution_for(row_index, transition_by_row)
+    motion_summary = motion_execution_summary(motion_execution)
     out_dir = row_dir(output_dir, row_index, category)
     issues: list[str] = []
     warnings: list[str] = []
+    if not motion_execution:
+        issues.append("missing_transition_motion_execution")
+    elif not motion_execution_ready(motion_execution):
+        issues.append("transition_motion_execution_not_ready_for_audition")
     if not any(sample["role"] == "outgoing" for sample in samples):
         issues.append("missing_outgoing_sample")
     if not any(sample["role"] == "landing" for sample in samples):
@@ -302,6 +380,7 @@ def build_row(
         "storyboardPurpose": clean(row.get("storyboardPurpose")),
         "fromSourceName": clean(row.get("fromSourceName")),
         "toSourceName": clean(row.get("toSourceName")),
+        "motionExecution": motion_summary,
         "auditionClip": str(audition_path),
         "auditionMarkdown": str(md_path),
         "sampleCount": len(samples),
@@ -324,6 +403,8 @@ def write_row_markdown(path: Path, row: dict[str, Any]) -> None:
         f"Purpose: `{row.get('storyboardPurpose')}`",
         f"From: `{row.get('fromSourceName')}`",
         f"To: `{row.get('toSourceName')}`",
+        f"Motion execution: `{(row.get('motionExecution') or {}).get('status')}` / `{(row.get('motionExecution') or {}).get('choreographyFamily')}` / `{(row.get('motionExecution') or {}).get('resolveKeyframeEffect')}`",
+        f"Bridge/motion action: {(row.get('motionExecution') or {}).get('bridgeOrMotionAction')}",
         f"Audition: `{row.get('auditionClip')}`",
         "",
         "## Samples",
@@ -366,6 +447,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     packet = load_json(packet_path) or {}
     preview_quality = load_json(preview_quality_path) or {}
     bridge_visual = load_json(bridge_visual_path) or {}
+    execution_input, transition_by_row = transition_execution_rows(package_dir)
     ffmpeg_path = shutil.which(args.ffmpeg_bin) if not Path(args.ffmpeg_bin).exists() else args.ffmpeg_bin
     ffmpeg_available = bool(ffmpeg_path)
     if ffmpeg_path:
@@ -381,6 +463,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             package_dir=package_dir,
             output_dir=output_dir,
             bridge_by_row=bridge_by_row,
+            transition_by_row=transition_by_row,
             args=args,
             ffmpeg_available=ffmpeg_available,
         )
@@ -397,6 +480,10 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         blockers.append(f"transition preview packet status is {packet.get('status')}")
     if preview_quality_path.exists() and preview_quality.get("status") != "passed":
         blockers.append(f"transition preview quality status is {preview_quality.get('status')}")
+    if execution_input.get("reportStatus") != "ready_with_transition_execution_blueprint":
+        blockers.append(f"transition execution blueprint status is {execution_input.get('reportStatus')}")
+    if not execution_input.get("candidateExists"):
+        blockers.append("missing transition execution candidate blueprint for motion-aware auditions")
     if selected and args.build_clips and not ffmpeg_available:
         blockers.append("ffmpeg was not found; cannot build transition auditions")
     blockers.extend(f"row {row.get('rowIndex')}: {', '.join(row.get('issues') or [])}" for row in blocked_rows[: args.max_blocked_rows_in_report])
@@ -422,8 +509,17 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "needsBuildAuditionRowCount": len(needs_rows),
         "auditionClipCount": sum(1 for row in ready_rows if Path(str(row.get("auditionClip"))).exists()),
         "rowsWithBridgeSamples": sum(1 for row in audition_rows if as_int(row.get("bridgeSampleCount")) > 0),
+        "rowsWithMotionExecution": sum(1 for row in audition_rows if ((row.get("motionExecution") or {}).get("ready") is True)),
+        "rowsWithThreeBeatMotion": sum(1 for row in audition_rows if as_int((row.get("motionExecution") or {}).get("threeBeatCount")) >= 3),
+        "rowsWithBgmHitMotion": sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("bgmHitTarget") == "cut_or_effect_on_bgm_phrase_hit" and (row.get("motionExecution") or {}).get("bgmAllowsOffPhrase") is False),
+        "rowsWithCaptionQuietMotion": sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("captionQuietZone") is True),
+        "motionExecutionChoreographyFamilyCounts": {
+            family: sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("choreographyFamily") == family)
+            for family in sorted({str((row.get("motionExecution") or {}).get("choreographyFamily") or "") for row in audition_rows if (row.get("motionExecution") or {}).get("choreographyFamily")})
+        },
         "ffmpegAvailable": ffmpeg_available,
         "buildClips": bool(args.build_clips),
+        "builtClips": bool(args.build_clips),
         "edgeSeconds": args.edge_seconds,
         "bridgeSeconds": args.bridge_seconds,
     }
@@ -439,6 +535,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "transitionPreviewQualityStatus": preview_quality.get("status"),
             "transitionBridgeVisualEvidence": str(bridge_visual_path),
             "transitionBridgeVisualEvidenceStatus": bridge_visual.get("status"),
+            "transitionExecutionBlueprint": execution_input,
             "includeAllRows": bool(args.include_all_rows),
             "buildClips": bool(args.build_clips),
             "ffmpegBin": args.ffmpeg_bin,
@@ -449,6 +546,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "warnings": warnings,
         "policy": {
             "importantTransitionsNeedWatchableAuditions": True,
+            "auditionsMustCarryTransitionMotionExecution": True,
             "auditionsAreMuted": True,
             "sourceFootageReadOnly": True,
             "packageLocalEvidence": True,
@@ -484,6 +582,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 "",
                 f"### Row {row.get('rowIndex')}: `{row.get('boundaryCategory')}`",
                 f"- Status: `{row.get('status')}`",
+                f"- Motion execution: `{(row.get('motionExecution') or {}).get('status')}` / `{(row.get('motionExecution') or {}).get('choreographyFamily')}`",
                 f"- Audition: `{row.get('auditionClip')}`",
                 f"- Bridge samples: `{row.get('bridgeSampleCount')}`",
                 f"- Review: `{row.get('auditionMarkdown')}`",

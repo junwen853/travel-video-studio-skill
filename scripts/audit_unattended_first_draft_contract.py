@@ -762,7 +762,43 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         )
         and (
             as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(tap_summary.get("rowsWithMotionExecution")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(tap_summary.get("rowsWithThreeBeatMotion")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(tap_summary.get("rowsWithBgmHitMotion")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(tap_summary.get("rowsWithCaptionQuietMotion")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
             or as_int(taq_summary.get("auditionQualityReadyRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(taq_summary.get("rowsWithMotionExecution")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(taq_summary.get("rowsWithThreeBeatMotion")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(taq_summary.get("rowsWithBgmHitMotion")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(taq_summary.get("rowsWithCaptionQuietMotion")) >= as_int(tsb_summary.get("importantBoundaryCount"))
+        )
+        and (
+            as_int(tsb_summary.get("importantBoundaryCount")) == 0
+            or as_int(taq_summary.get("rowsWithResolveKeyframeEffect")) >= as_int(tsb_summary.get("importantBoundaryCount"))
         )
         and as_int(taq_summary.get("blockedAuditionQualityRowCount")) == 0
         and as_int(taq_summary.get("probeReadyClipCount")) >= as_int(taq_summary.get("auditionClipCount"))

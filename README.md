@@ -87,9 +87,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.65.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.65/travel-video-studio-skill-v0.1.65.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.65.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.66.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.66/travel-video-studio-skill-v0.1.66.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.66.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -277,7 +277,7 @@ A package is not considered deliverable until the relevant audits pass:
 - transition visual match contract
 - transition choreography plan/contract
 - transition preview quality contract
-- transition audition quality contract
+- transition audition quality contract with motion-execution coverage
 - transition storyboard contract
 - creator-cut application contract
 - reference scene grammar contract
