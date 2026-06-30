@@ -160,6 +160,7 @@ When the user requests no voiceover, scenic/title/transition sections must be BG
 
 - Build a continuous BGM bed from approved local tracks.
 - Materialize the selected bed with `prepare_bgm_phrase_blueprint.py` before rhythm recut or Resolve apply, so opening/title, route transitions, scenic bridges, and ending sections carry BGM phrase cue metadata.
+- Run `audit_bgm_musicality_contract.py` after phrase rows exist; Bilibili/Malta-style delivery cannot use hums, sine tones, buzzes, silence, placeholders, one-band beds, or flat procedural pads as scenic music.
 - Use relaxed, travel-friendly moods: serene, atmospheric, chillout, reflective, warm, hopeful, soft cinematic.
 - Avoid aggressive sports/trailer tracks unless the scene demands impact.
 - Muted source camera audio is the default for scenic establishing shots.

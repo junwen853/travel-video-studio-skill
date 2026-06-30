@@ -41,6 +41,7 @@ REQUIRED_SCRIPTS = {
         "prepare_bgm_sourcing_brief.py",
         "prepare_bgm_selection_package.py",
         "prepare_bgm_phrase_blueprint.py",
+        "audit_bgm_musicality_contract.py",
         "prepare_transition_polish_blueprint.py",
         "audit_transition_quality_contract.py",
         "audit_shot_transition_boundary_contract.py",
@@ -151,6 +152,7 @@ REQUIRED_SKILL_PATTERNS = {
     "bgm_sourcing_brief_rule": "prepare_bgm_sourcing_brief.py",
     "bgm_selection_package_rule": "prepare_bgm_selection_package.py",
     "bgm_phrase_blueprint_rule": "prepare_bgm_phrase_blueprint.py",
+    "bgm_musicality_contract_rule": "audit_bgm_musicality_contract.py",
     "transition_polish_blueprint_rule": "prepare_transition_polish_blueprint.py",
     "transition_quality_contract_rule": "audit_transition_quality_contract.py",
     "shot_transition_boundary_contract_rule": "audit_shot_transition_boundary_contract.py",
@@ -304,6 +306,7 @@ REQUIRED_SKILL_PATTERNS = {
     "final_source_usage_contract_reference_rule": "final-source-usage-contract.md",
     "rhythm_recut_application_contract_reference_rule": "rhythm-recut-application-contract.md",
     "bgm_phrase_blueprint_engine_rule": "bgm-phrase-blueprint-engine.md",
+    "bgm_musicality_contract_reference_rule": "bgm-musicality-contract.md",
     "transition_polish_blueprint_engine_rule": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine_rule": "transition-execution-readiness-engine.md",
     "effect_motion_blueprint_engine_rule": "effect-motion-blueprint-engine.md",
@@ -363,6 +366,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_audition_role_integrity_contract": "transition-audition-role-integrity-contract.md",
     "final_source_usage_contract": "final-source-usage-contract.md",
     "bgm_phrase_blueprint_engine": "bgm-phrase-blueprint-engine.md",
+    "bgm_musicality_contract": "bgm-musicality-contract.md",
     "transition_polish_blueprint_engine": "transition-polish-blueprint-engine.md",
     "transition_execution_readiness_engine": "transition-execution-readiness-engine.md",
     "effect_motion_blueprint_engine": "effect-motion-blueprint-engine.md",
@@ -393,6 +397,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_reference_selection": "transition reference selection",
     "transition_execution_blueprint": "transition execution blueprint",
     "bgm_phrase_blueprint": "BGM phrase blueprint",
+    "bgm_musicality": "BGM musicality",
     "transition_polish_blueprint": "transition polish blueprint",
     "transition_execution_readiness_contract": "transition execution readiness contract",
     "transition_polish_application_contract": "transition polish application contract",
@@ -880,6 +885,87 @@ def bgm_phrase_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("mutatesActiveBlueprintByDefault") is False
         and evidence.get("hasPassRubric") is True
         and evidence.get("hasRejectRubric") is True
+    )
+
+
+def bgm_musicality_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "bgm_musicality_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    audio = summary.get("audio") if isinstance(summary.get("audio"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "bgmOutput": summary.get("bgmOutput"),
+        "selectionStatus": summary.get("selectionStatus"),
+        "phraseStatus": summary.get("phraseStatus"),
+        "manifestTrackCount": summary.get("manifestTrackCount"),
+        "namedTrackCount": summary.get("namedTrackCount"),
+        "descriptiveTrackCount": summary.get("descriptiveTrackCount"),
+        "licenseTrackCount": summary.get("licenseTrackCount"),
+        "badIdentityTerms": summary.get("badIdentityTerms") or [],
+        "phraseRowCount": summary.get("phraseRowCount"),
+        "sectionRowCount": summary.get("sectionRowCount"),
+        "candidateTransitionCount": summary.get("candidateTransitionCount"),
+        "transitionsWithPhraseCue": summary.get("transitionsWithPhraseCue"),
+        "audioDurationSeconds": audio.get("durationSeconds"),
+        "analyzedSeconds": audio.get("analyzedSeconds"),
+        "dynamicRangeDb": audio.get("dynamicRangeDb"),
+        "silentWindowRatio": audio.get("silentWindowRatio"),
+        "clippedWindowRatio": audio.get("clippedWindowRatio"),
+        "activeBandCount": audio.get("activeBandCount"),
+        "medianWindowActiveBandCount": audio.get("medianWindowActiveBandCount"),
+        "singleBandDominance": audio.get("singleBandDominance"),
+        "centroidRangeHz": audio.get("centroidRangeHz"),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "requiresRealMusicNotHumTone": policy.get("requiresRealMusicNotHumTone"),
+        "requiresTraceableNamedTrack": policy.get("requiresTraceableNamedTrack"),
+        "requiresBgmPhraseCoverage": policy.get("requiresBgmPhraseCoverage"),
+        "requiresMultiBandAudioEnergy": policy.get("requiresMultiBandAudioEnergy"),
+        "requiresDynamicMovement": policy.get("requiresDynamicMovement"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+    }
+
+
+def bgm_musicality_contract_ready(evidence: dict[str, Any]) -> bool:
+    transition_count = int(evidence.get("candidateTransitionCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("selectionStatus") == "ready_with_materialized_bgm_selection_package"
+        and evidence.get("phraseStatus") == "ready_with_bgm_phrase_blueprint"
+        and int(evidence.get("manifestTrackCount") or 0) >= 1
+        and int(evidence.get("namedTrackCount") or 0) >= 1
+        and int(evidence.get("licenseTrackCount") or 0) >= 1
+        and not evidence.get("badIdentityTerms")
+        and int(evidence.get("phraseRowCount") or 0) >= 3
+        and int(evidence.get("sectionRowCount") or 0) >= 3
+        and (transition_count == 0 or int(evidence.get("transitionsWithPhraseCue") or 0) >= transition_count)
+        and float(evidence.get("audioDurationSeconds") or 0.0) >= 10.0
+        and float(evidence.get("analyzedSeconds") or 0.0) >= 8.0
+        and float(evidence.get("dynamicRangeDb") or 0.0) >= 3.0
+        and float(evidence.get("silentWindowRatio") or 1.0) <= 0.2
+        and float(evidence.get("clippedWindowRatio") or 1.0) <= 0.05
+        and int(evidence.get("activeBandCount") or 0) >= 4
+        and float(evidence.get("medianWindowActiveBandCount") or 0.0) >= 3.0
+        and float(evidence.get("singleBandDominance") or 1.0) <= 0.7
+        and evidence.get("requiresRealMusicNotHumTone") is True
+        and evidence.get("requiresTraceableNamedTrack") is True
+        and evidence.get("requiresBgmPhraseCoverage") is True
+        and evidence.get("requiresMultiBandAudioEnergy") is True
+        and evidence.get("requiresDynamicMovement") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and not evidence.get("blockers")
     )
 
 
@@ -7847,6 +7933,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "BGM phrase blueprint materializes selected music into section, clip, and transition-cue metadata",
         bgm_phrase_blueprint_ready(bgm_phrase_evidence),
         bgm_phrase_evidence,
+    )
+    bgm_musicality_evidence = bgm_musicality_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "BGM musicality contract proves selected music is not hum, tone, silence, placeholder, or one-band audio",
+        bgm_musicality_contract_ready(bgm_musicality_evidence),
+        bgm_musicality_evidence,
     )
     bridge_plan_evidence = transition_bridge_plan_evidence(package_dir)
     add_check(

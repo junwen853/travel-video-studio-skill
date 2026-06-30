@@ -349,6 +349,9 @@ def build_report(package_dir: Path) -> dict[str, Any]:
 
     bgm_selection = load_json(package_dir / "bgm_selection_package" / "bgm_selection_package.json") or {}
     bgm_summary = summary_of(bgm_selection)
+    bgm_musicality = load_json(package_dir / "bgm_musicality_contract_audit.json") or {}
+    bgm_musicality_summary = summary_of(bgm_musicality)
+    bgm_music_audio = bgm_musicality_summary.get("audio") if isinstance(bgm_musicality_summary.get("audio"), dict) else {}
     add_gate(
         gates,
         "BGM selection is materialized, traceable, buildable, and blueprint-referenced",
@@ -367,6 +370,29 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "readySourceTrackCount": bgm_summary.get("readySourceTrackCount"),
             "blueprintBgmAssetCount": bgm_summary.get("blueprintBgmAssetCount"),
             "buildCommandAvailable": bgm_summary.get("buildCommandAvailable"),
+        },
+    )
+    add_gate(
+        gates,
+        "BGM musicality proves the first draft uses real music instead of hum, tone, silence, or placeholder audio",
+        bgm_musicality.get("status") == "passed"
+        and as_int(bgm_musicality_summary.get("manifestTrackCount")) >= 1
+        and as_int(bgm_musicality_summary.get("namedTrackCount")) >= 1
+        and as_int(bgm_musicality_summary.get("licenseTrackCount")) >= 1
+        and not bgm_musicality_summary.get("badIdentityTerms")
+        and as_int(bgm_musicality_summary.get("phraseRowCount")) >= 3
+        and as_int(bgm_musicality_summary.get("sectionRowCount")) >= 3
+        and as_int(bgm_music_audio.get("activeBandCount")) >= 4
+        and as_float(bgm_music_audio.get("medianWindowActiveBandCount")) >= 3.0
+        and as_float(bgm_music_audio.get("singleBandDominance")) <= 0.7
+        and as_float(bgm_music_audio.get("dynamicRangeDb")) >= 3.0
+        and as_float(bgm_music_audio.get("silentWindowRatio")) <= 0.2
+        and not bgm_musicality.get("blockers"),
+        {
+            "status": bgm_musicality.get("status"),
+            "summary": bgm_musicality_summary,
+            "blockers": bgm_musicality.get("blockers") or [],
+            "warnings": bgm_musicality.get("warnings") or [],
         },
     )
 
@@ -466,6 +492,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_motif = load_json(package_dir / "transition_motif_plan" / "transition_motif_plan.json") or {}
     bridge_sequence = load_json(package_dir / "bridge_sequence_plan" / "bridge_sequence_plan.json") or {}
     bgm_phrase = load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json") or {}
+    bgm_musicality = load_json(package_dir / "bgm_musicality_contract_audit.json") or {}
     rhythm_recut = load_json(package_dir / "rhythm_recut_blueprint" / "rhythm_recut_blueprint_report.json") or {}
     rhythm_recut_application = load_json(package_dir / "rhythm_recut_application_contract_audit.json") or {}
     transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
@@ -484,6 +511,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_motif.get("status") == "ready_with_transition_motif_plan"
         and bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
         and bgm_phrase.get("status") == "ready_with_bgm_phrase_blueprint"
+        and bgm_musicality.get("status") == "passed"
         and rhythm_recut.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}
         and transition_choreography_plan.get("status") == "ready_with_transition_choreography_plan"
         and transition_choreography_contract.get("status") == "passed"
@@ -499,6 +527,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionMotifStatus": transition_motif.get("status"),
             "bridgeSequenceStatus": bridge_sequence.get("status"),
             "bgmPhraseStatus": bgm_phrase.get("status"),
+            "bgmMusicalityStatus": bgm_musicality.get("status"),
             "rhythmRecutStatus": rhythm_recut.get("status"),
             "transitionChoreographyPlanStatus": transition_choreography_plan.get("status"),
             "transitionChoreographyContractStatus": transition_choreography_contract.get("status"),

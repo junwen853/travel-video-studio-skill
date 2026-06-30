@@ -53,6 +53,8 @@ python3 <skill-dir>/scripts/prepare_bgm_phrase_blueprint.py --package-dir <packa
 
 This blueprint step turns the selected bed into section/phrase/transition-cue metadata. A BGM complaint is not closed until opening/body/transition/ending windows, clip annotations, timeline markers, and per-transition BGM cue rows exist in a non-destructive candidate blueprint.
 
+After phrase rows exist, read `bgm-musicality-contract.md` and run `audit_bgm_musicality_contract.py`. A BGM complaint is still open if the selected bed is a sine tone, hum, buzz, silence, placeholder, one-band audio, flat dynamics, unnamed/untraceable music, or missing opening/body/transition/ending phrase coverage.
+
 Then run:
 
 ```bash

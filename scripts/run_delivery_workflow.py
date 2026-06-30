@@ -384,6 +384,31 @@ def summarize_bgm_phrase_blueprint(report: dict[str, Any] | None) -> dict[str, A
     }
 
 
+def summarize_bgm_musicality_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    audio = summary.get("audio") if isinstance(summary.get("audio"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "bgmOutput": summary.get("bgmOutput"),
+        "manifestTrackCount": summary.get("manifestTrackCount"),
+        "namedTrackCount": summary.get("namedTrackCount"),
+        "licenseTrackCount": summary.get("licenseTrackCount"),
+        "badIdentityTerms": summary.get("badIdentityTerms"),
+        "phraseRowCount": summary.get("phraseRowCount"),
+        "sectionRowCount": summary.get("sectionRowCount"),
+        "activeBandCount": audio.get("activeBandCount"),
+        "medianWindowActiveBandCount": audio.get("medianWindowActiveBandCount"),
+        "singleBandDominance": audio.get("singleBandDominance"),
+        "dynamicRangeDb": audio.get("dynamicRangeDb"),
+        "silentWindowRatio": audio.get("silentWindowRatio"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_transition_bridge_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -2564,6 +2589,21 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Build command available: `{bgm_selection.get('buildCommandAvailable')}`",
             ]
         )
+    if report.get("bgmMusicalitySummary"):
+        bgm_music = report["bgmMusicalitySummary"]
+        lines.extend(
+            [
+                "",
+                "## BGM Musicality Contract",
+                f"- Exists: `{bgm_music.get('exists')}`",
+                f"- Status: `{bgm_music.get('status')}`",
+                f"- Named/license tracks: {bgm_music.get('namedTrackCount')} / {bgm_music.get('licenseTrackCount')}",
+                f"- Dynamic range dB: {bgm_music.get('dynamicRangeDb')}",
+                f"- Active bands: {bgm_music.get('activeBandCount')}",
+                f"- Single-band dominance: {bgm_music.get('singleBandDominance')}",
+                f"- Bad identity terms: `{bgm_music.get('badIdentityTerms')}`",
+            ]
+        )
     if report.get("transitionBridgeSummary"):
         bridge = report["transitionBridgeSummary"]
         lines.extend(
@@ -3375,6 +3415,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     bgm_phrase_blueprint_cmd = ["python3", str(SCRIPTS_DIR / "prepare_bgm_phrase_blueprint.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_bgm_phrase_blueprint", bgm_phrase_blueprint_cmd, ok_codes={0, 2}))
 
+    bgm_musicality_cmd = ["python3", str(SCRIPTS_DIR / "audit_bgm_musicality_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_bgm_musicality_contract", bgm_musicality_cmd, ok_codes={0, 2}))
+
     rhythm_recut_cmd = ["python3", str(SCRIPTS_DIR / "prepare_rhythm_recut_blueprint.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_rhythm_recut_blueprint", rhythm_recut_cmd))
 
@@ -3753,6 +3796,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     effect_motion_summary = None
     effect_motion_blueprint_summary = None
     bgm_phrase_blueprint_summary = None
+    bgm_musicality_summary = None
     feedback_regression_plan_summary = None
     reference_batch_summary = None
     audio_scene_policy_summary = None
@@ -3958,6 +4002,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             effect_motion_blueprint_summary = summarize_effect_motion_blueprint(payload)
         if step["id"] == "prepare_bgm_phrase_blueprint":
             bgm_phrase_blueprint_summary = summarize_bgm_phrase_blueprint(payload)
+        if step["id"] == "audit_bgm_musicality_contract":
+            bgm_musicality_summary = summarize_bgm_musicality_contract(payload)
+            if bgm_musicality_summary and bgm_musicality_summary.get("status") == "blocked":
+                blockers.extend(f"BGM musicality blocker: {item}" for item in bgm_musicality_summary.get("blockers") or [])
+            if bgm_musicality_summary and bgm_musicality_summary.get("warnings"):
+                warnings.extend(f"BGM musicality warning: {item}" for item in bgm_musicality_summary.get("warnings") or [])
         if step["id"] == "prepare_feedback_regression_plan":
             feedback_regression_plan_summary = summarize_feedback_regression_plan(payload)
         if step["id"] == "prepare_reference_batch_profile":
@@ -4420,6 +4470,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         bgm_phrase_blueprint_summary = summarize_bgm_phrase_blueprint(
             load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json")
         )
+    if package_dir and (package_dir / "bgm_musicality_contract_audit.json").exists():
+        bgm_musicality_summary = summarize_bgm_musicality_contract(
+            load_json(package_dir / "bgm_musicality_contract_audit.json")
+        )
     if package_dir and (package_dir / "feedback_regression_plan" / "feedback_regression_plan.json").exists():
         feedback_regression_plan_summary = summarize_feedback_regression_plan(
             load_json(package_dir / "feedback_regression_plan" / "feedback_regression_plan.json")
@@ -4753,6 +4807,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "effectMotionSummary": effect_motion_summary,
         "effectMotionBlueprintSummary": effect_motion_blueprint_summary,
         "bgmPhraseBlueprintSummary": bgm_phrase_blueprint_summary,
+        "bgmMusicalitySummary": bgm_musicality_summary,
         "feedbackRegressionPlanSummary": feedback_regression_plan_summary,
         "referenceBatchSummary": reference_batch_summary,
         "audioScenePolicySummary": audio_scene_policy_summary,
@@ -4841,6 +4896,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Approve route_decision_sheet.json before writing decisions back to route_review.json.",
             "Select and verify BGM/stock/aerial licenses.",
             "Review bgm_selection_package.json before Resolve apply so the selected BGM bed is local, license-traceable, target-duration-covering, and referenced by the active blueprint.",
+            "Review bgm_musicality_contract_audit.json before Resolve apply so the BGM bed is real music with dynamics and multi-band energy, not a hum, tone, silence, or placeholder.",
             "Review footage_select_plan.json before trusting first assembly; repair/reject rows should not lead the cut.",
             "Review raw_intake_completeness_audit.json before trusting any large unordered source folder; every active source video must be indexed, recognized, routed exactly once, and scored before first assembly.",
             "Review source_selection_repair_plan.json before opening/chapter/transition work; every chapter needs ready local movement, lived-in texture, and payoff coverage before effects or stock fallback.",

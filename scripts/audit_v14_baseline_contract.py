@@ -23,6 +23,7 @@ SKILL_PATTERNS = {
     "effect_motion_blueprint": "prepare_effect_motion_blueprint.py",
     "effect_motion_application": "audit_effect_motion_application_contract.py",
     "bgm_phrase_blueprint": "prepare_bgm_phrase_blueprint.py",
+    "bgm_musicality": "audit_bgm_musicality_contract.py",
     "bilibili_malta": "bilibili-travel-style.md",
     "reference_batch_profile": "prepare_reference_batch_profile.py",
     "reference_profile_application": "audit_reference_profile_application_contract.py",
@@ -115,6 +116,7 @@ REQUIRED_SCRIPTS = [
     "prepare_bgm_phrase_blueprint.py",
     "build_bgm_bed.py",
     "audit_bgm_audio_contract.py",
+    "audit_bgm_musicality_contract.py",
     "prepare_caption_story_plan.py",
     "prepare_subtitle_overlay_asset.py",
     "prepare_orientation_repair_package.py",
@@ -284,6 +286,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     feedback = load_json(package_dir / "feedback_regression_audit" / "feedback_regression_audit.json") or {}
     audio_policy = load_json(package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json") or {}
     bgm = load_json(package_dir / "bgm_audio_contract_audit.json") or {}
+    bgm_musicality = load_json(package_dir / "bgm_musicality_contract_audit.json") or {}
     caption = load_json(package_dir / "caption_story_plan" / "caption_story_plan.json") or {}
     blueprint = load_json(package_dir / "resolve_timeline_blueprint.json") or {}
     orientation_repair = load_json(package_dir / "orientation_repair_package_report.json") or {}
@@ -688,6 +691,31 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "a2Items": track_count(track_summary, "audio", 2),
             "a3Items": track_count(track_summary, "audio", 3),
             "textOnlyNarrationExportExists": (package_dir / "caption_story_plan" / "text_only_narration_export.txt").exists(),
+        },
+    )
+    bgm_musicality_summary = get_summary(bgm_musicality)
+    bgm_music_audio = bgm_musicality_summary.get("audio") if isinstance(bgm_musicality_summary.get("audio"), dict) else {}
+    add_check(
+        checks,
+        "BGM musicality contract rejects hum, tone, silence, placeholder, or one-band beds before V14 delivery",
+        bgm_musicality.get("status") == "passed"
+        and int(bgm_musicality_summary.get("manifestTrackCount") or 0) >= 1
+        and int(bgm_musicality_summary.get("namedTrackCount") or 0) >= 1
+        and int(bgm_musicality_summary.get("licenseTrackCount") or 0) >= 1
+        and not bgm_musicality_summary.get("badIdentityTerms")
+        and int(bgm_musicality_summary.get("phraseRowCount") or 0) >= 3
+        and int(bgm_musicality_summary.get("sectionRowCount") or 0) >= 3
+        and int(bgm_music_audio.get("activeBandCount") or 0) >= 4
+        and float(bgm_music_audio.get("medianWindowActiveBandCount") or 0.0) >= 3.0
+        and float(bgm_music_audio.get("singleBandDominance") or 1.0) <= 0.7
+        and float(bgm_music_audio.get("dynamicRangeDb") or 0.0) >= 3.0
+        and float(bgm_music_audio.get("silentWindowRatio") or 1.0) <= 0.2
+        and not bgm_musicality.get("blockers"),
+        {
+            "bgmMusicalityStatus": bgm_musicality.get("status"),
+            "bgmMusicalitySummary": bgm_musicality_summary,
+            "blockers": bgm_musicality.get("blockers") or [],
+            "warnings": bgm_musicality.get("warnings") or [],
         },
     )
 
