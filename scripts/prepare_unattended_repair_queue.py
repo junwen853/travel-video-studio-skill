@@ -124,6 +124,17 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Cover/title audit proves a clean scenic 16:9 hero title with no route/date/internal labels, ghosting, or stacked text.",
         "forbiddenWorkaround": "Do not cover bad title composition with shadows, extra labels, or duplicate text layers.",
     },
+    "title_typography_repair_plan": {
+        "path": "title_typography_repair_plan/title_typography_repair_plan.json",
+        "accepted": {"ready_no_title_typography_repairs_needed"},
+        "phase": "title_establishing",
+        "priority": "P0",
+        "ownerScript": "prepare_title_typography_repair_plan.py",
+        "requiredArtifact": "title_typography_repair_plan/title_typography_repair_plan.json",
+        "command": "python3 <skill-dir>/scripts/prepare_title_typography_repair_plan.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun title repair planning, owner-script repairs, cover/title/title-bridge/title-visual-proof audits, final QA, V14, and maturity until no title repair rows remain.",
+        "forbiddenWorkaround": "Do not treat a title repair plan with open rows as delivery-ready, and do not hide ghosted/stacked/route/date title defects with shadows, OCR excuses, or extra text layers.",
+    },
     "visual_establishing_plan": {
         "path": "visual_establishing_plan/visual_establishing_plan.json",
         "accepted": {"ready_with_establishing_evidence"},
@@ -369,6 +380,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/prepare_caption_story_plan.py --package-dir <package> --json",
             "acceptanceEvidence": "Rerun caption planning, audience-caption audit, and final QA until TXT/SRT/burned captions are dense, title-safe, and viewer-facing.",
             "forbiddenWorkaround": "Do not expose workflow, QA, version, Resolve, or repair-status language to viewers.",
+        },
+    ),
+    (
+        ("title_typography_repair", "title repair", "ghost title", "stacked title", "title_cards", "title visual"),
+        {
+            "phase": "title_establishing",
+            "ownerScript": "prepare_title_typography_repair_plan.py",
+            "requiredArtifact": "title_typography_repair_plan/title_typography_repair_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_title_typography_repair_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun title repair planning, close every repair row, then rerun cover/title/title-bridge/title-visual-proof audits and final QA.",
+            "forbiddenWorkaround": "Do not leave stacked text, route/date labels, stale title_cards media, black slates, or subtitle overlays in title windows.",
         },
     ),
     (

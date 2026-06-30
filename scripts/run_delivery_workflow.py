@@ -2404,6 +2404,25 @@ def summarize_title_visual_proof_contract(report: dict[str, Any] | None) -> dict
     }
 
 
+def summarize_title_typography_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "blockedReportCount": summary.get("blockedReportCount"),
+        "missingReportCount": summary.get("missingReportCount"),
+        "ownerScripts": summary.get("ownerScripts") or [],
+        "blockers": [
+            f"{row.get('repairId')}: {row.get('issue')}"
+            for row in (plan.get("repairRows") or [])[:12]
+            if isinstance(row, dict)
+        ],
+    }
+
+
 def summarize_route_decision_application(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -3487,6 +3506,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_title_visual_proof_contract", title_visual_proof_cmd, ok_codes={0, 2}))
 
+    title_repair_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "prepare_title_typography_repair_plan.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("prepare_title_typography_repair_plan", title_repair_cmd, ok_codes={0, 2}))
+
     visual_establishing_cmd = ["python3", str(SCRIPTS_DIR / "prepare_visual_establishing_plan.py"), "--package-dir", str(package_dir)]
     steps.append(run_step("prepare_visual_establishing_plan", visual_establishing_cmd))
 
@@ -3985,6 +4013,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     title_typography_summary = None
     cover_title_summary = None
     title_visual_proof_summary = None
+    title_typography_repair_summary = None
     visual_establishing_summary = None
     effect_motion_summary = None
     effect_motion_blueprint_summary = None
@@ -4191,6 +4220,16 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             title_visual_proof_summary = summarize_title_visual_proof_contract(payload)
             if title_visual_proof_summary and title_visual_proof_summary.get("status") == "blocked":
                 blockers.extend(f"Title visual proof blocker: {item}" for item in title_visual_proof_summary.get("blockers") or [])
+        if step["id"] == "prepare_title_typography_repair_plan":
+            title_typography_repair_summary = summarize_title_typography_repair_plan(payload)
+            if (
+                title_typography_repair_summary
+                and title_typography_repair_summary.get("status") == "ready_with_title_typography_repair_plan"
+            ):
+                blockers.extend(
+                    f"Title typography repair blocker: {item}"
+                    for item in title_typography_repair_summary.get("blockers") or []
+                )
         if step["id"] == "prepare_visual_establishing_plan":
             visual_establishing_summary = summarize_visual_establishing_plan(payload)
         if step["id"] == "prepare_effect_motion_plan":
@@ -4685,6 +4724,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         title_visual_proof_summary = summarize_title_visual_proof_contract(
             load_json(package_dir / "title_visual_proof_contract_audit.json")
         )
+    if package_dir and (package_dir / "title_typography_repair_plan" / "title_typography_repair_plan.json").exists():
+        title_typography_repair_summary = summarize_title_typography_repair_plan(
+            load_json(package_dir / "title_typography_repair_plan" / "title_typography_repair_plan.json")
+        )
     if package_dir and (package_dir / "visual_establishing_plan" / "visual_establishing_plan.json").exists():
         visual_establishing_summary = summarize_visual_establishing_plan(
             load_json(package_dir / "visual_establishing_plan" / "visual_establishing_plan.json")
@@ -5050,6 +5093,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "titleTypographySummary": title_typography_summary,
         "coverTitleSummary": cover_title_summary,
         "titleVisualProofSummary": title_visual_proof_summary,
+        "titleTypographyRepairSummary": title_typography_repair_summary,
         "visualEstablishingSummary": visual_establishing_summary,
         "effectMotionSummary": effect_motion_summary,
         "effectMotionBlueprintSummary": effect_motion_blueprint_summary,
@@ -5161,6 +5205,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review audience_caption_contract_audit.json so final captions/TXT are viewer-facing travel-film text, not edit-status reports.",
             "Review title_typography_plan.json before generating or trusting title bridge media.",
             "Review title_visual_proof_contract_audit.json before approving the opening/chapter/ending title look; it must contain package-local video probe plus nonblank 16:9 frame evidence.",
+            "Review title_typography_repair_plan.json before Resolve apply or handoff; ready_with_title_typography_repair_plan means title/cover repair rows are still open.",
             "Review visual_establishing_plan.json before trusting opening/chapter/ending aerial, landmark, or city establishing shots.",
             "Review effect_motion_plan.json before adding Resolve title, route, or transition effects.",
             "Preflight effect_motion_blueprint/resolve_timeline_blueprint_effect_motion.json before approving title or transition motion effects for Resolve.",

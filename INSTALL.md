@@ -41,9 +41,9 @@ python3 scripts/install_for_agent.py \
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.91.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.91/travel-video-studio-skill-v0.1.91.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.91.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.92.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.92/travel-video-studio-skill-v0.1.92.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.92.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 ## Install From Source
@@ -112,6 +112,7 @@ test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_audition_ro
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_motion_direction_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_motion_accent_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/prepare_transition_motion_accent_repair_plan.py
+test -f ~/.codex/skills/travel-video-studio/scripts/prepare_title_typography_repair_plan.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_cutpoint_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_action_anchor_contract.py
 test -f ~/.codex/skills/travel-video-studio/scripts/audit_transition_sensory_continuity_contract.py

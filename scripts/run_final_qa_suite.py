@@ -25,6 +25,7 @@ ACCEPTED_STATUSES = {
     "title_bridge_contract_audit": {"passed", "passed_with_warnings"},
     "cover_title_contract_audit": {"passed"},
     "title_visual_proof_contract_audit": {"passed"},
+    "title_typography_repair_plan": {"ready_no_title_typography_repairs_needed"},
     "reference_style_alignment_audit": {"passed"},
     "director_intent_contract_audit": {"passed", "passed_with_warnings"},
     "route_texture_contract_audit": {"passed", "passed_with_warnings"},
@@ -218,6 +219,8 @@ def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) ->
         return package_dir / "transition_reference_candidates" / "transition_reference_candidates.json"
     if stage == "transition_reference_selection":
         return package_dir / "transition_reference_selection" / "transition_reference_selection.json"
+    if stage == "title_typography_repair_plan":
+        return package_dir / "title_typography_repair_plan" / "title_typography_repair_plan.json"
     if stage == "transition_audition_packet":
         return package_dir / "transition_audition_packet" / "transition_audition_packet.json"
     if stage == "transition_motion_accent_repair_plan":
@@ -425,6 +428,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                     "--package-dir",
                     str(package_dir),
                     "--extract-frames",
+                ],
+                False,
+            ),
+            (
+                "title_typography_repair_plan",
+                [
+                    sys.executable,
+                    str(scripts / "prepare_title_typography_repair_plan.py"),
+                    "--package-dir",
+                    str(package_dir),
                 ],
                 False,
             ),
