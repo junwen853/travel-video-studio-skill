@@ -1714,6 +1714,35 @@ def summarize_transition_audition_quality_contract(report: dict[str, Any] | None
     }
 
 
+def summarize_transition_audition_visual_proof_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "auditionVisualRowCount": summary.get("auditionVisualRowCount"),
+        "passedAuditionVisualRowCount": summary.get("passedAuditionVisualRowCount"),
+        "blockedAuditionVisualRowCount": summary.get("blockedAuditionVisualRowCount"),
+        "rowsWithPackageLocalClip": summary.get("rowsWithPackageLocalClip"),
+        "rowsWithProbeVideo": summary.get("rowsWithProbeVideo"),
+        "rowsWithNoAudio": summary.get("rowsWithNoAudio"),
+        "rowsWithFrameProof": summary.get("rowsWithFrameProof"),
+        "rowsWithDistinctEndpointFrames": summary.get("rowsWithDistinctEndpointFrames"),
+        "rowsWithMiddleMotionProof": summary.get("rowsWithMiddleMotionProof"),
+        "rowsWithMotionExecution": summary.get("rowsWithMotionExecution"),
+        "rowsWithResolveKeyframeEffect": summary.get("rowsWithResolveKeyframeEffect"),
+        "transitionAuditionQualityStatus": summary.get("transitionAuditionQualityStatus"),
+        "ffmpegAvailable": summary.get("ffmpegAvailable"),
+        "ffprobeAvailable": summary.get("ffprobeAvailable"),
+        "extractedFrames": summary.get("extractedFrames"),
+        "frameCountPerRow": summary.get("frameCountPerRow"),
+        "warningCount": summary.get("warningCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_unattended_first_draft_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -3053,6 +3082,16 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_transition_audition_quality_contract", transition_audition_quality_cmd, ok_codes={0, 2}))
 
+    transition_audition_visual_proof_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_transition_audition_visual_proof_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--extract-frames",
+        "--json",
+    ]
+    steps.append(run_step("audit_transition_audition_visual_proof_contract", transition_audition_visual_proof_cmd, ok_codes={0, 2}))
+
     transition_storyboard_cmd = ["python3", str(SCRIPTS_DIR / "audit_transition_storyboard_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_transition_storyboard_contract", transition_storyboard_cmd, ok_codes={0, 2}))
 
@@ -3251,6 +3290,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_preview_quality_summary = None
     transition_audition_packet_summary = None
     transition_audition_quality_summary = None
+    transition_audition_visual_proof_summary = None
     transition_storyboard_summary = None
     reference_transition_profile_summary = None
     chapter_story_spine_summary = None
@@ -3611,6 +3651,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition audition quality blocker: {item}" for item in transition_audition_quality_summary.get("blockers") or [])
             if transition_audition_quality_summary and transition_audition_quality_summary.get("warnings"):
                 warnings.extend(f"Transition audition quality warning: {item}" for item in transition_audition_quality_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_audition_visual_proof_contract":
+            transition_audition_visual_proof_summary = summarize_transition_audition_visual_proof_contract(payload)
+            if transition_audition_visual_proof_summary and transition_audition_visual_proof_summary.get("status") == "blocked":
+                blockers.extend(f"Transition audition visual proof blocker: {item}" for item in transition_audition_visual_proof_summary.get("blockers") or [])
+            if transition_audition_visual_proof_summary and transition_audition_visual_proof_summary.get("warnings"):
+                warnings.extend(f"Transition audition visual proof warning: {item}" for item in transition_audition_visual_proof_summary.get("warnings") or [])
         if step["id"] == "audit_transition_storyboard_contract":
             transition_storyboard_summary = summarize_transition_storyboard_contract(payload)
             if transition_storyboard_summary and transition_storyboard_summary.get("status") == "blocked":
@@ -3959,6 +4005,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_audition_quality_summary = summarize_transition_audition_quality_contract(
             load_json(package_dir / "transition_audition_quality_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_audition_visual_proof_contract_audit.json").exists():
+        transition_audition_visual_proof_summary = summarize_transition_audition_visual_proof_contract(
+            load_json(package_dir / "transition_audition_visual_proof_contract_audit.json")
+        )
     if package_dir and (package_dir / "transition_storyboard_contract_audit.json").exists():
         transition_storyboard_summary = summarize_transition_storyboard_contract(
             load_json(package_dir / "transition_storyboard_contract_audit.json")
@@ -4108,6 +4158,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionPreviewQualitySummary": transition_preview_quality_summary,
         "transitionAuditionPacketSummary": transition_audition_packet_summary,
         "transitionAuditionQualitySummary": transition_audition_quality_summary,
+        "transitionAuditionVisualProofSummary": transition_audition_visual_proof_summary,
         "transitionStoryboardSummary": transition_storyboard_summary,
         "referenceTransitionProfileSummary": reference_transition_profile_summary,
         "chapterStorySpineSummary": chapter_story_spine_summary,
@@ -4188,7 +4239,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review transition_effect_palette_contract_audit.json before Resolve apply so the whole film balances clean cuts, match cuts, bridges, dissolves, title reveals, and rare motivated motion instead of effect spam.",
             "Review transition_visual_match_contract_audit.json before Resolve apply so every adjacent pair has concrete visual, bridge, motion, mood, title, local, or BGM continuity evidence instead of arbitrary effects.",
             "Review transition_choreography_plan/transition_choreography_plan.md and transition_choreography_contract_audit.json before preview/storyboard so every important boundary has outgoing, bridge-or-motion, landing, BGM-hit, and caption-quiet choreography.",
-            "Review transition_preview_packet/transition_preview_packet.md, transition_preview_quality_contract_audit.json, transition_audition_packet/transition_audition_packet.md, transition_audition_quality_contract_audit.json, and transition_storyboard_contract_audit.json before Resolve apply so important route/title/day-change transitions have generated nonblank frame evidence plus playable muted outgoing/bridge/landing MP4 proof.",
+            "Review transition_preview_packet/transition_preview_packet.md, transition_preview_quality_contract_audit.json, transition_audition_packet/transition_audition_packet.md, transition_audition_quality_contract_audit.json, transition_audition_visual_proof_contract_audit.json, and transition_storyboard_contract_audit.json before Resolve apply so important route/title/day-change transitions have generated nonblank frame evidence plus playable muted outgoing/bridge/landing MP4 proof with distinct endpoint and middle-motion visual proof.",
             "Review transition_breathing_room_contract_audit.json before Resolve apply so motion accents are rare, separated by calm boundaries, and important transitions land on stable readable footage without title/subtitle collision.",
             "Review scene_flow_arc_contract_audit.json before Resolve apply so chapters form setup, movement, lived-in texture, payoff, and aftertaste/handoff arcs instead of landmark stacks or effect-hidden jumps.",
             "Review final_cut_smoothness_contract_audit.json before Resolve apply so the final candidate's adjacent shots have bridge, match, breathing, stable landing, and rare motion-effect proof instead of rough hard joins.",

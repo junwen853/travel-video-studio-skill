@@ -542,6 +542,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     transition_preview_quality = load_json(package_dir / "transition_preview_quality_contract_audit.json") or {}
     transition_audition_packet = load_json(package_dir / "transition_audition_packet" / "transition_audition_packet.json") or {}
     transition_audition_quality = load_json(package_dir / "transition_audition_quality_contract_audit.json") or {}
+    transition_audition_visual_proof = load_json(package_dir / "transition_audition_visual_proof_contract_audit.json") or {}
     transition_storyboard = load_json(package_dir / "transition_storyboard_contract_audit.json") or {}
     reference_transition_profile = load_json(package_dir / "reference_transition_profile_contract_audit.json") or {}
     chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
@@ -577,6 +578,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     tpq_summary = summary_of(transition_preview_quality)
     tap_summary = summary_of(transition_audition_packet)
     taq_summary = summary_of(transition_audition_quality)
+    tavp_summary = summary_of(transition_audition_visual_proof)
     tsb_summary = summary_of(transition_storyboard)
     rtp_summary = summary_of(reference_transition_profile)
     css_summary = summary_of(chapter_story_spine)
@@ -649,6 +651,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_preview_quality.get("status") == "passed"
         and transition_audition_packet.get("status") in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}
         and transition_audition_quality.get("status") == "passed"
+        and transition_audition_visual_proof.get("status") == "passed"
         and transition_storyboard.get("status") == "passed"
         and reference_transition_profile.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
@@ -829,6 +832,10 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(taq_summary.get("blockedAuditionQualityRowCount")) == 0
         and as_int(taq_summary.get("probeReadyClipCount")) >= as_int(taq_summary.get("auditionClipCount"))
         and as_int(taq_summary.get("noAudioClipCount")) >= as_int(taq_summary.get("auditionClipCount"))
+        and as_int(tavp_summary.get("blockedAuditionVisualRowCount")) == 0
+        and as_int(tavp_summary.get("rowsWithFrameProof")) >= as_int(tavp_summary.get("auditionVisualRowCount"))
+        and as_int(tavp_summary.get("rowsWithDistinctEndpointFrames")) >= as_int(tavp_summary.get("auditionVisualRowCount"))
+        and as_int(tavp_summary.get("rowsWithMiddleMotionProof")) >= as_int(tavp_summary.get("auditionVisualRowCount"))
         and as_int(rtp_summary.get("blockerCount")) == 0
         and as_int(rtp_summary.get("readyReportCount")) >= as_int(rtp_summary.get("requiredReportCount"))
         and as_int(rtp_summary.get("transitionRowCount")) >= 1
@@ -867,6 +874,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and not transition_preview_quality.get("blockers")
         and not transition_audition_packet.get("blockers")
         and not transition_audition_quality.get("blockers")
+        and not transition_audition_visual_proof.get("blockers")
         and not transition_storyboard.get("blockers")
         and not reference_transition_profile.get("blockers")
         and not scene_flow_arc.get("blockers")
@@ -927,6 +935,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionAuditionPacketSummary": tap_summary,
             "transitionAuditionQualityStatus": transition_audition_quality.get("status"),
             "transitionAuditionQualitySummary": taq_summary,
+            "transitionAuditionVisualProofStatus": transition_audition_visual_proof.get("status"),
+            "transitionAuditionVisualProofSummary": tavp_summary,
             "transitionStoryboardStatus": transition_storyboard.get("status"),
             "transitionStoryboardSummary": tsb_summary,
             "referenceTransitionProfileStatus": reference_transition_profile.get("status"),
