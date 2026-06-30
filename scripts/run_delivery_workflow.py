@@ -2196,6 +2196,37 @@ def summarize_unattended_first_draft_contract(report: dict[str, Any] | None) -> 
     }
 
 
+def summarize_skill_maturity_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "passedCheckCount": summary.get("passed"),
+        "blockedCheckCount": summary.get("blocked"),
+        "warningCheckCount": summary.get("warnings"),
+        "totalCheckCount": summary.get("total"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
+def summarize_v14_baseline_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "passedCheckCount": summary.get("passed"),
+        "blockedCheckCount": summary.get("blocked"),
+        "totalCheckCount": summary.get("total"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_reference_style_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -3142,6 +3173,30 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Required/total gates: {first_draft.get('requiredGateCount')} / {first_draft.get('totalGateCount')}",
             ]
         )
+    if report.get("skillMaturitySummary"):
+        maturity = report["skillMaturitySummary"]
+        lines.extend(
+            [
+                "",
+                "## Skill Maturity Contract",
+                f"- Exists: `{maturity.get('exists')}`",
+                f"- Status: `{maturity.get('status')}`",
+                f"- Passed/blocked/warning checks: {maturity.get('passedCheckCount')} / {maturity.get('blockedCheckCount')} / {maturity.get('warningCheckCount')}",
+                f"- Total checks: {maturity.get('totalCheckCount')}",
+            ]
+        )
+    if report.get("v14BaselineSummary"):
+        v14 = report["v14BaselineSummary"]
+        lines.extend(
+            [
+                "",
+                "## V14 Baseline Contract",
+                f"- Exists: `{v14.get('exists')}`",
+                f"- Status: `{v14.get('status')}`",
+                f"- Passed/blocked checks: {v14.get('passedCheckCount')} / {v14.get('blockedCheckCount')}",
+                f"- Total checks: {v14.get('totalCheckCount')}",
+            ]
+        )
     if report.get("referenceStyleRepairSummary"):
         repair = report["referenceStyleRepairSummary"]
         lines.extend(
@@ -3859,6 +3914,24 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
         steps.append(run_step("prepare_resolve_render", render_cmd, ok_codes={0, 2}))
         steps.append(run_step("audit_delivery_package", audit_cmd, ok_codes={0, 2}))
 
+    skill_maturity_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_skill_maturity_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_skill_maturity_contract", skill_maturity_cmd, ok_codes={0, 2}))
+
+    v14_baseline_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_v14_baseline_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_v14_baseline_contract", v14_baseline_cmd, ok_codes={0, 2}))
+
     return finish_report(args, started, steps, package_dir)
 
 
@@ -3961,6 +4034,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     reference_repair_closure_summary = None
     unattended_repair_queue_summary = None
     rhythm_recut_apply_summary = None
+    skill_maturity_summary = None
+    v14_baseline_summary = None
     resolve_apply_contract_summary = None
     resolve_blueprint_preflight_summary = None
     dry_run_summary = None
@@ -4489,6 +4564,22 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                     f"Unattended first draft warning: {item}"
                     for item in unattended_first_draft_summary.get("warnings") or []
                 )
+        if step["id"] == "audit_skill_maturity_contract":
+            skill_maturity_summary = summarize_skill_maturity_contract(payload)
+            if skill_maturity_summary and skill_maturity_summary.get("status") == "blocked":
+                blockers.extend(
+                    f"Skill maturity blocker: {item}" for item in skill_maturity_summary.get("blockers") or []
+                )
+            if skill_maturity_summary and skill_maturity_summary.get("warnings"):
+                warnings.extend(
+                    f"Skill maturity warning: {item}" for item in skill_maturity_summary.get("warnings") or []
+                )
+        if step["id"] == "audit_v14_baseline_contract":
+            v14_baseline_summary = summarize_v14_baseline_contract(payload)
+            if v14_baseline_summary and v14_baseline_summary.get("status") == "blocked":
+                blockers.extend(f"V14 baseline blocker: {item}" for item in v14_baseline_summary.get("blockers") or [])
+            if v14_baseline_summary and v14_baseline_summary.get("warnings"):
+                warnings.extend(f"V14 baseline warning: {item}" for item in v14_baseline_summary.get("warnings") or [])
         if step["id"] == "resolve_timeline_dry_run":
             dry_run_summary = payload
         if not step["ok"]:
@@ -4880,6 +4971,14 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         unattended_first_draft_summary = summarize_unattended_first_draft_contract(
             load_json(package_dir / "unattended_first_draft_contract_audit.json")
         )
+    if package_dir and (package_dir / "skill_maturity_contract_audit.json").exists():
+        skill_maturity_summary = summarize_skill_maturity_contract(
+            load_json(package_dir / "skill_maturity_contract_audit.json")
+        )
+    if package_dir and (package_dir / "v14_baseline_contract_audit.json").exists():
+        v14_baseline_summary = summarize_v14_baseline_contract(
+            load_json(package_dir / "v14_baseline_contract_audit.json")
+        )
 
     final_status = status
     if not final_status:
@@ -5000,6 +5099,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "referenceRepairClosureSummary": reference_repair_closure_summary,
         "unattendedRepairQueueSummary": unattended_repair_queue_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
+        "skillMaturitySummary": skill_maturity_summary,
+        "v14BaselineSummary": v14_baseline_summary,
         "resolveApplyContractSummary": resolve_apply_contract_summary,
         "resolveBlueprintPreflightSummary": resolve_blueprint_preflight_summary,
         "dryRunSummary": dry_run_summary,
@@ -5087,6 +5188,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "Review unattended_first_draft_contract_audit.json before Resolve apply or handoff; it proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected.",
+            "Review skill_maturity_contract_audit.json before handing the package to another AI; it proves the reusable Skill safeguards, not only one timeline, cover the known failure set.",
+            "Review v14_baseline_contract_audit.json before claiming a first draft should feel like V14; it proves the V14 lessons are active gates rather than historical notes.",
             "Review unattended_repair_queue/unattended_repair_queue.md when any gate blocks; it orders P0/P1 repairs by owner script, command, required artifact, acceptance evidence, and forbidden workaround.",
             "Review reference_style_repair_plan.json so blocked reference/director/QA gaps become executable repair rows before another Resolve write.",
             "When the rhythm recut candidate is approved, generate/review the rhythm recut apply package before any Resolve write.",
