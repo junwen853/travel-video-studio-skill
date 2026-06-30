@@ -101,6 +101,7 @@ SKILL_PATTERNS = {
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
     "editorial_watchdown_repair": "prepare_editorial_watchdown_repair_plan.py",
     "editorial_watchdown_closed": "ready_no_editorial_watchdown_repairs_needed",
+    "final_viewer_friction": "audit_final_viewer_friction_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
     "reference_repair_closure": "audit_reference_repair_closure.py",
     "route_texture": "audit_route_texture_contract.py",
@@ -209,6 +210,7 @@ REQUIRED_SCRIPTS = [
     "prepare_unattended_repair_queue.py",
     "audit_unattended_first_draft_contract.py",
     "prepare_editorial_watchdown_repair_plan.py",
+    "audit_final_viewer_friction_contract.py",
     "prepare_reference_style_repair_plan.py",
     "audit_reference_repair_closure.py",
     "audit_reference_style_alignment.py",
@@ -385,6 +387,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     timeline_variety = load_json(package_dir / "timeline_variety_contract_audit.json") or {}
     unattended_first_draft = load_json(package_dir / "unattended_first_draft_contract_audit.json") or {}
     editorial_watchdown = load_json(package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json") or {}
+    final_viewer_friction = load_json(package_dir / "final_viewer_friction_contract_audit.json") or {}
     unattended_repair_queue = load_json(package_dir / "unattended_repair_queue" / "unattended_repair_queue.json") or {}
     reference_repair = load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json") or {}
     reference_repair_closure = load_json(package_dir / "reference_repair_closure_audit.json") or {}
@@ -2681,6 +2684,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     reference_profile_application_summary = get_summary(reference_profile_application)
     route_summary = get_summary(route_texture)
     director_summary = get_summary(director_intent)
+    final_viewer_friction_summary = get_summary(final_viewer_friction)
     add_check(
         checks,
         "Bilibili/Malta style, reference-profile application, raw footage selection, creator cut, route texture, rhythm, and director polish gates pass",
@@ -2811,6 +2815,9 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and reference_repair.get("status") in {"ready_with_reference_style_repair_plan", "ready_no_reference_style_repairs_needed"}
         and reference_repair_closure.get("status") in {"passed", "passed_with_evidence_warnings"}
         and int(reference_repair_summary.get("rowsWithDecisionFields") or 0) == int(reference_repair_summary.get("repairRowCount") or 0)
+        and final_viewer_friction.get("status") == "passed"
+        and int(final_viewer_friction_summary.get("viewerFrictionRowCount") or 0) == 0
+        and int(final_viewer_friction_summary.get("p0ViewerFrictionRowCount") or 0) == 0
         and int(route_summary.get("matchedTransitions") or 0) >= 1
         and int(rhythm_summary.get("primaryVisualShotCount") or 0) >= 40,
         {
@@ -2942,6 +2949,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "referenceStyleRepairSummary": reference_repair_summary,
             "referenceRepairClosureStatus": reference_repair_closure.get("status"),
             "referenceRepairClosureSummary": reference_repair_closure_summary,
+            "finalViewerFrictionStatus": final_viewer_friction.get("status"),
+            "finalViewerFrictionSummary": final_viewer_friction_summary,
         },
     )
 
@@ -2959,6 +2968,21 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "editorialWatchdownStatus": editorial_watchdown.get("status"),
             "editorialWatchdownSummary": editorial_watchdown_summary,
+        },
+    )
+    final_viewer_friction_summary = get_summary(final_viewer_friction)
+    add_check(
+        checks,
+        "Final viewer friction contract proves V14 handoff has no open title, BGM, caption, source, story, transition, reference-fit, route-texture, or watchdown repair rows",
+        final_viewer_friction.get("status") == "passed"
+        and int(final_viewer_friction_summary.get("evidenceReportCount") or 0) >= 20
+        and int(final_viewer_friction_summary.get("passedEvidenceReportCount") or 0) == int(final_viewer_friction_summary.get("evidenceReportCount") or 0)
+        and int(final_viewer_friction_summary.get("viewerFrictionRowCount") or 0) == 0
+        and int(final_viewer_friction_summary.get("p0ViewerFrictionRowCount") or 0) == 0
+        and int(final_viewer_friction_summary.get("p1ViewerFrictionRowCount") or 0) == 0,
+        {
+            "finalViewerFrictionStatus": final_viewer_friction.get("status"),
+            "finalViewerFrictionSummary": final_viewer_friction_summary,
         },
     )
 

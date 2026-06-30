@@ -325,6 +325,18 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Rerun final editorial watchdown planning and prove the current final MP4 has closed beginning-to-end viewer review rows for opening, chapters, transitions, BGM/captions, ending, and reference fit.",
         "forbiddenWorkaround": "Do not hand off a technically passing package that nobody watched as a whole film, do not close from screenshots/contact sheets, and do not reuse stale V1/V2/V14 review notes for a new output path.",
     },
+    "final_viewer_friction_contract_audit": {
+        "path": "final_viewer_friction_contract_audit.json",
+        "accepted": {"passed"},
+        "phase": "final_watchdown",
+        "priority": "P0",
+        "ownerScript": "audit_final_viewer_friction_contract.py",
+        "requiredArtifact": "final_viewer_friction_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_final_viewer_friction_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun final viewer friction aggregation and prove title, BGM, captions, source coverage, story spine, transitions, reference fit, route texture, and editorial watchdown have zero open viewer-friction rows.",
+        "forbiddenWorkaround": "Do not hand off a technically passing package while the aggregation gate still has P0/P1 viewer-facing rows or owner-script repairs.",
+        "allowKeywordRoutes": False,
+    },
     "resolve_blueprint_preflight": {
         "path": "resolve_blueprint_preflight.json",
         "accepted": {"ready", "ready_with_warnings"},
@@ -339,6 +351,17 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
 }
 
 KEYWORD_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
+    (
+        ("viewer friction", "final viewer", "viewer-facing", "观众", "观感"),
+        {
+            "phase": "final_watchdown",
+            "ownerScript": "audit_final_viewer_friction_contract.py",
+            "requiredArtifact": "final_viewer_friction_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_final_viewer_friction_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "Final viewer friction contract passes with zero P0/P1 rows after title, BGM, caption, source, story, transition, reference, route texture, and watchdown repairs.",
+            "forbiddenWorkaround": "Do not hide viewer-facing roughness behind technical QA, isolated screenshots, stronger effects, or internal handoff notes.",
+        },
+    ),
     (
         ("portrait", "vertical", "orientation", "pillarbox", "square"),
         {
@@ -406,6 +429,17 @@ FINAL_QA_META_STAGES = {
 }
 
 FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
+    (
+        ("final_viewer_friction", "viewer_friction"),
+        {
+            "phase": "final_watchdown",
+            "ownerScript": "audit_final_viewer_friction_contract.py",
+            "requiredArtifact": "final_viewer_friction_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_final_viewer_friction_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun final viewer friction aggregation and final QA until the aggregation gate has zero viewer-facing repair rows.",
+            "forbiddenWorkaround": "Do not treat a technically passing render as viewer-ready while title, BGM, caption, source, story, transition, reference, route texture, or watchdown rows remain open.",
+        },
+    ),
     (
         ("render_delivery_verification",),
         {

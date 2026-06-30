@@ -40,6 +40,7 @@ REQUIRED_SCRIPTS = {
         "prepare_reference_batch_profile.py",
         "prepare_reference_review_repair_plan.py",
         "prepare_editorial_watchdown_repair_plan.py",
+        "audit_final_viewer_friction_contract.py",
         "audit_reference_profile_application_contract.py",
         "audit_reference_transition_profile_contract.py",
         "prepare_bgm_sourcing_brief.py",
@@ -280,6 +281,9 @@ REQUIRED_SKILL_PATTERNS = {
     "reference_full_review_repair_rule": "full-film reference review evidence",
     "editorial_watchdown_repair_plan_rule": "prepare_editorial_watchdown_repair_plan.py",
     "editorial_watchdown_status_rule": "ready_no_editorial_watchdown_repairs_needed",
+    "final_viewer_friction_contract_rule": "audit_final_viewer_friction_contract.py",
+    "final_viewer_friction_status_rule": "blocked_final_viewer_friction",
+    "final_viewer_friction_reference_rule": "final-viewer-friction-contract.md",
     "reference_transition_profile_contract_reference_rule": "reference-transition-profile-contract.md",
     "chapter_story_spine_contract_reference_rule": "chapter-story-spine-contract.md",
     "shot_flow_continuity_contract_reference_rule": "shot-flow-continuity-contract.md",
@@ -353,6 +357,7 @@ REQUIRED_STYLE_PATTERNS = {
     "reference_batch_profile": "reference-batch-profile-engine.md",
     "reference_review_completeness_contract": "reference-review-completeness-contract.md",
     "editorial_watchdown_contract": "editorial-watchdown-repair-contract.md",
+    "final_viewer_friction_contract": "final-viewer-friction-contract.md",
     "reference_profile_application_contract": "reference-profile-application-contract.md",
     "reference_transition_profile_contract": "reference-transition-profile-contract.md",
     "footage_select_engine": "footage-select-engine.md",
@@ -425,6 +430,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "reference_review_repair_plan": "reference review repair plan",
     "full_reference_review_closure": "ready_no_reference_review_repairs_needed",
     "editorial_watchdown_repair_plan": "editorial watchdown repair plan",
+    "final_viewer_friction_contract": "final viewer friction",
     "cover_title_formula": "Cover And Hero Title Style",
     "cover_title_contract": "cover title contract",
     "oversized_destination_title": "oversized 1-5 word Chinese destination title",
@@ -726,6 +732,51 @@ def editorial_watchdown_repair_plan_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("queuesRender") is False
         and evidence.get("downloadsExternalAssets") is False
         and evidence.get("modifiesSourceFootage") is False
+    )
+
+
+def final_viewer_friction_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "final_viewer_friction_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data, dict) and isinstance(data.get("summary"), dict) else {}
+    rows = data.get("viewerFrictionRows") if isinstance(data, dict) and isinstance(data.get("viewerFrictionRows"), list) else []
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status") if isinstance(data, dict) else None,
+        "evidenceReportCount": summary.get("evidenceReportCount"),
+        "passedEvidenceReportCount": summary.get("passedEvidenceReportCount"),
+        "viewerFrictionRowCount": summary.get("viewerFrictionRowCount"),
+        "p0ViewerFrictionRowCount": summary.get("p0ViewerFrictionRowCount"),
+        "p1ViewerFrictionRowCount": summary.get("p1ViewerFrictionRowCount"),
+        "ownerScripts": summary.get("ownerScripts") or [],
+        "rowCount": len(rows),
+        "rowsWithOwnerScript": sum(1 for row in rows if isinstance(row, dict) and row.get("ownerScript")),
+        "rowsWithCommand": sum(1 for row in rows if isinstance(row, dict) and row.get("command")),
+        "rowsWithAcceptanceEvidence": sum(1 for row in rows if isinstance(row, dict) and row.get("acceptanceEvidence")),
+        "writesResolve": (data.get("safety") or {}).get("writesResolve") if isinstance(data.get("safety"), dict) else None,
+        "queuesRender": (data.get("safety") or {}).get("queuesRender") if isinstance(data.get("safety"), dict) else None,
+        "downloadsExternalAssets": (data.get("safety") or {}).get("downloadsExternalAssets") if isinstance(data.get("safety"), dict) else None,
+        "modifiesSourceFootage": (data.get("safety") or {}).get("modifiesSourceFootage") if isinstance(data.get("safety"), dict) else None,
+        "modifiesSourceDrive": (data.get("safety") or {}).get("modifiesSourceDrive") if isinstance(data.get("safety"), dict) else None,
+    }
+
+
+def final_viewer_friction_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("evidenceReportCount") or 0) >= 20
+        and int(evidence.get("passedEvidenceReportCount") or 0) == int(evidence.get("evidenceReportCount") or 0)
+        and int(evidence.get("viewerFrictionRowCount") or 0) == 0
+        and int(evidence.get("p0ViewerFrictionRowCount") or 0) == 0
+        and int(evidence.get("p1ViewerFrictionRowCount") or 0) == 0
+        and int(evidence.get("rowCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
     )
 
 
@@ -8344,6 +8395,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Editorial watchdown repair plan proves the current final film was reviewed end-to-end before handoff",
         editorial_watchdown_repair_plan_ready(editorial_watchdown_evidence),
         editorial_watchdown_evidence,
+    )
+    final_viewer_friction_evidence = final_viewer_friction_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Final viewer friction contract proves title, BGM, captions, source, story, transitions, reference fit, route texture, and watchdown have no open viewer-facing repair rows",
+        final_viewer_friction_contract_ready(final_viewer_friction_evidence),
+        final_viewer_friction_evidence,
     )
     reference_profile_application_evidence = reference_profile_application_contract_evidence(package_dir)
     add_check(

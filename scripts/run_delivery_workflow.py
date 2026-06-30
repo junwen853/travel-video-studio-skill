@@ -577,6 +577,24 @@ def summarize_editorial_watchdown_repair_plan(plan: dict[str, Any] | None) -> di
     }
 
 
+def summarize_final_viewer_friction_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "evidenceReportCount": summary.get("evidenceReportCount"),
+        "passedEvidenceReportCount": summary.get("passedEvidenceReportCount"),
+        "viewerFrictionRowCount": summary.get("viewerFrictionRowCount"),
+        "p0ViewerFrictionRowCount": summary.get("p0ViewerFrictionRowCount"),
+        "p1ViewerFrictionRowCount": summary.get("p1ViewerFrictionRowCount"),
+        "phaseCounts": summary.get("phaseCounts"),
+        "ownerScripts": summary.get("ownerScripts"),
+        "blockers": [row.get("repairId") for row in report.get("viewerFrictionRows") or []],
+    }
+
+
 def summarize_edit_rhythm_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -4104,6 +4122,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("prepare_editorial_watchdown_repair_plan", editorial_watchdown_cmd, ok_codes={0}))
 
+    final_viewer_friction_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_final_viewer_friction_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_final_viewer_friction_contract", final_viewer_friction_cmd, ok_codes={0, 2}))
+
     unattended_repair_queue_cmd = [
         "python3",
         str(SCRIPTS_DIR / "prepare_unattended_repair_queue.py"),
@@ -4257,6 +4284,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     reference_style_repair_summary = None
     reference_repair_closure_summary = None
     editorial_watchdown_summary = None
+    final_viewer_friction_summary = None
     unattended_repair_queue_summary = None
     rhythm_recut_apply_summary = None
     skill_maturity_summary = None
@@ -4807,6 +4835,13 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Reference repair closure blocker: {item}" for item in reference_repair_closure_summary.get("blockers") or [])
             if reference_repair_closure_summary and reference_repair_closure_summary.get("warnings"):
                 warnings.extend(f"Reference repair closure warning: {item}" for item in reference_repair_closure_summary.get("warnings") or [])
+        if step["id"] == "audit_final_viewer_friction_contract":
+            final_viewer_friction_summary = summarize_final_viewer_friction_contract(payload)
+            if final_viewer_friction_summary and str(final_viewer_friction_summary.get("status") or "").startswith("blocked"):
+                blockers.extend(
+                    f"Final viewer friction blocker: {item}"
+                    for item in final_viewer_friction_summary.get("blockers") or []
+                )
         if step["id"] == "prepare_unattended_repair_queue":
             unattended_repair_queue_summary = summarize_unattended_repair_queue(payload)
             if unattended_repair_queue_summary and unattended_repair_queue_summary.get("status") == "blocked_unactionable_repair_queue":
@@ -4968,6 +5003,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json").exists():
         editorial_watchdown_summary = summarize_editorial_watchdown_repair_plan(
             load_json(package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json")
+        )
+    if package_dir and (package_dir / "final_viewer_friction_contract_audit.json").exists():
+        final_viewer_friction_summary = summarize_final_viewer_friction_contract(
+            load_json(package_dir / "final_viewer_friction_contract_audit.json")
         )
     if package_dir and (package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json").exists():
         audio_scene_policy_summary = summarize_audio_scene_policy_plan(
@@ -5398,6 +5437,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
         "editorialWatchdownSummary": editorial_watchdown_summary,
+        "finalViewerFrictionSummary": final_viewer_friction_summary,
         "unattendedRepairQueueSummary": unattended_repair_queue_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "skillMaturitySummary": skill_maturity_summary,
@@ -5444,6 +5484,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review reference_batch_profile.json when local reference videos are supplied so rhythm/style targets are based on measured reference evidence.",
             "Review reference_review_repair_plan/reference_review_repair_plan.json when local reference videos are supplied so full-film review evidence is closed before reference learning, final QA, V14, or Skill maturity claims.",
             "Review editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json before handoff; ready_with_editorial_watchdown_repair_plan means the current final MP4 still has open full-film viewer-review rows.",
+            "Review final_viewer_friction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_final_viewer_friction means title, BGM, caption, source, story, transition, reference-fit, route-texture, or whole-film watchdown issues still need owner-script repairs.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",
             "Review edit_rhythm_plan.json before Resolve apply so long raw clips, missing cutaways, and weak chapter variety are fixed before the edit feels AI-assembled.",
             "Review creator_cut_plan.json before transition execution so weak clips are demoted and kept clips have creator functions.",

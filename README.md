@@ -46,7 +46,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Audits timeline variety so the final film has movement, lived-in texture, destination payoff, and ending aftertaste instead of hiding weak shot choice behind transitions.
 - Audits the unattended first-draft chain before Resolve apply, connecting raw intake, first-assembly source order, story, BGM, BGM musicality, captions, titles, rhythm, rhythm-recut application, final-source usage, creator-cut application, reference-profile application, reference-transition-profile, chapter-story-spine, shot-flow-continuity, scene-flow-arc, final-cut-smoothness, pacing-watchability, narrative-adjacency, transition-viewer-orientation, transition-scene-settlement, transition-motion-accent, transition-effect-recipe, timeline-variety, effect-motion application, transition reference candidates, transition reference selection, transition action-anchor proof, transition sensory-continuity proof, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, final-blueprint lineage, transition cadence, transition microstructure, transition scene-arc/effect-palette/visual-match/preview-quality/audition-quality/storyboard/breathing-room, execution readiness, scene grammar, repair closure, unattended repair queue, and blueprint preflight into one gate.
 - Generates DaVinci Resolve timeline blueprints and safety contracts before writing to Resolve.
-- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, BGM musicality, dense title-safe subtitles, full-source first-assembly order, final-source usage, creator-cut application, rhythm-recut application, reference-review closure, reference-profile application, reference-transition-profile, chapter-story-spine, shot-flow-continuity, scene-flow-arc, final-cut-smoothness, pacing-watchability, narrative-adjacency, transition-viewer-orientation, transition-scene-settlement, transition-motion-accent, transition-effect-recipe, timeline-variety, effect-motion application, transition reference candidates, transition reference selection, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, transition bridge visual evidence, final-blueprint lineage, transition cadence, transition microstructure, transition cutpoint timing, transition action anchors, transition sensory continuity, transition effect palette, transition motif coherence, transition visual match, transition choreography, transition preview quality, transition audition quality, transition watch reel and review contract, transition storyboard, transition breathing-room, transition pair-continuity/execution readiness, reference scene grammar, route texture, export quality, and V14 baseline maturity.
+- Audits final delivery quality: clean titles, no portrait regressions, BGM-only no-voiceover mode, BGM musicality, dense title-safe subtitles, full-source first-assembly order, final-source usage, creator-cut application, rhythm-recut application, reference-review closure, reference-profile application, reference-transition-profile, chapter-story-spine, shot-flow-continuity, scene-flow-arc, final-cut-smoothness, pacing-watchability, narrative-adjacency, transition-viewer-orientation, transition-scene-settlement, transition-motion-accent, transition-effect-recipe, timeline-variety, effect-motion application, transition reference candidates, transition reference selection, transition-polish application, Resolve transition materialization/apply paths, bridge-sequence application, transition bridge visual evidence, final-blueprint lineage, transition cadence, transition microstructure, transition cutpoint timing, transition action anchors, transition sensory continuity, transition effect palette, transition motif coherence, transition visual match, transition choreography, transition preview quality, transition audition quality, transition watch reel and review contract, transition storyboard, transition breathing-room, transition pair-continuity/execution readiness, reference scene grammar, route texture, final viewer friction aggregation, export quality, and V14 baseline maturity.
 
 The default finishing path is DaVinci Resolve through the Resolve Python API. GUI automation is treated as a fallback, not the normal route.
 
@@ -98,9 +98,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.97.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.97/travel-video-studio-skill-v0.1.97.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.97.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.98.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.98/travel-video-studio-skill-v0.1.98.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.98.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:
@@ -315,6 +315,7 @@ A package is not considered deliverable until the relevant audits pass:
 - transition sensory-continuity contract
 - transition preview quality contract
 - transition audition quality contract and ordered transition watch reel review with motion-execution coverage
+- final viewer friction contract aggregating title, BGM, caption, source, story, transition, reference-fit, route-texture, and watchdown blockers into owner-script repair rows
 - title visual proof contract
 - transition storyboard contract
 - creator-cut application contract
