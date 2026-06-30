@@ -1,6 +1,6 @@
 # Transition Choreography Contract
 
-Run `scripts/audit_transition_choreography_contract.py` immediately after `prepare_transition_choreography_plan.py` and before `audit_transition_motion_direction_contract.py`, preview/audition/storyboard approval, Resolve apply, final QA, maturity, or V14 baseline claims.
+Run `scripts/audit_transition_choreography_contract.py` immediately after `prepare_transition_choreography_plan.py` and before `audit_transition_motion_direction_contract.py`, `audit_transition_cutpoint_contract.py`, preview/audition/storyboard approval, Resolve apply, final QA, maturity, or V14 baseline claims.
 
 ## Command
 
@@ -32,7 +32,7 @@ The audit passes only when:
 
 If blocked, repair the upstream transition grammar/execution/bridge/visual-match evidence first. Do not solve a blocked choreography row by adding a stronger effect. Add bridge footage, select a better landing shot, downgrade to a clean cut/match cut, or choose a quieter dissolve that fits the BGM phrase and title zone.
 
-After repair, rerun choreography plan, choreography contract, motion-direction contract, preview packet, audition packet, storyboard, reference-transition-profile, unattended first-draft, V14 baseline, and maturity checks.
+After repair, rerun choreography plan, choreography contract, motion-direction contract, transition execution blueprint, cutpoint contract, preview packet, audition packet, storyboard, reference-transition-profile, unattended first-draft, V14 baseline, and maturity checks.
 
 ## Safety
 

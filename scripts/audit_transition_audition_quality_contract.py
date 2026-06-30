@@ -127,6 +127,7 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
     issues: list[str] = []
     warnings: list[str] = []
     motion = row.get("motionExecution") if isinstance(row.get("motionExecution"), dict) else {}
+    cutpoint = row.get("cutpoint") if isinstance(row.get("cutpoint"), dict) else {}
     if row.get("status") != "ready_with_transition_audition":
         issues.append("audition_row_not_ready")
     if motion.get("ready") is not True:
@@ -146,6 +147,18 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
             issues.append("motion_execution_missing_effect_or_landing_direction")
     if not motion.get("resolveKeyframeEffect"):
         issues.append("motion_execution_missing_resolve_keyframe_effect")
+    if cutpoint.get("ready") is not True:
+        issues.append("cutpoint_plan_not_ready")
+    if cutpoint.get("bgmHitAligned") is not True:
+        issues.append("cutpoint_missing_bgm_hit_alignment")
+    if as_int(cutpoint.get("landingHoldFrames")) < (10 if cutpoint.get("importantBoundary") else 6):
+        issues.append("cutpoint_landing_hold_too_short")
+    if cutpoint.get("handlesReady") is not True:
+        issues.append("cutpoint_source_handles_not_ready")
+    if cutpoint.get("titleSubtitleQuietZoneReady") is not True:
+        issues.append("cutpoint_title_subtitle_quiet_zone_not_ready")
+    if cutpoint.get("bgmOnlyNoSourceVoice") is not True:
+        issues.append("cutpoint_audio_not_bgm_only")
     if not clip_path:
         issues.append("audition_clip_path_missing")
         probe = {"ok": False}
@@ -184,6 +197,7 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
         "fileSizeBytes": file_size,
         "bridgeSampleCount": row.get("bridgeSampleCount"),
         "motionExecution": motion,
+        "cutpoint": cutpoint,
         "probe": probe,
         "issues": issues,
         "warnings": warnings,
@@ -220,6 +234,10 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "rowsWithCaptionQuietMotion": sum(1 for row in audited if (row.get("motionExecution") or {}).get("captionQuietZone") is True),
         "rowsWithMotionDirection": sum(1 for row in audited if (row.get("motionExecution") or {}).get("motionDirectionRequired") is not True or (row.get("motionExecution") or {}).get("motionDirectionStatus") == "ready_with_motion_direction_plan"),
         "rowsWithMotionDirectionMatch": sum(1 for row in audited if (row.get("motionExecution") or {}).get("motionDirectionRequired") is not True or (row.get("motionExecution") or {}).get("motionDirectionMatch") is True),
+        "rowsWithCutpoint": sum(1 for row in audited if (row.get("cutpoint") or {}).get("ready") is True),
+        "rowsWithCutpointBgm": sum(1 for row in audited if (row.get("cutpoint") or {}).get("bgmHitAligned") is True),
+        "rowsWithCutpointLanding": sum(1 for row in audited if as_int((row.get("cutpoint") or {}).get("landingHoldFrames")) >= (10 if (row.get("cutpoint") or {}).get("importantBoundary") else 6)),
+        "rowsWithCutpointHandles": sum(1 for row in audited if (row.get("cutpoint") or {}).get("handlesReady") is True),
         "rowsWithResolveKeyframeEffect": sum(1 for row in audited if bool((row.get("motionExecution") or {}).get("resolveKeyframeEffect"))),
         "warningCount": len(warnings),
     }

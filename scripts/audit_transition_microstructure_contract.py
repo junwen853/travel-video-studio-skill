@@ -52,6 +52,10 @@ REPORT_SPECS = {
         "path": "transition_cadence_contract_audit.json",
         "accepted": {"passed"},
     },
+    "transitionCutpoint": {
+        "path": "transition_cutpoint_contract_audit.json",
+        "accepted": {"passed"},
+    },
 }
 MOTION_STYLES = {"whip_pan", "rotation", "speed_ramp", "push_slide"}
 
@@ -146,6 +150,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     bridge = reports["bridgeSequenceApplication"]["summary"]
     lineage = reports["finalBlueprintLineage"]["summary"]
     cadence = reports["transitionCadence"]["summary"]
+    cutpoint = reports["transitionCutpoint"]["summary"]
 
     boundary_names = (
         "transitionQuality",
@@ -168,6 +173,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     expected_bridge_beats = as_int(bridge.get("expectedBeatClipCount"))
     applied_bridge_beats = as_int(bridge.get("appliedBeatClipCount"))
     repeated_run = max_decorative_run(reports)
+    cutpoint_rows = as_int(cutpoint.get("transitionRowCount"))
 
     checks: list[dict[str, Any]] = []
     add_check(
@@ -219,7 +225,15 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         and as_int(readiness.get("handleReadyBoundaryCount")) == visual_boundaries
         and as_int(motivation.get("motivatedBoundaryCount")) == as_int(motivation.get("visualBoundaryCount"))
         and as_int(pair.get("pairContinuityPayloadCount")) == visual_boundaries
-        and as_int(pair.get("weakPairFitCount")) == 0,
+        and as_int(pair.get("weakPairFitCount")) == 0
+        and cutpoint_rows >= 1
+        and as_int(cutpoint.get("readyCutpointRowCount")) == cutpoint_rows
+        and as_int(cutpoint.get("blockedCutpointRowCount")) == 0
+        and as_int(cutpoint.get("rowsWithLandingHold")) == cutpoint_rows
+        and as_int(cutpoint.get("rowsWithHandles")) == cutpoint_rows
+        and as_int(cutpoint.get("rowsWithBgmHit")) == cutpoint_rows
+        and as_int(cutpoint.get("rowsWithTitleSubtitleQuietZone")) == cutpoint_rows
+        and as_int(cutpoint.get("rowsWithBgmOnlyNoSourceVoice")) == cutpoint_rows,
         {
             "recipeReadyBoundaryCount": readiness.get("recipeReadyBoundaryCount"),
             "bgmHitBoundaryCount": readiness.get("bgmHitBoundaryCount"),
@@ -231,6 +245,14 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "motivationVisualBoundaryCount": motivation.get("visualBoundaryCount"),
             "pairContinuityPayloadCount": pair.get("pairContinuityPayloadCount"),
             "weakPairFitCount": pair.get("weakPairFitCount"),
+            "cutpointTransitionRowCount": cutpoint.get("transitionRowCount"),
+            "readyCutpointRowCount": cutpoint.get("readyCutpointRowCount"),
+            "blockedCutpointRowCount": cutpoint.get("blockedCutpointRowCount"),
+            "cutpointRowsWithLandingHold": cutpoint.get("rowsWithLandingHold"),
+            "cutpointRowsWithHandles": cutpoint.get("rowsWithHandles"),
+            "cutpointRowsWithBgmHit": cutpoint.get("rowsWithBgmHit"),
+            "cutpointRowsWithTitleSubtitleQuietZone": cutpoint.get("rowsWithTitleSubtitleQuietZone"),
+            "cutpointRowsWithBgmOnlyNoSourceVoice": cutpoint.get("rowsWithBgmOnlyNoSourceVoice"),
         },
     )
     add_check(
@@ -349,6 +371,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "bgmHitBoundaryCount": readiness.get("bgmHitBoundaryCount"),
             "titleSafeBoundaryCount": readiness.get("titleSafeBoundaryCount"),
             "bgmOnlyBoundaryCount": readiness.get("bgmOnlyBoundaryCount"),
+            "readyCutpointRowCount": cutpoint.get("readyCutpointRowCount"),
+            "blockedCutpointRowCount": cutpoint.get("blockedCutpointRowCount"),
             "handleReadyBoundaryCount": readiness.get("handleReadyBoundaryCount"),
             "pairReadyBoundaryCount": readiness.get("pairReadyBoundaryCount"),
             "weakPairFitCount": pair.get("weakPairFitCount"),

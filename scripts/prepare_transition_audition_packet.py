@@ -128,6 +128,12 @@ def motion_execution_for(row_index: int, transition_by_row: dict[int, dict[str, 
     return motion if isinstance(motion, dict) else {}
 
 
+def cutpoint_for(row_index: int, transition_by_row: dict[int, dict[str, Any]]) -> dict[str, Any]:
+    transition = transition_by_row.get(row_index) if isinstance(transition_by_row.get(row_index), dict) else {}
+    cutpoint = transition.get("transitionCutpointPlan") if isinstance(transition.get("transitionCutpointPlan"), dict) else {}
+    return cutpoint if isinstance(cutpoint, dict) else {}
+
+
 def motion_execution_ready(motion: dict[str, Any]) -> bool:
     bgm = motion.get("bgmChoreography") if isinstance(motion.get("bgmChoreography"), dict) else {}
     caption = motion.get("captionAndTitlePolicy") if isinstance(motion.get("captionAndTitlePolicy"), dict) else {}
@@ -178,6 +184,23 @@ def motion_execution_summary(motion: dict[str, Any]) -> dict[str, Any]:
         "motionDirectionConfidence": direction.get("directionConfidence"),
         "resolveKeyframeEffect": keyframe.get("effect"),
         "ready": motion_execution_ready(motion),
+    }
+
+
+def cutpoint_summary(cutpoint: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": cutpoint.get("status"),
+        "ready": cutpoint.get("status") == "ready_with_transition_cutpoint_plan",
+        "outgoingTailFrames": cutpoint.get("outgoingTailFrames"),
+        "bridgeOrEffectFrames": cutpoint.get("bridgeOrEffectFrames"),
+        "landingHoldFrames": cutpoint.get("landingHoldFrames"),
+        "handlesReady": cutpoint.get("handlesReady"),
+        "bgmHitAligned": cutpoint.get("bgmHitAligned"),
+        "bgmHitFrameOffset": cutpoint.get("bgmHitFrameOffset"),
+        "titleSubtitleQuietZoneReady": cutpoint.get("titleSubtitleQuietZoneReady"),
+        "bgmOnlyNoSourceVoice": cutpoint.get("bgmOnlyNoSourceVoice"),
+        "importantBoundary": cutpoint.get("importantBoundary"),
+        "importantBoundaryResolved": cutpoint.get("importantBoundaryResolved"),
     }
 
 
@@ -340,6 +363,8 @@ def build_row(
     samples = ordered_samples(row, package_dir, bridge_by_row)
     motion_execution = motion_execution_for(row_index, transition_by_row)
     motion_summary = motion_execution_summary(motion_execution)
+    cutpoint = cutpoint_for(row_index, transition_by_row)
+    cutpoint_row_summary = cutpoint_summary(cutpoint)
     out_dir = row_dir(output_dir, row_index, category)
     issues: list[str] = []
     warnings: list[str] = []
@@ -347,6 +372,10 @@ def build_row(
         issues.append("missing_transition_motion_execution")
     elif not motion_execution_ready(motion_execution):
         issues.append("transition_motion_execution_not_ready_for_audition")
+    if not cutpoint:
+        issues.append("missing_transition_cutpoint_plan")
+    elif cutpoint.get("status") != "ready_with_transition_cutpoint_plan":
+        issues.append("transition_cutpoint_plan_not_ready_for_audition")
     if not any(sample["role"] == "outgoing" for sample in samples):
         issues.append("missing_outgoing_sample")
     if not any(sample["role"] == "landing" for sample in samples):
@@ -396,6 +425,7 @@ def build_row(
         "fromSourceName": clean(row.get("fromSourceName")),
         "toSourceName": clean(row.get("toSourceName")),
         "motionExecution": motion_summary,
+        "cutpoint": cutpoint_row_summary,
         "auditionClip": str(audition_path),
         "auditionMarkdown": str(md_path),
         "sampleCount": len(samples),
@@ -530,6 +560,10 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "rowsWithCaptionQuietMotion": sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("captionQuietZone") is True),
         "rowsWithMotionDirection": sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("motionDirectionRequired") is not True or (row.get("motionExecution") or {}).get("motionDirectionStatus") == "ready_with_motion_direction_plan"),
         "rowsWithMotionDirectionMatch": sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("motionDirectionRequired") is not True or (row.get("motionExecution") or {}).get("motionDirectionMatch") is True),
+        "rowsWithCutpoint": sum(1 for row in audition_rows if (row.get("cutpoint") or {}).get("ready") is True),
+        "rowsWithCutpointBgm": sum(1 for row in audition_rows if (row.get("cutpoint") or {}).get("bgmHitAligned") is True),
+        "rowsWithCutpointLanding": sum(1 for row in audition_rows if as_int((row.get("cutpoint") or {}).get("landingHoldFrames")) >= (10 if (row.get("cutpoint") or {}).get("importantBoundary") else 6)),
+        "rowsWithCutpointHandles": sum(1 for row in audition_rows if (row.get("cutpoint") or {}).get("handlesReady") is True),
         "motionExecutionChoreographyFamilyCounts": {
             family: sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("choreographyFamily") == family)
             for family in sorted({str((row.get("motionExecution") or {}).get("choreographyFamily") or "") for row in audition_rows if (row.get("motionExecution") or {}).get("choreographyFamily")})

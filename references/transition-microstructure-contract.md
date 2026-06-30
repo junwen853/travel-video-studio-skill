@@ -14,6 +14,7 @@ This contract prevents a travel film from passing QA with transition metadata th
 - `bridge_sequence_application_contract_audit.json`
 - `final_blueprint_lineage_contract_audit.json`
 - `transition_cadence_contract_audit.json`
+- `transition_cutpoint_contract_audit.json`
 
 All inputs must live inside the delivery package and must already be accepted by their own contracts.
 
@@ -27,6 +28,7 @@ Every adjacent visual boundary must be audited and covered by transition rows. E
 - title-safe timing
 - pair-readiness evidence
 - source handles
+- ready cutpoint timing with outgoing tail, BGM-hit bridge/effect point, and readable landing hold
 - motivated visual, route, bridge, motion, title, or BGM continuity
 
 Weak adjacent-pair fit is not allowed. Motion transitions must have motion evidence, must remain under the film-level motion allowance, must not repeat as a local template run, and must not exceed the configured maximum transition duration.

@@ -35,7 +35,7 @@ Do not repair a blocked row by adding a stronger effect. Repair one of these ups
 - update transition grammar/choreography evidence with actual directional terms
 - remove rotation/whip/speed ramp where source footage does not support it
 
-After repair, rerun choreography plan, choreography contract, motion-direction contract, preview packet, audition packet, storyboard, reference-transition-profile, unattended first-draft, V14 baseline, and maturity checks.
+After repair, rerun choreography plan, choreography contract, motion-direction contract, transition execution blueprint, cutpoint contract, preview packet, audition packet, storyboard, reference-transition-profile, unattended first-draft, V14 baseline, and maturity checks.
 
 ## Safety
 

@@ -62,6 +62,7 @@ REQUIRED_SCRIPTS = {
         "prepare_transition_choreography_plan.py",
         "audit_transition_choreography_contract.py",
         "audit_transition_motion_direction_contract.py",
+        "audit_transition_cutpoint_contract.py",
         "prepare_transition_preview_packet.py",
         "audit_transition_preview_quality_contract.py",
         "prepare_transition_audition_packet.py",
@@ -161,6 +162,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_choreography_plan_rule": "prepare_transition_choreography_plan.py",
     "transition_choreography_contract_rule": "audit_transition_choreography_contract.py",
     "transition_motion_direction_contract_rule": "audit_transition_motion_direction_contract.py",
+    "transition_cutpoint_contract_rule": "audit_transition_cutpoint_contract.py",
     "transition_preview_packet_rule": "prepare_transition_preview_packet.py",
     "transition_preview_quality_contract_rule": "audit_transition_preview_quality_contract.py",
     "transition_audition_packet_rule": "prepare_transition_audition_packet.py",
@@ -263,6 +265,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_choreography_engine_reference_rule": "transition-choreography-engine.md",
     "transition_choreography_contract_reference_rule": "transition-choreography-contract.md",
     "transition_motion_direction_contract_reference_rule": "transition-motion-direction-contract.md",
+    "transition_cutpoint_contract_reference_rule": "transition-cutpoint-contract.md",
     "transition_preview_packet_reference_rule": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract_reference_rule": "transition-preview-quality-contract.md",
     "transition_audition_packet_reference_rule": "transition-audition-packet-engine.md",
@@ -315,6 +318,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
+    "transition_cutpoint_contract": "transition-cutpoint-contract.md",
     "transition_preview_packet_engine": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract": "transition-preview-quality-contract.md",
     "transition_audition_packet_engine": "transition-audition-packet-engine.md",
@@ -2999,6 +3003,10 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
     transition_rows_with_three_beat_motion = 0
     transition_rows_with_bgm_hit_motion = 0
     transition_rows_with_caption_quiet_motion = 0
+    transition_rows_with_cutpoint = 0
+    transition_rows_with_cutpoint_bgm = 0
+    transition_rows_with_cutpoint_landing = 0
+    transition_rows_with_cutpoint_handles = 0
     for transition in transitions:
         if not isinstance(transition, dict):
             continue
@@ -3024,6 +3032,15 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         caption = motion_execution.get("captionAndTitlePolicy") if isinstance(motion_execution.get("captionAndTitlePolicy"), dict) else {}
         if caption.get("avoidTitleCollision") is True and caption.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True:
             transition_rows_with_caption_quiet_motion += 1
+        cutpoint = transition.get("transitionCutpointPlan") if isinstance(transition.get("transitionCutpointPlan"), dict) else {}
+        if cutpoint.get("status") == "ready_with_transition_cutpoint_plan":
+            transition_rows_with_cutpoint += 1
+        if cutpoint.get("bgmHitAligned") is True:
+            transition_rows_with_cutpoint_bgm += 1
+        if int(cutpoint.get("landingHoldFrames") or 0) >= (10 if cutpoint.get("importantBoundary") else 6):
+            transition_rows_with_cutpoint_landing += 1
+        if cutpoint.get("handlesReady") is True:
+            transition_rows_with_cutpoint_handles += 1
     annotated_out = sum(len(clip.get("transitionExecutionOut") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionOut"), list))
     annotated_in = sum(len(clip.get("transitionExecutionIn") or []) for clip in clips if isinstance(clip, dict) and isinstance(clip.get("transitionExecutionIn"), list))
     annotated_out_motion = sum(
@@ -3081,6 +3098,12 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
         "rowsWithMotionDirectionPlan": summary.get("rowsWithMotionDirectionPlan"),
         "rowsWithMotionDirectionMatch": summary.get("rowsWithMotionDirectionMatch"),
+        "rowsWithCutpointPlan": summary.get("rowsWithCutpointPlan"),
+        "rowsWithCutpointReady": summary.get("rowsWithCutpointReady"),
+        "rowsWithCutpointBgmHit": summary.get("rowsWithCutpointBgmHit"),
+        "rowsWithCutpointLandingHold": summary.get("rowsWithCutpointLandingHold"),
+        "rowsWithCutpointHandles": summary.get("rowsWithCutpointHandles"),
+        "blockedCutpointRowCount": summary.get("blockedCutpointRowCount"),
         "motionExecutionFromChoreographyCount": summary.get("motionExecutionFromChoreographyCount"),
         "motionExecutionDerivedCount": summary.get("motionExecutionDerivedCount"),
         "blockedMotionExecutionRowCount": summary.get("blockedMotionExecutionRowCount"),
@@ -3107,6 +3130,10 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         "transitionRowsWithThreeBeatMotion": transition_rows_with_three_beat_motion,
         "transitionRowsWithBgmHitMotion": transition_rows_with_bgm_hit_motion,
         "transitionRowsWithCaptionQuietMotion": transition_rows_with_caption_quiet_motion,
+        "transitionRowsWithCutpoint": transition_rows_with_cutpoint,
+        "transitionRowsWithCutpointBgm": transition_rows_with_cutpoint_bgm,
+        "transitionRowsWithCutpointLanding": transition_rows_with_cutpoint_landing,
+        "transitionRowsWithCutpointHandles": transition_rows_with_cutpoint_handles,
         "markerMotionExecutionCount": marker_motion,
         "activeBlueprintUpdated": outputs.get("activeBlueprintUpdated"),
         "writesResolve": safety.get("writesResolve"),
@@ -3152,6 +3179,12 @@ def transition_execution_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("rowsWithCaptionQuietMotion") or 0) == row_count
         and int(evidence.get("rowsWithMotionDirectionPlan") or 0) == row_count
         and int(evidence.get("rowsWithMotionDirectionMatch") or 0) == row_count
+        and int(evidence.get("rowsWithCutpointPlan") or 0) == row_count
+        and int(evidence.get("rowsWithCutpointReady") or 0) == row_count
+        and int(evidence.get("rowsWithCutpointBgmHit") or 0) == row_count
+        and int(evidence.get("rowsWithCutpointLandingHold") or 0) == row_count
+        and int(evidence.get("rowsWithCutpointHandles") or 0) == row_count
+        and int(evidence.get("blockedCutpointRowCount") or 0) == 0
         and int(evidence.get("motionExecutionFromChoreographyCount") or 0) == row_count
         and int(evidence.get("motionExecutionDerivedCount") or 0) == 0
         and int(evidence.get("blockedMotionExecutionRowCount") or 0) == 0
@@ -3168,6 +3201,10 @@ def transition_execution_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("transitionRowsWithThreeBeatMotion") or 0) == row_count
         and int(evidence.get("transitionRowsWithBgmHitMotion") or 0) == row_count
         and int(evidence.get("transitionRowsWithCaptionQuietMotion") or 0) == row_count
+        and int(evidence.get("transitionRowsWithCutpoint") or 0) == row_count
+        and int(evidence.get("transitionRowsWithCutpointBgm") or 0) == row_count
+        and int(evidence.get("transitionRowsWithCutpointLanding") or 0) == row_count
+        and int(evidence.get("transitionRowsWithCutpointHandles") or 0) == row_count
         and int(evidence.get("markerMotionExecutionCount") or 0) == row_count
         and evidence.get("candidatePlanHasReferenceSelection") is True
         and evidence.get("candidatePlanHasChoreography") is True
@@ -5765,6 +5802,66 @@ def transition_motion_direction_contract_ready(evidence: dict[str, Any]) -> bool
     )
 
 
+def transition_cutpoint_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_cutpoint_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "readyCutpointRowCount": summary.get("readyCutpointRowCount"),
+        "blockedCutpointRowCount": summary.get("blockedCutpointRowCount"),
+        "rowsWithOutgoingTail": summary.get("rowsWithOutgoingTail"),
+        "rowsWithBridgeOrEffectHit": summary.get("rowsWithBridgeOrEffectHit"),
+        "rowsWithLandingHold": summary.get("rowsWithLandingHold"),
+        "rowsWithHandles": summary.get("rowsWithHandles"),
+        "rowsWithBgmHit": summary.get("rowsWithBgmHit"),
+        "rowsWithTitleSubtitleQuietZone": summary.get("rowsWithTitleSubtitleQuietZone"),
+        "rowsWithBgmOnlyNoSourceVoice": summary.get("rowsWithBgmOnlyNoSourceVoice"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "importantRowsResolved": summary.get("importantRowsResolved"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_cutpoint_contract_ready(evidence: dict[str, Any]) -> bool:
+    rows = int(evidence.get("transitionRowCount") or 0)
+    important = int(evidence.get("importantBoundaryCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and rows >= 1
+        and int(evidence.get("readyCutpointRowCount") or 0) == rows
+        and int(evidence.get("blockedCutpointRowCount") or 0) == 0
+        and int(evidence.get("rowsWithOutgoingTail") or 0) >= rows
+        and int(evidence.get("rowsWithBridgeOrEffectHit") or 0) >= rows
+        and int(evidence.get("rowsWithLandingHold") or 0) >= rows
+        and int(evidence.get("rowsWithHandles") or 0) >= rows
+        and int(evidence.get("rowsWithBgmHit") or 0) >= rows
+        and int(evidence.get("rowsWithTitleSubtitleQuietZone") or 0) >= rows
+        and int(evidence.get("rowsWithBgmOnlyNoSourceVoice") or 0) >= rows
+        and (important == 0 or int(evidence.get("importantRowsResolved") or 0) >= important)
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_breathing_room_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_breathing_room_contract_audit.json"
     data = load_json(path) or {}
@@ -6147,6 +6244,10 @@ def transition_audition_packet_evidence(package_dir: Path) -> dict[str, Any]:
         "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
         "rowsWithMotionDirection": summary.get("rowsWithMotionDirection"),
         "rowsWithMotionDirectionMatch": summary.get("rowsWithMotionDirectionMatch"),
+        "rowsWithCutpoint": summary.get("rowsWithCutpoint"),
+        "rowsWithCutpointBgm": summary.get("rowsWithCutpointBgm"),
+        "rowsWithCutpointLanding": summary.get("rowsWithCutpointLanding"),
+        "rowsWithCutpointHandles": summary.get("rowsWithCutpointHandles"),
         "ffmpegAvailable": summary.get("ffmpegAvailable"),
         "builtClips": summary.get("builtClips"),
         "blockerCount": len(data.get("blockers") or []),
@@ -6173,6 +6274,10 @@ def transition_audition_packet_ready(evidence: dict[str, Any]) -> bool:
         and (important_rows == 0 or int(evidence.get("rowsWithCaptionQuietMotion") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithMotionDirection") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithMotionDirectionMatch") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCutpoint") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCutpointBgm") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCutpointLanding") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCutpointHandles") or 0) >= important_rows)
         and int(evidence.get("blockerCount") or 0) == 0
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False
@@ -6204,6 +6309,10 @@ def transition_audition_quality_contract_evidence(package_dir: Path) -> dict[str
         "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
         "rowsWithMotionDirection": summary.get("rowsWithMotionDirection"),
         "rowsWithMotionDirectionMatch": summary.get("rowsWithMotionDirectionMatch"),
+        "rowsWithCutpoint": summary.get("rowsWithCutpoint"),
+        "rowsWithCutpointBgm": summary.get("rowsWithCutpointBgm"),
+        "rowsWithCutpointLanding": summary.get("rowsWithCutpointLanding"),
+        "rowsWithCutpointHandles": summary.get("rowsWithCutpointHandles"),
         "rowsWithResolveKeyframeEffect": summary.get("rowsWithResolveKeyframeEffect"),
         "warningCount": summary.get("warningCount"),
         "blockerCount": len(data.get("blockers") or []),
@@ -6231,6 +6340,10 @@ def transition_audition_quality_contract_ready(evidence: dict[str, Any]) -> bool
         and (important_rows == 0 or int(evidence.get("rowsWithCaptionQuietMotion") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithMotionDirection") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithMotionDirectionMatch") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCutpoint") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCutpointBgm") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCutpointLanding") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithCutpointHandles") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithResolveKeyframeEffect") or 0) >= important_rows)
         and int(evidence.get("probeReadyClipCount") or 0) >= clip_count
         and int(evidence.get("noAudioClipCount") or 0) >= clip_count
@@ -7296,6 +7409,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
             "transitionEffectPalette": transition_effect_palette_evidence,
             "transitionMotionDirection": transition_motion_direction_evidence,
         },
+    )
+    transition_cutpoint_evidence = transition_cutpoint_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition cutpoint contract proves every boundary has an outgoing tail, BGM-hit bridge/effect point, readable landing hold, handles, quiet title/subtitle zone, and BGM-only audio",
+        transition_cutpoint_contract_ready(transition_cutpoint_evidence),
+        transition_cutpoint_evidence,
     )
     transition_preview_packet = transition_preview_packet_evidence(package_dir)
     add_check(

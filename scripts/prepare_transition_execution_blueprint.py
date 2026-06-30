@@ -338,6 +338,92 @@ def resolve_keyframe_recipe(family: str, style: str, intensity: int, duration_fr
     }
 
 
+def beat_frames(beats: list[dict[str, Any]], role: str, fallback: int) -> int:
+    for beat in beats:
+        if isinstance(beat, dict) and beat.get("role") == role:
+            return max(0, as_int(beat.get("durationFrames"), fallback))
+    return fallback
+
+
+def cutpoint_plan(
+    row: dict[str, Any],
+    *,
+    fps: float,
+    boundary: float,
+    duration_frames: int,
+    recipe: dict[str, Any],
+    motion_execution: dict[str, Any],
+    bridge_satisfied: bool,
+) -> dict[str, Any]:
+    family = str(motion_execution.get("choreographyFamily") or "")
+    style = str(motion_execution.get("sourceTransitionStyle") or "")
+    category = str(row.get("boundaryCategory") or "")
+    important = category in {"chapter_boundary", "timeline_gap", "title_boundary", "ending_transition"}
+    beats = motion_execution.get("threeBeatChoreography") if isinstance(motion_execution.get("threeBeatChoreography"), list) else []
+    bgm = motion_execution.get("bgmChoreography") if isinstance(motion_execution.get("bgmChoreography"), dict) else {}
+    caption = motion_execution.get("captionAndTitlePolicy") if isinstance(motion_execution.get("captionAndTitlePolicy"), dict) else {}
+    outgoing_tail = beat_frames(beats, "outgoing", 10 if important else 6)
+    bridge_or_effect = beat_frames(beats, "bridge_or_motion", max(8, duration_frames))
+    landing_hold = beat_frames(beats, "landing", 10 if important else 6)
+    needed_handles = 0 if duration_frames <= 0 else max(2, duration_frames // 2)
+    pre_roll = as_int(recipe.get("preRollFrames"), 0)
+    post_roll = as_int(recipe.get("postRollFrames"), 0)
+    quiet_before = round(as_float(caption.get("quietZoneBeforeSeconds"), 0.0) * fps)
+    quiet_after = round(as_float(caption.get("quietZoneAfterSeconds"), 0.0) * fps)
+    tolerance_frames = round(as_float(bgm.get("hitToleranceSeconds"), 0.35) * fps)
+    bgm_offset = 0 if bgm.get("target") == "cut_or_effect_on_bgm_phrase_hit" and bgm.get("allowOffPhrase") is False else tolerance_frames + 1
+    clean_family = family in {"clean_continuity_cut", "visual_match_cut", "mood_dissolve_breath"}
+    important_resolved = (not important) or bridge_satisfied or family in {"route_bridge_triptych", "scenic_title_breath", "ending_aftertaste_hold", "visual_match_cut", "texture_bridge_cutaway"}
+    issues: list[str] = []
+    if outgoing_tail < 6:
+        issues.append("outgoing_tail_too_short")
+    if not clean_family and bridge_or_effect < max(6, min(duration_frames, 8)):
+        issues.append("bridge_or_effect_hit_too_short")
+    if landing_hold < (10 if important else 6):
+        issues.append("landing_hold_too_short")
+    if needed_handles and (pre_roll < needed_handles or post_roll < needed_handles):
+        issues.append("insufficient_pre_post_roll_for_cutpoint")
+    if abs(bgm_offset) > max(0, tolerance_frames):
+        issues.append("bgm_hit_offset_outside_tolerance")
+    if quiet_before < round(0.25 * fps) or quiet_after < round(0.25 * fps):
+        issues.append("subtitle_quiet_zone_too_short")
+    if caption.get("avoidTitleCollision") is not True:
+        issues.append("title_collision_policy_missing")
+    if not motion_execution.get("safetyChecks", {}).get("bgmOnlyNoSourceVoice", False):
+        issues.append("source_audio_not_muted_for_transition")
+    if not important_resolved:
+        issues.append("important_boundary_has_no_bridge_match_or_breath_resolution")
+    return {
+        "status": "ready_with_transition_cutpoint_plan" if not issues else "needs_transition_cutpoint_repair",
+        "boundarySeconds": round3(boundary),
+        "boundaryFrame": round(boundary * fps),
+        "durationFrames": duration_frames,
+        "fps": fps,
+        "outgoingTailFrames": outgoing_tail,
+        "bridgeOrEffectFrames": bridge_or_effect,
+        "landingHoldFrames": landing_hold,
+        "preRollFramesAvailable": pre_roll,
+        "postRollFramesAvailable": post_roll,
+        "sourceHandleFramesNeeded": needed_handles,
+        "handlesReady": needed_handles == 0 or (pre_roll >= needed_handles and post_roll >= needed_handles),
+        "bgmHitFrameOffset": bgm_offset,
+        "bgmHitToleranceFrames": tolerance_frames,
+        "bgmHitAligned": abs(bgm_offset) <= max(0, tolerance_frames),
+        "subtitleQuietBeforeFrames": quiet_before,
+        "subtitleQuietAfterFrames": quiet_after,
+        "titleSubtitleQuietZoneReady": quiet_before >= round(0.25 * fps) and quiet_after >= round(0.25 * fps) and caption.get("avoidTitleCollision") is True,
+        "bgmOnlyNoSourceVoice": motion_execution.get("safetyChecks", {}).get("bgmOnlyNoSourceVoice", False),
+        "importantBoundary": important,
+        "importantBoundaryResolved": important_resolved,
+        "cutpointRoles": {
+            "outgoing": "exit on readable action, scenic edge, gesture, or route cue before the effect",
+            "bridgeOrEffect": "place the bridge, match, dissolve, or restrained motion exactly on the BGM phrase hit",
+            "landing": "hold the first readable landing moment before the next idea, title, or subtitle",
+        },
+        "issues": issues,
+    }
+
+
 def motion_execution_payload(
     row: dict[str, Any],
     *,
@@ -483,6 +569,15 @@ def transition_payload(
         else decision.get("approvedTransitionType") or recipe.get("style") or (row.get("grammarRecommendation") or {}).get("recommendedTransitionType")
     )
     motion_execution = motion_execution_payload(row, selected=selected, choreography_row=choreography_row, duration_frames=duration_frames)
+    cutpoint = cutpoint_plan(
+        row,
+        fps=fps,
+        boundary=boundary,
+        duration_frames=duration_frames,
+        recipe=recipe,
+        motion_execution=motion_execution,
+        bridge_satisfied=bridge_satisfied,
+    )
     return {
         "role": "transition_execution_candidate",
         "rowIndex": row.get("rowIndex"),
@@ -518,6 +613,7 @@ def transition_payload(
         "selectedPreviewHint": selected.get("ffmpegPreviewHint") if selection_applied else "",
         "referenceSelectionDecision": auto_decision if selection_applied else {},
         "transitionMotionExecution": motion_execution,
+        "transitionCutpointPlan": cutpoint,
         "decision": dict(DECISION_FIELDS),
     }
 
@@ -587,6 +683,12 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     rows_with_caption_quiet_motion = 0
     rows_with_motion_direction_plan = 0
     rows_with_motion_direction_match = 0
+    rows_with_cutpoint_plan = 0
+    rows_with_cutpoint_ready = 0
+    rows_with_cutpoint_bgm_hit = 0
+    rows_with_cutpoint_landing_hold = 0
+    rows_with_cutpoint_handles = 0
+    blocked_cutpoint_rows = 0
     motion_execution_from_choreography = 0
     motion_execution_derived = 0
     blocked_motion_execution_rows = 0
@@ -635,10 +737,23 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         if caption_policy.get("avoidTitleCollision") is True and caption_policy.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True:
             rows_with_caption_quiet_motion += 1
         direction_plan = motion_execution.get("motionDirectionPlan") if isinstance(motion_execution.get("motionDirectionPlan"), dict) else {}
+        cutpoint = payload.get("transitionCutpointPlan") if isinstance(payload.get("transitionCutpointPlan"), dict) else {}
         if direction_plan:
             rows_with_motion_direction_plan += 1
         if direction_plan.get("required") is not True or direction_plan.get("directionMatch") is True:
             rows_with_motion_direction_match += 1
+        if cutpoint:
+            rows_with_cutpoint_plan += 1
+        if cutpoint.get("status") == "ready_with_transition_cutpoint_plan":
+            rows_with_cutpoint_ready += 1
+        else:
+            blocked_cutpoint_rows += 1
+        if cutpoint.get("bgmHitAligned") is True:
+            rows_with_cutpoint_bgm_hit += 1
+        if as_int(cutpoint.get("landingHoldFrames"), 0) >= (10 if cutpoint.get("importantBoundary") else 6):
+            rows_with_cutpoint_landing_hold += 1
+        if cutpoint.get("handlesReady") is True:
+            rows_with_cutpoint_handles += 1
         if motion_execution.get("source") == "transition_choreography_plan":
             motion_execution_from_choreography += 1
         if motion_execution.get("source") == "derived_from_reference_selection":
@@ -674,6 +789,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             or not choreography_ready
             or choreography_status != "ready_with_transition_choreography"
             or motion_execution.get("status") != "ready_with_transition_motion_execution"
+            or cutpoint.get("status") != "ready_with_transition_cutpoint_plan"
             or not bridge_satisfied
             or bool(payload.get("forbiddenRecipeHits"))
             or (payload.get("motionStyle") and not payload.get("motionHasEvidence"))
@@ -702,6 +818,13 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "motionDirectionEffect": direction_plan.get("effectDirection"),
                 "motionDirectionLanding": direction_plan.get("landingDirection"),
                 "motionDirectionMatched": direction_plan.get("directionMatch"),
+                "transitionCutpointPlanStatus": cutpoint.get("status"),
+                "cutpointOutgoingTailFrames": cutpoint.get("outgoingTailFrames"),
+                "cutpointBridgeOrEffectFrames": cutpoint.get("bridgeOrEffectFrames"),
+                "cutpointLandingHoldFrames": cutpoint.get("landingHoldFrames"),
+                "cutpointBgmHitAligned": cutpoint.get("bgmHitAligned"),
+                "cutpointHandlesReady": cutpoint.get("handlesReady"),
+                "cutpointTitleSubtitleQuietZoneReady": cutpoint.get("titleSubtitleQuietZoneReady"),
                 "bgmHitChoreographyReady": bgm_choreography.get("target") == "cut_or_effect_on_bgm_phrase_hit"
                 and bgm_choreography.get("allowOffPhrase") is False,
                 "captionQuietZoneReady": caption_policy.get("avoidTitleCollision") is True
@@ -810,6 +933,12 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "rowsWithCaptionQuietMotion": rows_with_caption_quiet_motion,
             "rowsWithMotionDirectionPlan": rows_with_motion_direction_plan,
             "rowsWithMotionDirectionMatch": rows_with_motion_direction_match,
+            "rowsWithCutpointPlan": rows_with_cutpoint_plan,
+            "rowsWithCutpointReady": rows_with_cutpoint_ready,
+            "rowsWithCutpointBgmHit": rows_with_cutpoint_bgm_hit,
+            "rowsWithCutpointLandingHold": rows_with_cutpoint_landing_hold,
+            "rowsWithCutpointHandles": rows_with_cutpoint_handles,
+            "blockedCutpointRowCount": blocked_cutpoint_rows,
             "motionExecutionFromChoreographyCount": motion_execution_from_choreography,
             "motionExecutionDerivedCount": motion_execution_derived,
             "blockedMotionExecutionRowCount": blocked_motion_execution_rows,
@@ -823,6 +952,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "Every transition execution row becomes a candidate transition object in the blueprint.",
                 "Every transition execution row consumes the auto-selected reference candidate when transition reference selection is ready.",
                 "Every transition execution row consumes a ready choreography row and carries transitionMotionExecution metadata.",
+                "Every transition execution row carries a transitionCutpointPlan with outgoing tail, BGM-hit bridge/effect, landing hold, handles, and title/subtitle quiet-zone proof.",
                 "Adjacent source clips are annotated with in/out transition execution metadata.",
                 "Motion effects are present only when the execution plan recorded route or two-sided motion evidence.",
                 "Bridge-required transitions are not marked ready until bridge sequence rows are materialized.",
@@ -831,6 +961,7 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "Transition recipes remain prose-only and do not appear in the candidate blueprint.",
                 "Reference selection exists but selected candidates are not present in transitions, clip annotations, or markers.",
                 "Choreography exists but three-beat/BGM-hit/title-safe motion execution is not present in transitions, clip annotations, or markers.",
+                "Cutpoint timing remains implicit, so an effect can hide a hard or unlanded boundary.",
                 "A random spin, flash, glitch, shake, or template effect appears in a candidate row.",
                 "A bridge-required row is marked ready without a materialized bridge sequence.",
                 "The script writes Resolve, queues render, downloads assets, or mutates source footage.",
