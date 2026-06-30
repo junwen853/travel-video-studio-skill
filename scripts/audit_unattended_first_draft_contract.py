@@ -570,6 +570,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     pacing_watchability = load_json(package_dir / "pacing_watchability_contract_audit.json") or {}
     narrative_adjacency = load_json(package_dir / "narrative_adjacency_contract_audit.json") or {}
     transition_viewer_orientation = load_json(package_dir / "transition_viewer_orientation_contract_audit.json") or {}
+    transition_scene_settlement = load_json(package_dir / "transition_scene_settlement_contract_audit.json") or {}
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
@@ -616,6 +617,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     pw_summary = summary_of(pacing_watchability)
     na_summary = summary_of(narrative_adjacency)
     tvo_summary = summary_of(transition_viewer_orientation)
+    tss_summary = summary_of(transition_scene_settlement)
     sfa_summary = summary_of(scene_flow_arc)
     fcs_summary = summary_of(final_cut_smoothness)
     add_gate(
@@ -1288,6 +1290,25 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": transition_viewer_orientation.get("status"),
             "summary": tvo_summary,
             "blockers": transition_viewer_orientation.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Transition scene settlement proves important transitions land into readable local scenes before the next idea",
+        transition_scene_settlement.get("status") == "passed"
+        and as_int(tss_summary.get("settlementRowCount")) >= 1
+        and as_int(tss_summary.get("blockedSettlementCount")) == 0
+        and as_int(tss_summary.get("shortSettlementCount")) == 0
+        and as_int(tss_summary.get("tooFastNextJumpCount")) == 0
+        and as_int(tss_summary.get("genericLandingOrUtilityCount")) == 0
+        and as_int(tss_summary.get("textureReadyCount")) == as_int(tss_summary.get("settlementRowCount"))
+        and as_int(tss_summary.get("blockedCheckCount")) == 0
+        and not transition_scene_settlement.get("blockers"),
+        {
+            "status": transition_scene_settlement.get("status"),
+            "summary": tss_summary,
+            "blockers": transition_scene_settlement.get("blockers") or [],
         },
     )
 

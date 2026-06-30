@@ -1829,6 +1829,29 @@ def summarize_transition_viewer_orientation_contract(report: dict[str, Any] | No
     }
 
 
+def summarize_transition_scene_settlement_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "settlementRowCount": summary.get("settlementRowCount"),
+        "readySettlementCount": summary.get("readySettlementCount"),
+        "blockedSettlementCount": summary.get("blockedSettlementCount"),
+        "shortSettlementCount": summary.get("shortSettlementCount"),
+        "tooFastNextJumpCount": summary.get("tooFastNextJumpCount"),
+        "genericLandingOrUtilityCount": summary.get("genericLandingOrUtilityCount"),
+        "textureReadyCount": summary.get("textureReadyCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_scene_flow_arc_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -3586,6 +3609,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_transition_viewer_orientation_contract", transition_viewer_orientation_cmd, ok_codes={0, 2}))
 
+    transition_scene_settlement_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_transition_scene_settlement_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_transition_scene_settlement_contract", transition_scene_settlement_cmd, ok_codes={0, 2}))
+
     reference_repair_cmd = ["python3", str(SCRIPTS_DIR / "prepare_reference_style_repair_plan.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("prepare_reference_style_repair_plan", reference_repair_cmd))
 
@@ -3743,6 +3775,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     pacing_watchability_summary = None
     narrative_adjacency_summary = None
     transition_viewer_orientation_summary = None
+    transition_scene_settlement_summary = None
     scene_flow_arc_summary = None
     final_cut_smoothness_summary = None
     unattended_first_draft_summary = None
@@ -4206,6 +4239,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition viewer orientation blocker: {item}" for item in transition_viewer_orientation_summary.get("blockers") or [])
             if transition_viewer_orientation_summary and transition_viewer_orientation_summary.get("warnings"):
                 warnings.extend(f"Transition viewer orientation warning: {item}" for item in transition_viewer_orientation_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_scene_settlement_contract":
+            transition_scene_settlement_summary = summarize_transition_scene_settlement_contract(payload)
+            if transition_scene_settlement_summary and transition_scene_settlement_summary.get("status") == "blocked":
+                blockers.extend(f"Transition scene settlement blocker: {item}" for item in transition_scene_settlement_summary.get("blockers") or [])
+            if transition_scene_settlement_summary and transition_scene_settlement_summary.get("warnings"):
+                warnings.extend(f"Transition scene settlement warning: {item}" for item in transition_scene_settlement_summary.get("warnings") or [])
         if step["id"] == "prepare_reference_style_repair_plan":
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
@@ -4584,6 +4623,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_viewer_orientation_summary = summarize_transition_viewer_orientation_contract(
             load_json(package_dir / "transition_viewer_orientation_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_scene_settlement_contract_audit.json").exists():
+        transition_scene_settlement_summary = summarize_transition_scene_settlement_contract(
+            load_json(package_dir / "transition_scene_settlement_contract_audit.json")
+        )
     if package_dir and (package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json").exists():
         reference_style_repair_summary = summarize_reference_style_repair_plan(
             load_json(package_dir / "reference_style_repair_plan" / "reference_style_repair_plan.json")
@@ -4723,6 +4766,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "pacingWatchabilitySummary": pacing_watchability_summary,
         "narrativeAdjacencySummary": narrative_adjacency_summary,
         "transitionViewerOrientationSummary": transition_viewer_orientation_summary,
+        "transitionSceneSettlementSummary": transition_scene_settlement_summary,
         "unattendedFirstDraftSummary": unattended_first_draft_summary,
         "referenceStyleRepairSummary": reference_style_repair_summary,
         "referenceRepairClosureSummary": reference_repair_closure_summary,
@@ -4806,6 +4850,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review pacing_watchability_contract_audit.json before Resolve apply so reference-calibrated shot lengths, chapter breathing, long-hold reduction, and short-clip readability are proven in the final candidate.",
             "Review narrative_adjacency_contract_audit.json before Resolve apply so every adjacent visual shot has a viewer-readable route, place, story-function, bridge, BGM, title, or transition reason instead of random clip stacking.",
             "Review transition_viewer_orientation_contract_audit.json before Resolve apply so important route/day/place/title/ending transitions tell viewers where they are, why the film moved, and what the landing shot means.",
+            "Review transition_scene_settlement_contract_audit.json before Resolve apply so important transitions land into enough local scene footage instead of a title-only/card-only landing or an immediate second jump.",
             "Review reference_transition_profile_contract_audit.json before Resolve apply so the current film's transition language matches the learned reference bridge, breath, match, and restrained-motion profile.",
             "Review chapter_story_spine_contract_audit.json before Resolve apply so every chapter executes context, movement, lived-in texture, payoff, and aftertaste instead of becoming title-only or effect-masked.",
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",

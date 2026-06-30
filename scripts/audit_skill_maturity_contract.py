@@ -83,6 +83,7 @@ REQUIRED_SCRIPTS = {
         "audit_pacing_watchability_contract.py",
         "audit_narrative_adjacency_contract.py",
         "audit_transition_viewer_orientation_contract.py",
+        "audit_transition_scene_settlement_contract.py",
         "audit_timeline_variety_contract.py",
         "prepare_unattended_repair_queue.py",
         "audit_unattended_first_draft_contract.py",
@@ -190,6 +191,7 @@ REQUIRED_SKILL_PATTERNS = {
     "pacing_watchability_contract_rule": "audit_pacing_watchability_contract.py",
     "narrative_adjacency_contract_rule": "audit_narrative_adjacency_contract.py",
     "transition_viewer_orientation_contract_rule": "audit_transition_viewer_orientation_contract.py",
+    "transition_scene_settlement_contract_rule": "audit_transition_scene_settlement_contract.py",
     "unattended_repair_queue_rule": "prepare_unattended_repair_queue.py",
     "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
     "reference_transition_profile_contract_rule": "audit_reference_transition_profile_contract.py",
@@ -256,6 +258,7 @@ REQUIRED_SKILL_PATTERNS = {
     "pacing_watchability_contract_reference_rule": "pacing-watchability-contract.md",
     "narrative_adjacency_contract_reference_rule": "narrative-adjacency-contract.md",
     "transition_viewer_orientation_contract_reference_rule": "transition-viewer-orientation-contract.md",
+    "transition_scene_settlement_contract_reference_rule": "transition-scene-settlement-contract.md",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
@@ -341,6 +344,7 @@ REQUIRED_STYLE_PATTERNS = {
     "pacing_watchability_contract": "pacing-watchability-contract.md",
     "narrative_adjacency_contract": "narrative-adjacency-contract.md",
     "transition_viewer_orientation_contract": "transition-viewer-orientation-contract.md",
+    "transition_scene_settlement_contract": "transition-scene-settlement-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
@@ -403,6 +407,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "pacing_watchability_contract": "pacing watchability contract",
     "narrative_adjacency_contract": "narrative adjacency contract",
     "transition_viewer_orientation_contract": "transition viewer orientation",
+    "transition_scene_settlement_contract": "transition scene settlement",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -6657,6 +6662,71 @@ def transition_viewer_orientation_contract_ready(evidence: dict[str, Any]) -> bo
     )
 
 
+def transition_scene_settlement_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_scene_settlement_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    policy = data.get("policy") if isinstance(data.get("policy"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "visualClipCount": summary.get("visualClipCount"),
+        "importantBoundaryCount": summary.get("importantBoundaryCount"),
+        "settlementRowCount": summary.get("settlementRowCount"),
+        "readySettlementCount": summary.get("readySettlementCount"),
+        "blockedSettlementCount": summary.get("blockedSettlementCount"),
+        "shortSettlementCount": summary.get("shortSettlementCount"),
+        "tooFastNextJumpCount": summary.get("tooFastNextJumpCount"),
+        "genericLandingOrUtilityCount": summary.get("genericLandingOrUtilityCount"),
+        "textureReadyCount": summary.get("textureReadyCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": summary.get("blockerCount"),
+        "blueprintKind": summary.get("blueprintKind"),
+        "blueprintInsidePackage": summary.get("blueprintInsidePackage"),
+        "blockers": data.get("blockers") or [],
+        "importantTransitionsMustSettleIntoScene": policy.get("importantTransitionsMustSettleIntoScene"),
+        "landingClipMustBeReadableSceneFootage": policy.get("landingClipMustBeReadableSceneFootage"),
+        "settlementWindowMustContainTextureOrPayoff": policy.get("settlementWindowMustContainTextureOrPayoff"),
+        "nextImportantTransitionCannotArriveImmediately": policy.get("nextImportantTransitionCannotArriveImmediately"),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_scene_settlement_contract_ready(evidence: dict[str, Any]) -> bool:
+    settlement_count = int(evidence.get("settlementRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and evidence.get("blueprintInsidePackage") is True
+        and int(evidence.get("importantBoundaryCount") or 0) >= 1
+        and settlement_count >= 1
+        and int(evidence.get("readySettlementCount") or 0) == settlement_count
+        and int(evidence.get("blockedSettlementCount") or 0) == 0
+        and int(evidence.get("shortSettlementCount") or 0) == 0
+        and int(evidence.get("tooFastNextJumpCount") or 0) == 0
+        and int(evidence.get("genericLandingOrUtilityCount") or 0) == 0
+        and int(evidence.get("textureReadyCount") or 0) == settlement_count
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and not evidence.get("blockers")
+        and evidence.get("importantTransitionsMustSettleIntoScene") is True
+        and evidence.get("landingClipMustBeReadableSceneFootage") is True
+        and evidence.get("settlementWindowMustContainTextureOrPayoff") is True
+        and evidence.get("nextImportantTransitionCannotArriveImmediately") is True
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_continuity_rehearsal_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_continuity_rehearsal_contract_audit.json"
     data = load_json(path) or {}
@@ -8270,6 +8340,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         transition_viewer_orientation_contract_ready(transition_viewer_orientation_evidence),
         transition_viewer_orientation_evidence,
     )
+    transition_scene_settlement_evidence = transition_scene_settlement_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition scene settlement contract proves important route/day/title/ending jumps land into readable local scenes",
+        transition_scene_settlement_contract_ready(transition_scene_settlement_evidence),
+        transition_scene_settlement_evidence,
+    )
     transition_continuity_rehearsal_evidence = transition_continuity_rehearsal_contract_evidence(package_dir)
     add_check(
         checks,
@@ -8281,6 +8358,7 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         and pacing_watchability_contract_ready(pacing_watchability_evidence)
         and narrative_adjacency_contract_ready(narrative_adjacency_evidence)
         and transition_viewer_orientation_contract_ready(transition_viewer_orientation_evidence)
+        and transition_scene_settlement_contract_ready(transition_scene_settlement_evidence)
         and transition_continuity_rehearsal_contract_ready(transition_continuity_rehearsal_evidence),
         {
             "transitionStoryboard": transition_storyboard_evidence,
@@ -8290,6 +8368,7 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
             "pacingWatchability": pacing_watchability_evidence,
             "narrativeAdjacency": narrative_adjacency_evidence,
             "transitionViewerOrientation": transition_viewer_orientation_evidence,
+            "transitionSceneSettlement": transition_scene_settlement_evidence,
             "transitionContinuityRehearsal": transition_continuity_rehearsal_evidence,
         },
     )
