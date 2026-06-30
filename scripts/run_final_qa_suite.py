@@ -67,6 +67,7 @@ ACCEPTED_STATUSES = {
     "transition_choreography_contract_audit": {"passed"},
     "transition_motion_direction_contract_audit": {"passed"},
     "transition_motion_accent_contract_audit": {"passed"},
+    "transition_motion_accent_repair_plan": {"ready_no_motion_accent_repairs_needed"},
     "transition_effect_recipe_contract_audit": {"passed"},
     "rendered_transition_proof_contract_audit": {"passed"},
     "transition_preview_packet": {"ready_with_transition_preview_packet", "ready_no_important_transitions"},
@@ -219,6 +220,8 @@ def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) ->
         return package_dir / "transition_reference_selection" / "transition_reference_selection.json"
     if stage == "transition_audition_packet":
         return package_dir / "transition_audition_packet" / "transition_audition_packet.json"
+    if stage == "transition_motion_accent_repair_plan":
+        return package_dir / "transition_motion_accent_repair_plan" / "transition_motion_accent_repair_plan.json"
     if stage == "unattended_repair_queue":
         return package_dir / "unattended_repair_queue" / "unattended_repair_queue.json"
     return package_dir / f"{stage}.json"
@@ -864,6 +867,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "audit_transition_motion_accent_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_motion_accent_repair_plan",
+                [
+                    sys.executable,
+                    str(scripts / "prepare_transition_motion_accent_repair_plan.py"),
                     "--package-dir",
                     str(package_dir),
                 ],

@@ -190,6 +190,17 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "acceptanceEvidence": "Every adjacent boundary has one auto-selected default transition, zero blocked selection rows, motion within reference budget, and bridge/breath selections for important boundaries.",
         "forbiddenWorkaround": "Do not leave A/B/C choices for manual review in an unattended first draft, and do not resolve bridge-missing rows by selecting random visible effects.",
     },
+    "transition_motion_accent_repair_plan": {
+        "path": "transition_motion_accent_repair_plan/transition_motion_accent_repair_plan.json",
+        "accepted": {"ready_no_motion_accent_repairs_needed"},
+        "phase": "transition_flow",
+        "priority": "P0",
+        "ownerScript": "prepare_transition_motion_accent_repair_plan.py",
+        "requiredArtifact": "transition_motion_accent_repair_plan/transition_motion_accent_repair_plan.json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_motion_accent_repair_plan.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun motion-accent repair planning, owner-script repairs, motion-accent audit, final QA, V14, and maturity until no motion-accent repair rows remain.",
+        "forbiddenWorkaround": "Do not treat a repair plan with open rows as delivery-ready, and do not keep random rotation, flash, whip, push, or speed-ramp effects just because they render.",
+    },
     "transition_breathing_room_contract_audit": {
         "path": "transition_breathing_room_contract_audit.json",
         "accepted": {"passed"},
@@ -545,6 +556,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
             "acceptanceEvidence": "Rerun transition audition, rendered-transition proof, render verification, and final QA until final MP4 transition windows have no black/white flashes, raw vertical frames, or strobe-like luma jumps.",
             "forbiddenWorkaround": "Do not treat a transition as fixed until both preview/audition evidence and rendered final-frame proof are clean.",
+        },
+    ),
+    (
+        ("motion_accent", "random rotation", "random spin", "speed-ramp", "speed_ramp", "whip", "rotation", "visible motion"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_motion_accent_repair_plan.py",
+            "requiredArtifact": "transition_motion_accent_repair_plan/transition_motion_accent_repair_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_motion_accent_repair_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun motion-accent repair planning, then close each owner-script row before motion-accent, preview/audition, final QA, V14, and maturity pass.",
+            "forbiddenWorkaround": "Do not use random rotation, whip, push, speed-ramp, flash, or stronger motion to hide a weak transition.",
         },
     ),
     (

@@ -3754,6 +3754,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_transition_motion_accent_contract", transition_motion_accent_cmd, ok_codes={0, 2}))
 
+    transition_motion_accent_repair_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "prepare_transition_motion_accent_repair_plan.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("prepare_transition_motion_accent_repair_plan", transition_motion_accent_repair_cmd, ok_codes={0, 2}))
+
     transition_effect_recipe_cmd = [
         "python3",
         str(SCRIPTS_DIR / "audit_transition_effect_recipe_contract.py"),
