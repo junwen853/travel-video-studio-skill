@@ -26,6 +26,47 @@ DECISION_FIELDS = {
     "approvedAt": "",
     "editorNotes": "",
 }
+DIRECTION_ALIASES = {
+    "left": ("left", "pan left", "swipe left", "slide left", "move left", "向左", "左移", "左转"),
+    "right": ("right", "pan right", "swipe right", "slide right", "move right", "向右", "右移", "右转"),
+    "forward": (
+        "forward",
+        "push in",
+        "dolly in",
+        "walk",
+        "walking",
+        "drive",
+        "driving",
+        "train",
+        "road",
+        "street",
+        "approach",
+        "enter",
+        "进入",
+        "前进",
+        "推进",
+        "行进",
+    ),
+    "backward": ("back", "backward", "pull back", "dolly out", "retreat", "away", "后退", "拉远", "远离"),
+    "up": ("up", "rise", "rising", "ascend", "drone up", "tilt up", "上升", "向上"),
+    "down": ("down", "drop", "descend", "drone down", "tilt down", "下降", "向下"),
+    "clockwise": ("clockwise", "cw", "turn right", "rotate right", "顺时针"),
+    "counterclockwise": ("counterclockwise", "ccw", "turn left", "rotate left", "逆时针"),
+    "zoom_in": ("zoom in", "push zoom", "closer", "特写推进"),
+    "zoom_out": ("zoom out", "wide reveal", "pull wider", "拉开", "广角揭示"),
+}
+OPPOSITE_DIRECTIONS = {
+    "left": "right",
+    "right": "left",
+    "forward": "backward",
+    "backward": "forward",
+    "up": "down",
+    "down": "up",
+    "clockwise": "counterclockwise",
+    "counterclockwise": "clockwise",
+    "zoom_in": "zoom_out",
+    "zoom_out": "zoom_in",
+}
 
 
 def load_json(path: Path | None) -> Any | None:
@@ -59,6 +100,114 @@ def as_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def flatten_terms(values: Any) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    terms: list[str] = []
+    for value in values:
+        term = clean(value, 120).lower()
+        if term:
+            terms.append(term)
+    return terms
+
+
+def alias_matches(text: str, alias: str) -> bool:
+    if all(ord(char) < 128 for char in alias):
+        return re.search(rf"(?<![a-z0-9]){re.escape(alias)}(?![a-z0-9])", text) is not None
+    return alias in text
+
+
+def infer_motion_directions(terms: list[str]) -> list[str]:
+    text = " ".join(terms).lower()
+    directions: list[str] = []
+    for direction, aliases in DIRECTION_ALIASES.items():
+        if any(alias_matches(text, alias) for alias in aliases):
+            directions.append(direction)
+    return directions
+
+
+def direction_conflict(a: str, b: str) -> bool:
+    return bool(a and b and OPPOSITE_DIRECTIONS.get(a) == b)
+
+
+def choose_effect_direction(style: str, directions: list[str]) -> str:
+    if not directions:
+        return "neutral" if style not in {"whip_pan", "rotation", "speed_ramp", "push_slide"} else ""
+    if style == "rotation":
+        for direction in ("clockwise", "counterclockwise", "left", "right"):
+            if direction in directions:
+                return "clockwise" if direction in {"clockwise", "right"} else "counterclockwise"
+        return "subtle_centered_rotation"
+    if style == "whip_pan":
+        for direction in ("left", "right", "forward", "backward"):
+            if direction in directions:
+                return direction
+    if style == "speed_ramp":
+        for direction in ("forward", "backward", "zoom_in", "zoom_out", "up", "down"):
+            if direction in directions:
+                return direction
+    if style == "push_slide":
+        for direction in ("forward", "left", "right", "up", "down", "zoom_in", "zoom_out"):
+            if direction in directions:
+                return direction
+    return directions[0]
+
+
+def build_motion_direction_plan(style: str, evidence: dict[str, Any], bgm: dict[str, Any], caption: dict[str, Any]) -> dict[str, Any]:
+    motion_style = style in {"whip_pan", "rotation", "speed_ramp", "push_slide"}
+    from_terms = flatten_terms(evidence.get("fromMotionTerms"))
+    to_terms = flatten_terms(evidence.get("toMotionTerms"))
+    bridge_terms = flatten_terms(evidence.get("bridgeTerms"))
+    from_dirs = infer_motion_directions(from_terms)
+    to_dirs = infer_motion_directions(to_terms)
+    bridge_dirs = infer_motion_directions(bridge_terms)
+    shared_dirs = sorted(set(from_dirs) & set(to_dirs))
+    combined_dirs = shared_dirs or bridge_dirs or from_dirs or to_dirs
+    effect_direction = choose_effect_direction(style, combined_dirs)
+    landing_direction = shared_dirs[0] if shared_dirs else (to_dirs[0] if to_dirs else (bridge_dirs[0] if bridge_dirs else ""))
+    direction_match = not motion_style or bool(shared_dirs or bridge_dirs)
+    conflict = False
+    if from_dirs and to_dirs and not shared_dirs:
+        conflict = any(direction_conflict(a, b) for a in from_dirs for b in to_dirs)
+    confidence = 1.0
+    if motion_style:
+        if shared_dirs:
+            confidence = 0.9
+        elif bridge_dirs and (from_dirs or to_dirs):
+            confidence = 0.75
+        elif bridge_dirs:
+            confidence = 0.65
+        elif from_dirs or to_dirs:
+            confidence = 0.55
+        else:
+            confidence = 0.0
+    status = "ready_with_motion_direction_plan"
+    if motion_style and (not effect_direction or not landing_direction or not direction_match or conflict or confidence < 0.65):
+        status = "needs_motion_direction_repair"
+    return {
+        "required": motion_style,
+        "status": status,
+        "sourceMotionDirections": sorted(set(from_dirs + to_dirs)),
+        "fromMotionDirections": from_dirs,
+        "toMotionDirections": to_dirs,
+        "bridgeMotionDirections": bridge_dirs,
+        "sharedDirection": shared_dirs[0] if shared_dirs else "",
+        "effectDirection": effect_direction,
+        "landingDirection": landing_direction,
+        "directionMatch": direction_match,
+        "directionConflict": conflict,
+        "directionConfidence": round(confidence, 3),
+        "directionEvidenceTerms": {
+            "from": from_terms[:8],
+            "to": to_terms[:8],
+            "bridge": bridge_terms[:8],
+        },
+        "bgmAligned": bgm.get("target") == "cut_or_effect_on_bgm_phrase_hit" and as_float(bgm.get("hitToleranceSeconds"), 99.0) <= 0.35,
+        "captionTitleSafe": caption.get("avoidTitleCollision") is True and as_float(caption.get("quietZoneBeforeSeconds"), 0.0) >= 0.25,
+        "repairGuidance": "" if status == "ready_with_motion_direction_plan" else "Add directional source/bridge motion evidence, downgrade to match/dissolve/clean cut, or choose a bridge beat whose movement direction matches the landing shot.",
+    }
 
 
 def rows_from_execution(package_dir: Path) -> list[dict[str, Any]]:
@@ -247,6 +396,18 @@ def build_row(row: dict[str, Any], index: int) -> dict[str, Any]:
     category = clean(row.get("boundaryCategory")).lower() or "adjacent_clip_boundary"
     important = category in IMPORTANT_CATEGORIES
     motion_style = style in {"whip_pan", "rotation", "speed_ramp", "push_slide"}
+    bgm_choreography = {
+        "target": "cut_or_effect_on_bgm_phrase_hit",
+        "hitToleranceSeconds": 0.35,
+        "allowOffPhrase": False,
+    }
+    caption_policy = {
+        "quietZoneBeforeSeconds": 0.35,
+        "quietZoneAfterSeconds": 0.35,
+        "avoidTitleCollision": True,
+        "suppressSubtitlesDuringHeroTitleOrFastMotion": True,
+    }
+    motion_direction = build_motion_direction_plan(style, evidence, bgm_choreography, caption_policy)
     issues: list[str] = []
     if family == "bridge_required_before_effect":
         issues.append("important_route_boundary_missing_bridge_before_effect")
@@ -254,6 +415,8 @@ def build_row(row: dict[str, Any], index: int) -> dict[str, Any]:
         issues.append("important_boundary_lacks_middle_bridge_or_motion_beat")
     if motion_style and not (evidence.get("motionEffectAllowedByGrammar") and (bridge_supported(row, evidence) or evidence.get("hasTwoSidedMotion"))):
         issues.append("motion_transition_lacks_source_motion_or_bridge_evidence")
+    if motion_style and motion_direction.get("status") != "ready_with_motion_direction_plan":
+        issues.append("motion_transition_lacks_direction_match_plan")
     if style == "rotation" and intensity > 1:
         issues.append("rotation_intensity_too_high")
     forbidden = has_forbidden_text(row)
@@ -272,17 +435,9 @@ def build_row(row: dict[str, Any], index: int) -> dict[str, Any]:
         "sourceTransitionStyle": style,
         "intensity": intensity,
         "threeBeatChoreography": beats,
-        "bgmChoreography": {
-            "target": "cut_or_effect_on_bgm_phrase_hit",
-            "hitToleranceSeconds": 0.35,
-            "allowOffPhrase": False,
-        },
-        "captionAndTitlePolicy": {
-            "quietZoneBeforeSeconds": 0.35,
-            "quietZoneAfterSeconds": 0.35,
-            "avoidTitleCollision": True,
-            "suppressSubtitlesDuringHeroTitleOrFastMotion": True,
-        },
+        "bgmChoreography": bgm_choreography,
+        "captionAndTitlePolicy": caption_policy,
+        "motionDirectionPlan": motion_direction,
         "motionEvidence": evidence,
         "forbiddenHits": forbidden,
         "issues": issues,
@@ -313,6 +468,12 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
         input_kind = "transition_grammar_plan"
     choreography_rows = [build_row(row, index) for index, row in enumerate(rows, start=1)]
     blocked_rows = [row for row in choreography_rows if row.get("status") != "ready_with_transition_choreography"]
+    motion_rows = [row for row in choreography_rows if row.get("sourceTransitionStyle") in {"whip_pan", "rotation", "speed_ramp", "push_slide"}]
+    ready_motion_rows = [
+        row
+        for row in motion_rows
+        if isinstance(row.get("motionDirectionPlan"), dict) and row["motionDirectionPlan"].get("status") == "ready_with_motion_direction_plan"
+    ]
     families = [clean(row.get("choreographyFamily")) for row in choreography_rows]
     family_counts: dict[str, int] = {}
     for family in families:
@@ -340,7 +501,12 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "blockedChoreographyRowCount": len(blocked_rows),
             "importantBoundaryCount": sum(1 for row in choreography_rows if row.get("importantBoundary")),
             "importantRowsWithThreeBeatCount": sum(1 for row in choreography_rows if row.get("importantBoundary") and len(row.get("threeBeatChoreography") or []) >= 3),
-            "motionChoreographyRowCount": sum(1 for row in choreography_rows if row.get("sourceTransitionStyle") in {"whip_pan", "rotation", "speed_ramp", "push_slide"}),
+            "motionChoreographyRowCount": len(motion_rows),
+            "motionDirectionReadyRowCount": len(ready_motion_rows),
+            "motionDirectionBlockedRowCount": len(motion_rows) - len(ready_motion_rows),
+            "motionRowsWithEffectDirection": sum(1 for row in motion_rows if (row.get("motionDirectionPlan") or {}).get("effectDirection")),
+            "motionRowsWithLandingDirection": sum(1 for row in motion_rows if (row.get("motionDirectionPlan") or {}).get("landingDirection")),
+            "motionRowsWithDirectionMatch": sum(1 for row in motion_rows if (row.get("motionDirectionPlan") or {}).get("directionMatch") is True),
             "highIntensityRowCount": sum(1 for row in choreography_rows if as_int(row.get("intensity")) >= 3),
             "rotationRowCount": sum(1 for row in choreography_rows if row.get("sourceTransitionStyle") == "rotation"),
             "maxFamilyRun": max_run(families),
@@ -397,6 +563,15 @@ def write_markdown(path: Path, plan: dict[str, Any]) -> None:
         )
         for beat in row.get("threeBeatChoreography") or []:
             lines.append(f"- {beat.get('role')}: {beat.get('action')}")
+        direction = row.get("motionDirectionPlan") if isinstance(row.get("motionDirectionPlan"), dict) else {}
+        if direction.get("required"):
+            lines.append(
+                "- Direction: "
+                f"effect=`{direction.get('effectDirection')}` "
+                f"landing=`{direction.get('landingDirection')}` "
+                f"confidence=`{direction.get('directionConfidence')}` "
+                f"status=`{direction.get('status')}`"
+            )
         if row.get("issues"):
             lines.append(f"- Issues: `{', '.join(row.get('issues') or [])}`")
     path.parent.mkdir(parents=True, exist_ok=True)

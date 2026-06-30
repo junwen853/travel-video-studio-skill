@@ -132,6 +132,13 @@ def motion_execution_ready(motion: dict[str, Any]) -> bool:
     bgm = motion.get("bgmChoreography") if isinstance(motion.get("bgmChoreography"), dict) else {}
     caption = motion.get("captionAndTitlePolicy") if isinstance(motion.get("captionAndTitlePolicy"), dict) else {}
     safety_checks = motion.get("safetyChecks") if isinstance(motion.get("safetyChecks"), dict) else {}
+    direction = motion.get("motionDirectionPlan") if isinstance(motion.get("motionDirectionPlan"), dict) else {}
+    direction_ready = direction.get("required") is not True or (
+        direction.get("status") == "ready_with_motion_direction_plan"
+        and direction.get("directionMatch") is True
+        and bool(direction.get("effectDirection"))
+        and bool(direction.get("landingDirection"))
+    )
     return (
         motion.get("status") == "ready_with_transition_motion_execution"
         and len(motion.get("threeBeatChoreography") or []) >= 3
@@ -141,6 +148,7 @@ def motion_execution_ready(motion: dict[str, Any]) -> bool:
         and caption.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True
         and safety_checks.get("bgmOnlyNoSourceVoice") is True
         and safety_checks.get("forbidTemplateMotion") is True
+        and direction_ready
     )
 
 
@@ -148,6 +156,7 @@ def motion_execution_summary(motion: dict[str, Any]) -> dict[str, Any]:
     bgm = motion.get("bgmChoreography") if isinstance(motion.get("bgmChoreography"), dict) else {}
     caption = motion.get("captionAndTitlePolicy") if isinstance(motion.get("captionAndTitlePolicy"), dict) else {}
     keyframe = motion.get("resolveKeyframeRecipe") if isinstance(motion.get("resolveKeyframeRecipe"), dict) else {}
+    direction = motion.get("motionDirectionPlan") if isinstance(motion.get("motionDirectionPlan"), dict) else {}
     beats = motion.get("threeBeatChoreography") if isinstance(motion.get("threeBeatChoreography"), list) else []
     return {
         "status": motion.get("status"),
@@ -161,6 +170,12 @@ def motion_execution_summary(motion: dict[str, Any]) -> dict[str, Any]:
         "bgmHitTarget": bgm.get("target"),
         "bgmAllowsOffPhrase": bgm.get("allowOffPhrase"),
         "captionQuietZone": bool(caption.get("avoidTitleCollision") and caption.get("suppressSubtitlesDuringHeroTitleOrFastMotion")),
+        "motionDirectionRequired": direction.get("required") is True,
+        "motionDirectionStatus": direction.get("status"),
+        "motionDirectionEffect": direction.get("effectDirection"),
+        "motionDirectionLanding": direction.get("landingDirection"),
+        "motionDirectionMatch": direction.get("directionMatch"),
+        "motionDirectionConfidence": direction.get("directionConfidence"),
         "resolveKeyframeEffect": keyframe.get("effect"),
         "ready": motion_execution_ready(motion),
     }
@@ -513,6 +528,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "rowsWithThreeBeatMotion": sum(1 for row in audition_rows if as_int((row.get("motionExecution") or {}).get("threeBeatCount")) >= 3),
         "rowsWithBgmHitMotion": sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("bgmHitTarget") == "cut_or_effect_on_bgm_phrase_hit" and (row.get("motionExecution") or {}).get("bgmAllowsOffPhrase") is False),
         "rowsWithCaptionQuietMotion": sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("captionQuietZone") is True),
+        "rowsWithMotionDirection": sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("motionDirectionRequired") is not True or (row.get("motionExecution") or {}).get("motionDirectionStatus") == "ready_with_motion_direction_plan"),
+        "rowsWithMotionDirectionMatch": sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("motionDirectionRequired") is not True or (row.get("motionExecution") or {}).get("motionDirectionMatch") is True),
         "motionExecutionChoreographyFamilyCounts": {
             family: sum(1 for row in audition_rows if (row.get("motionExecution") or {}).get("choreographyFamily") == family)
             for family in sorted({str((row.get("motionExecution") or {}).get("choreographyFamily") or "") for row in audition_rows if (row.get("motionExecution") or {}).get("choreographyFamily")})

@@ -1,6 +1,6 @@
 # Transition Choreography Contract
 
-Run `scripts/audit_transition_choreography_contract.py` immediately after `prepare_transition_choreography_plan.py` and before preview/audition/storyboard approval, Resolve apply, final QA, maturity, or V14 baseline claims.
+Run `scripts/audit_transition_choreography_contract.py` immediately after `prepare_transition_choreography_plan.py` and before `audit_transition_motion_direction_contract.py`, preview/audition/storyboard approval, Resolve apply, final QA, maturity, or V14 baseline claims.
 
 ## Command
 
@@ -19,6 +19,7 @@ The audit passes only when:
 - BGM choreography targets a phrase hit within the allowed tolerance
 - captions and titles have a quiet zone around the transition hit
 - motion accents cite source motion, two-sided motion, or physical bridge evidence
+- motion accents carry a `motionDirectionPlan` with effect direction, landing direction, direction match, BGM alignment, and title/subtitle safety
 - rotation remains subtle and no row uses high-intensity effect language
 - family repetition and dominant-family share stay below the configured limits
 
@@ -31,7 +32,7 @@ The audit passes only when:
 
 If blocked, repair the upstream transition grammar/execution/bridge/visual-match evidence first. Do not solve a blocked choreography row by adding a stronger effect. Add bridge footage, select a better landing shot, downgrade to a clean cut/match cut, or choose a quieter dissolve that fits the BGM phrase and title zone.
 
-After repair, rerun choreography plan, choreography contract, preview packet, audition packet, storyboard, reference-transition-profile, unattended first-draft, V14 baseline, and maturity checks.
+After repair, rerun choreography plan, choreography contract, motion-direction contract, preview packet, audition packet, storyboard, reference-transition-profile, unattended first-draft, V14 baseline, and maturity checks.
 
 ## Safety
 

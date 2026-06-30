@@ -657,6 +657,8 @@ def summarize_transition_execution_blueprint(report: dict[str, Any] | None) -> d
         "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
         "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
         "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
+        "rowsWithMotionDirectionPlan": summary.get("rowsWithMotionDirectionPlan"),
+        "rowsWithMotionDirectionMatch": summary.get("rowsWithMotionDirectionMatch"),
         "motionExecutionFromChoreographyCount": summary.get("motionExecutionFromChoreographyCount"),
         "blockedMotionExecutionRowCount": summary.get("blockedMotionExecutionRowCount"),
         "choreographyFamilyCounts": summary.get("choreographyFamilyCounts"),
@@ -1478,6 +1480,8 @@ def summarize_transition_choreography_plan(report: dict[str, Any] | None) -> dic
         "importantBoundaryCount": summary.get("importantBoundaryCount"),
         "importantRowsWithThreeBeatCount": summary.get("importantRowsWithThreeBeatCount"),
         "motionChoreographyRowCount": summary.get("motionChoreographyRowCount"),
+        "motionDirectionReadyRowCount": summary.get("motionDirectionReadyRowCount"),
+        "motionDirectionBlockedRowCount": summary.get("motionDirectionBlockedRowCount"),
         "maxFamilyRun": summary.get("maxFamilyRun"),
         "dominantFamilyShare": summary.get("dominantFamilyShare"),
         "blockers": report.get("blockers") or [],
@@ -1501,6 +1505,30 @@ def summarize_transition_choreography_contract(report: dict[str, Any] | None) ->
         "highIntensityRowCount": summary.get("highIntensityRowCount"),
         "maxFamilyRun": summary.get("maxFamilyRun"),
         "dominantFamilyShare": summary.get("dominantFamilyShare"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
+def summarize_transition_motion_direction_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "motionDirectionRowCount": summary.get("motionDirectionRowCount"),
+        "readyMotionDirectionRowCount": summary.get("readyMotionDirectionRowCount"),
+        "blockedMotionDirectionRowCount": summary.get("blockedMotionDirectionRowCount"),
+        "rowsWithEffectDirection": summary.get("rowsWithEffectDirection"),
+        "rowsWithLandingDirection": summary.get("rowsWithLandingDirection"),
+        "rowsWithDirectionMatch": summary.get("rowsWithDirectionMatch"),
+        "rowsWithDirectionConfidence": summary.get("rowsWithDirectionConfidence"),
+        "importantMotionRowCount": summary.get("importantMotionRowCount"),
+        "importantMotionRowsWithBridgeSupport": summary.get("importantMotionRowsWithBridgeSupport"),
+        "effectDirectionCounts": summary.get("effectDirectionCounts"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
         "blockers": report.get("blockers") or [],
         "warnings": report.get("warnings") or [],
     }
@@ -1682,6 +1710,8 @@ def summarize_transition_audition_packet(report: dict[str, Any] | None) -> dict[
         "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
         "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
         "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
+        "rowsWithMotionDirection": summary.get("rowsWithMotionDirection"),
+        "rowsWithMotionDirectionMatch": summary.get("rowsWithMotionDirectionMatch"),
         "ffmpegAvailable": summary.get("ffmpegAvailable"),
         "builtClips": summary.get("builtClips"),
         "blockers": report.get("blockers") or [],
@@ -1707,6 +1737,8 @@ def summarize_transition_audition_quality_contract(report: dict[str, Any] | None
         "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
         "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
         "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
+        "rowsWithMotionDirection": summary.get("rowsWithMotionDirection"),
+        "rowsWithMotionDirectionMatch": summary.get("rowsWithMotionDirectionMatch"),
         "rowsWithResolveKeyframeEffect": summary.get("rowsWithResolveKeyframeEffect"),
         "warningCount": summary.get("warningCount"),
         "blockers": report.get("blockers") or [],
@@ -2472,6 +2504,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Selection blockers: {execution_blueprint.get('blockedReferenceSelectionRowCount')}",
                 f"- Motion execution applied: {execution_blueprint.get('rowsWithMotionExecution')} / {execution_blueprint.get('executionRowCount')}",
                 f"- Three-beat/BGM/title-safe rows: {execution_blueprint.get('rowsWithThreeBeatMotion')} / {execution_blueprint.get('rowsWithBgmHitMotion')} / {execution_blueprint.get('rowsWithCaptionQuietMotion')}",
+                f"- Motion direction rows: {execution_blueprint.get('rowsWithMotionDirectionPlan')} / {execution_blueprint.get('rowsWithMotionDirectionMatch')}",
                 f"- Motion blockers: {execution_blueprint.get('blockedMotionExecutionRowCount')}",
                 f"- Blocked rows: {execution_blueprint.get('blockedRowCount')}",
                 f"- Missing clip matches: {execution_blueprint.get('rowsMissingClipMatch')}",
@@ -3071,6 +3104,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_transition_choreography_contract", transition_choreography_contract_cmd, ok_codes={0, 2}))
 
+    transition_motion_direction_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_transition_motion_direction_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_transition_motion_direction_contract", transition_motion_direction_cmd, ok_codes={0, 2}))
+
     transition_preview_packet_cmd = [
         "python3",
         str(SCRIPTS_DIR / "prepare_transition_preview_packet.py"),
@@ -3323,6 +3365,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_visual_match_summary = None
     transition_choreography_plan_summary = None
     transition_choreography_contract_summary = None
+    transition_motion_direction_summary = None
     transition_preview_packet_summary = None
     transition_preview_quality_summary = None
     transition_audition_packet_summary = None
@@ -3661,6 +3704,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition choreography contract blocker: {item}" for item in transition_choreography_contract_summary.get("blockers") or [])
             if transition_choreography_contract_summary and transition_choreography_contract_summary.get("warnings"):
                 warnings.extend(f"Transition choreography contract warning: {item}" for item in transition_choreography_contract_summary.get("warnings") or [])
+        if step["id"] == "audit_transition_motion_direction_contract":
+            transition_motion_direction_summary = summarize_transition_motion_direction_contract(payload)
+            if transition_motion_direction_summary and transition_motion_direction_summary.get("status") == "blocked":
+                blockers.extend(f"Transition motion direction blocker: {item}" for item in transition_motion_direction_summary.get("blockers") or [])
+            if transition_motion_direction_summary and transition_motion_direction_summary.get("warnings"):
+                warnings.extend(f"Transition motion direction warning: {item}" for item in transition_motion_direction_summary.get("warnings") or [])
         if step["id"] == "prepare_transition_preview_packet":
             transition_preview_packet_summary = summarize_transition_preview_packet(payload)
             if transition_preview_packet_summary and str(transition_preview_packet_summary.get("status") or "").startswith("blocked"):
@@ -4033,6 +4082,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_choreography_contract_summary = summarize_transition_choreography_contract(
             load_json(package_dir / "transition_choreography_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_motion_direction_contract_audit.json").exists():
+        transition_motion_direction_summary = summarize_transition_motion_direction_contract(
+            load_json(package_dir / "transition_motion_direction_contract_audit.json")
+        )
     if package_dir and (package_dir / "transition_preview_packet" / "transition_preview_packet.json").exists():
         transition_preview_packet_summary = summarize_transition_preview_packet(
             load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json")
@@ -4202,6 +4255,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionVisualMatchSummary": transition_visual_match_summary,
         "transitionChoreographyPlanSummary": transition_choreography_plan_summary,
         "transitionChoreographyContractSummary": transition_choreography_contract_summary,
+        "transitionMotionDirectionSummary": transition_motion_direction_summary,
         "transitionPreviewPacketSummary": transition_preview_packet_summary,
         "transitionPreviewQualitySummary": transition_preview_quality_summary,
         "transitionAuditionPacketSummary": transition_audition_packet_summary,
@@ -4288,6 +4342,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review transition_effect_palette_contract_audit.json before Resolve apply so the whole film balances clean cuts, match cuts, bridges, dissolves, title reveals, and rare motivated motion instead of effect spam.",
             "Review transition_visual_match_contract_audit.json before Resolve apply so every adjacent pair has concrete visual, bridge, motion, mood, title, local, or BGM continuity evidence instead of arbitrary effects.",
             "Review transition_choreography_plan/transition_choreography_plan.md and transition_choreography_contract_audit.json before preview/storyboard so every important boundary has outgoing, bridge-or-motion, landing, BGM-hit, and caption-quiet choreography.",
+            "Review transition_motion_direction_contract_audit.json before preview/storyboard so rotation, whip, push, and speed-ramp effects match source or bridge movement direction instead of random motion.",
             "Review transition_preview_packet/transition_preview_packet.md, transition_preview_quality_contract_audit.json, transition_audition_packet/transition_audition_packet.md, transition_audition_quality_contract_audit.json, transition_audition_visual_proof_contract_audit.json, transition_audition_role_integrity_contract_audit.json, and transition_storyboard_contract_audit.json before Resolve apply so important route/title/day-change transitions have generated nonblank frame evidence plus playable muted outgoing/bridge/landing MP4 proof with distinct endpoint, middle-motion, and ordered segment-role proof.",
             "Review transition_breathing_room_contract_audit.json before Resolve apply so motion accents are rare, separated by calm boundaries, and important transitions land on stable readable footage without title/subtitle collision.",
             "Review scene_flow_arc_contract_audit.json before Resolve apply so chapters form setup, movement, lived-in texture, payoff, and aftertaste/handoff arcs instead of landmark stacks or effect-hidden jumps.",

@@ -137,6 +137,13 @@ def audit_row(row: dict[str, Any], package_dir: Path, args: argparse.Namespace) 
         issues.append("motion_execution_missing_bgm_hit_policy")
     if motion.get("captionQuietZone") is not True:
         issues.append("motion_execution_missing_caption_title_quiet_zone")
+    if motion.get("motionDirectionRequired") is True:
+        if motion.get("motionDirectionStatus") != "ready_with_motion_direction_plan":
+            issues.append("motion_execution_missing_motion_direction_plan")
+        if motion.get("motionDirectionMatch") is not True:
+            issues.append("motion_execution_direction_not_matched")
+        if not motion.get("motionDirectionEffect") or not motion.get("motionDirectionLanding"):
+            issues.append("motion_execution_missing_effect_or_landing_direction")
     if not motion.get("resolveKeyframeEffect"):
         issues.append("motion_execution_missing_resolve_keyframe_effect")
     if not clip_path:
@@ -211,6 +218,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "rowsWithThreeBeatMotion": sum(1 for row in audited if as_int((row.get("motionExecution") or {}).get("threeBeatCount")) >= 3),
         "rowsWithBgmHitMotion": sum(1 for row in audited if (row.get("motionExecution") or {}).get("bgmHitTarget") == "cut_or_effect_on_bgm_phrase_hit" and (row.get("motionExecution") or {}).get("bgmAllowsOffPhrase") is False),
         "rowsWithCaptionQuietMotion": sum(1 for row in audited if (row.get("motionExecution") or {}).get("captionQuietZone") is True),
+        "rowsWithMotionDirection": sum(1 for row in audited if (row.get("motionExecution") or {}).get("motionDirectionRequired") is not True or (row.get("motionExecution") or {}).get("motionDirectionStatus") == "ready_with_motion_direction_plan"),
+        "rowsWithMotionDirectionMatch": sum(1 for row in audited if (row.get("motionExecution") or {}).get("motionDirectionRequired") is not True or (row.get("motionExecution") or {}).get("motionDirectionMatch") is True),
         "rowsWithResolveKeyframeEffect": sum(1 for row in audited if bool((row.get("motionExecution") or {}).get("resolveKeyframeEffect"))),
         "warningCount": len(warnings),
     }

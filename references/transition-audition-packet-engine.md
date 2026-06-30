@@ -4,7 +4,7 @@ Use this engine after `prepare_transition_preview_packet.py`, `audit_transition_
 
 Static outgoing and landing frames prove a boundary is not blank, but they do not prove the cut flows. Important route, title, timeline-gap, and ending transitions need a short muted MP4 audition that can be watched locally: outgoing edge, bridge or motion beat when available, then landing edge.
 
-The audition row must carry the same `transitionMotionExecution` that was materialized into the transition execution blueprint. This keeps audition proof tied to the selected choreography family, BGM phrase hit, caption/title quiet zone, and Resolve keyframe recipe instead of becoming a generic stitched preview.
+The audition row must carry the same `transitionMotionExecution` that was materialized into the transition execution blueprint. This keeps audition proof tied to the selected choreography family, BGM phrase hit, caption/title quiet zone, motion-direction plan, and Resolve keyframe recipe instead of becoming a generic stitched preview.
 
 ## Command
 
@@ -32,7 +32,7 @@ It writes:
 
 - Status is `ready_with_transition_audition_packet` or `ready_no_important_transitions`.
 - Every important transition row has a package-local `transition_audition.mp4`.
-- Every important audition row has ready `motionExecution` with three-beat choreography, BGM-hit policy, caption/title quiet-zone policy, and a Resolve keyframe effect.
+- Every important audition row has ready `motionExecution` with three-beat choreography, BGM-hit policy, caption/title quiet-zone policy, motion-direction evidence for visible motion effects, and a Resolve keyframe effect.
 - Auditions are muted visual proof; they must not carry source-camera voice or noise.
 - The script writes only package-local review files. It does not write Resolve, queue renders, download assets, modify source footage, or modify source drives.
 

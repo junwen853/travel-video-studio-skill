@@ -61,6 +61,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_visual_match_contract.py",
         "prepare_transition_choreography_plan.py",
         "audit_transition_choreography_contract.py",
+        "audit_transition_motion_direction_contract.py",
         "prepare_transition_preview_packet.py",
         "audit_transition_preview_quality_contract.py",
         "prepare_transition_audition_packet.py",
@@ -159,6 +160,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_visual_match_contract_rule": "audit_transition_visual_match_contract.py",
     "transition_choreography_plan_rule": "prepare_transition_choreography_plan.py",
     "transition_choreography_contract_rule": "audit_transition_choreography_contract.py",
+    "transition_motion_direction_contract_rule": "audit_transition_motion_direction_contract.py",
     "transition_preview_packet_rule": "prepare_transition_preview_packet.py",
     "transition_preview_quality_contract_rule": "audit_transition_preview_quality_contract.py",
     "transition_audition_packet_rule": "prepare_transition_audition_packet.py",
@@ -260,6 +262,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_visual_match_contract_reference_rule": "transition-visual-match-contract.md",
     "transition_choreography_engine_reference_rule": "transition-choreography-engine.md",
     "transition_choreography_contract_reference_rule": "transition-choreography-contract.md",
+    "transition_motion_direction_contract_reference_rule": "transition-motion-direction-contract.md",
     "transition_preview_packet_reference_rule": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract_reference_rule": "transition-preview-quality-contract.md",
     "transition_audition_packet_reference_rule": "transition-audition-packet-engine.md",
@@ -311,6 +314,7 @@ REQUIRED_STYLE_PATTERNS = {
     "final_cut_smoothness_contract": "final-cut-smoothness-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
+    "transition_motion_direction_contract": "transition-motion-direction-contract.md",
     "transition_preview_packet_engine": "transition-preview-packet-engine.md",
     "transition_preview_quality_contract": "transition-preview-quality-contract.md",
     "transition_audition_packet_engine": "transition-audition-packet-engine.md",
@@ -3075,6 +3079,8 @@ def transition_execution_blueprint_evidence(package_dir: Path) -> dict[str, Any]
         "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
         "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
         "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
+        "rowsWithMotionDirectionPlan": summary.get("rowsWithMotionDirectionPlan"),
+        "rowsWithMotionDirectionMatch": summary.get("rowsWithMotionDirectionMatch"),
         "motionExecutionFromChoreographyCount": summary.get("motionExecutionFromChoreographyCount"),
         "motionExecutionDerivedCount": summary.get("motionExecutionDerivedCount"),
         "blockedMotionExecutionRowCount": summary.get("blockedMotionExecutionRowCount"),
@@ -3144,6 +3150,8 @@ def transition_execution_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("rowsWithThreeBeatMotion") or 0) == row_count
         and int(evidence.get("rowsWithBgmHitMotion") or 0) == row_count
         and int(evidence.get("rowsWithCaptionQuietMotion") or 0) == row_count
+        and int(evidence.get("rowsWithMotionDirectionPlan") or 0) == row_count
+        and int(evidence.get("rowsWithMotionDirectionMatch") or 0) == row_count
         and int(evidence.get("motionExecutionFromChoreographyCount") or 0) == row_count
         and int(evidence.get("motionExecutionDerivedCount") or 0) == 0
         and int(evidence.get("blockedMotionExecutionRowCount") or 0) == 0
@@ -5696,6 +5704,67 @@ def transition_choreography_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_motion_direction_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_motion_direction_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "motionDirectionRowCount": summary.get("motionDirectionRowCount"),
+        "readyMotionDirectionRowCount": summary.get("readyMotionDirectionRowCount"),
+        "blockedMotionDirectionRowCount": summary.get("blockedMotionDirectionRowCount"),
+        "rowsWithEffectDirection": summary.get("rowsWithEffectDirection"),
+        "rowsWithLandingDirection": summary.get("rowsWithLandingDirection"),
+        "rowsWithDirectionMatch": summary.get("rowsWithDirectionMatch"),
+        "rowsWithDirectionConfidence": summary.get("rowsWithDirectionConfidence"),
+        "bgmAlignedMotionRowCount": summary.get("bgmAlignedMotionRowCount"),
+        "titleSafeMotionRowCount": summary.get("titleSafeMotionRowCount"),
+        "importantMotionRowCount": summary.get("importantMotionRowCount"),
+        "importantMotionRowsWithBridgeSupport": summary.get("importantMotionRowsWithBridgeSupport"),
+        "rotationRowCount": summary.get("rotationRowCount"),
+        "speedRampRowCount": summary.get("speedRampRowCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_motion_direction_contract_ready(evidence: dict[str, Any]) -> bool:
+    motion_rows = int(evidence.get("motionDirectionRowCount") or 0)
+    important_motion = int(evidence.get("importantMotionRowCount") or 0)
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("transitionRowCount") or 0) >= 1
+        and int(evidence.get("blockedMotionDirectionRowCount") or 0) == 0
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and int(evidence.get("readyMotionDirectionRowCount") or 0) == motion_rows
+        and int(evidence.get("rowsWithEffectDirection") or 0) >= motion_rows
+        and int(evidence.get("rowsWithLandingDirection") or 0) >= motion_rows
+        and int(evidence.get("rowsWithDirectionMatch") or 0) >= motion_rows
+        and int(evidence.get("rowsWithDirectionConfidence") or 0) >= motion_rows
+        and int(evidence.get("bgmAlignedMotionRowCount") or 0) >= motion_rows
+        and int(evidence.get("titleSafeMotionRowCount") or 0) >= motion_rows
+        and (important_motion == 0 or int(evidence.get("importantMotionRowsWithBridgeSupport") or 0) >= important_motion)
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_breathing_room_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_breathing_room_contract_audit.json"
     data = load_json(path) or {}
@@ -6076,6 +6145,8 @@ def transition_audition_packet_evidence(package_dir: Path) -> dict[str, Any]:
         "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
         "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
         "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
+        "rowsWithMotionDirection": summary.get("rowsWithMotionDirection"),
+        "rowsWithMotionDirectionMatch": summary.get("rowsWithMotionDirectionMatch"),
         "ffmpegAvailable": summary.get("ffmpegAvailable"),
         "builtClips": summary.get("builtClips"),
         "blockerCount": len(data.get("blockers") or []),
@@ -6100,6 +6171,8 @@ def transition_audition_packet_ready(evidence: dict[str, Any]) -> bool:
         and (important_rows == 0 or int(evidence.get("rowsWithThreeBeatMotion") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithBgmHitMotion") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithCaptionQuietMotion") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithMotionDirection") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithMotionDirectionMatch") or 0) >= important_rows)
         and int(evidence.get("blockerCount") or 0) == 0
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False
@@ -6129,6 +6202,8 @@ def transition_audition_quality_contract_evidence(package_dir: Path) -> dict[str
         "rowsWithThreeBeatMotion": summary.get("rowsWithThreeBeatMotion"),
         "rowsWithBgmHitMotion": summary.get("rowsWithBgmHitMotion"),
         "rowsWithCaptionQuietMotion": summary.get("rowsWithCaptionQuietMotion"),
+        "rowsWithMotionDirection": summary.get("rowsWithMotionDirection"),
+        "rowsWithMotionDirectionMatch": summary.get("rowsWithMotionDirectionMatch"),
         "rowsWithResolveKeyframeEffect": summary.get("rowsWithResolveKeyframeEffect"),
         "warningCount": summary.get("warningCount"),
         "blockerCount": len(data.get("blockers") or []),
@@ -6154,6 +6229,8 @@ def transition_audition_quality_contract_ready(evidence: dict[str, Any]) -> bool
         and (important_rows == 0 or int(evidence.get("rowsWithThreeBeatMotion") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithBgmHitMotion") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithCaptionQuietMotion") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithMotionDirection") or 0) >= important_rows)
+        and (important_rows == 0 or int(evidence.get("rowsWithMotionDirectionMatch") or 0) >= important_rows)
         and (important_rows == 0 or int(evidence.get("rowsWithResolveKeyframeEffect") or 0) >= important_rows)
         and int(evidence.get("probeReadyClipCount") or 0) >= clip_count
         and int(evidence.get("noAudioClipCount") or 0) >= clip_count
@@ -7202,6 +7279,23 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         transition_choreography_plan_ready(transition_choreography_plan)
         and transition_choreography_contract_ready(transition_choreography_contract),
         {"transitionChoreographyPlan": transition_choreography_plan, "transitionChoreographyContract": transition_choreography_contract},
+    )
+    transition_motion_direction_evidence = transition_motion_direction_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition motion direction contract proves rotation, whip, push, and speed-ramp effects match source or bridge movement direction instead of random motion",
+        transition_choreography_plan_ready(transition_choreography_plan)
+        and transition_choreography_contract_ready(transition_choreography_contract)
+        and transition_visual_match_contract_ready(transition_visual_match_evidence)
+        and transition_effect_palette_contract_ready(transition_effect_palette_evidence)
+        and transition_motion_direction_contract_ready(transition_motion_direction_evidence),
+        {
+            "transitionChoreographyPlan": transition_choreography_plan,
+            "transitionChoreographyContract": transition_choreography_contract,
+            "transitionVisualMatch": transition_visual_match_evidence,
+            "transitionEffectPalette": transition_effect_palette_evidence,
+            "transitionMotionDirection": transition_motion_direction_evidence,
+        },
     )
     transition_preview_packet = transition_preview_packet_evidence(package_dir)
     add_check(

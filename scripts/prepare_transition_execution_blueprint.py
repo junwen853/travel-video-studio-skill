@@ -352,6 +352,7 @@ def motion_execution_payload(
         beats = choreography_row.get("threeBeatChoreography") if isinstance(choreography_row.get("threeBeatChoreography"), list) else []
         bgm = choreography_row.get("bgmChoreography") if isinstance(choreography_row.get("bgmChoreography"), dict) else {}
         caption = choreography_row.get("captionAndTitlePolicy") if isinstance(choreography_row.get("captionAndTitlePolicy"), dict) else {}
+        direction = choreography_row.get("motionDirectionPlan") if isinstance(choreography_row.get("motionDirectionPlan"), dict) else {}
         source = "transition_choreography_plan"
         status = str(choreography_row.get("status") or "")
     else:
@@ -366,6 +367,14 @@ def motion_execution_payload(
             "avoidTitleCollision": True,
             "suppressSubtitlesDuringHeroTitleOrFastMotion": True,
         }
+        direction = {
+            "required": style in {"whip_pan", "rotation", "speed_ramp", "push_slide"},
+            "status": "needs_motion_direction_repair" if style in {"whip_pan", "rotation", "speed_ramp", "push_slide"} else "ready_with_motion_direction_plan",
+            "effectDirection": "",
+            "landingDirection": "",
+            "directionMatch": style not in {"whip_pan", "rotation", "speed_ramp", "push_slide"},
+            "directionConfidence": 0.0,
+        }
         source = "derived_from_reference_selection"
         status = "ready_with_derived_transition_motion_execution"
     return {
@@ -377,6 +386,7 @@ def motion_execution_payload(
         "threeBeatChoreography": beats,
         "bgmChoreography": bgm,
         "captionAndTitlePolicy": caption,
+        "motionDirectionPlan": direction,
         "resolveKeyframeRecipe": resolve_keyframe_recipe(family, style, intensity, duration_frames),
         "safetyChecks": {
             "requiresBgmHit": True,
@@ -385,6 +395,7 @@ def motion_execution_payload(
             "bgmOnlyNoSourceVoice": True,
             "forbidTemplateMotion": True,
             "rotationSubtleOnly": style != "rotation" or intensity <= 1,
+            "directionMatched": direction.get("directionMatch") is True,
         },
     }
 
@@ -574,6 +585,8 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
     rows_with_three_beat_motion = 0
     rows_with_bgm_hit_motion = 0
     rows_with_caption_quiet_motion = 0
+    rows_with_motion_direction_plan = 0
+    rows_with_motion_direction_match = 0
     motion_execution_from_choreography = 0
     motion_execution_derived = 0
     blocked_motion_execution_rows = 0
@@ -621,6 +634,11 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
         caption_policy = motion_execution.get("captionAndTitlePolicy") if isinstance(motion_execution.get("captionAndTitlePolicy"), dict) else {}
         if caption_policy.get("avoidTitleCollision") is True and caption_policy.get("suppressSubtitlesDuringHeroTitleOrFastMotion") is True:
             rows_with_caption_quiet_motion += 1
+        direction_plan = motion_execution.get("motionDirectionPlan") if isinstance(motion_execution.get("motionDirectionPlan"), dict) else {}
+        if direction_plan:
+            rows_with_motion_direction_plan += 1
+        if direction_plan.get("required") is not True or direction_plan.get("directionMatch") is True:
+            rows_with_motion_direction_match += 1
         if motion_execution.get("source") == "transition_choreography_plan":
             motion_execution_from_choreography += 1
         if motion_execution.get("source") == "derived_from_reference_selection":
@@ -680,6 +698,10 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
                 "choreographyFamily": motion_execution.get("choreographyFamily"),
                 "choreographyIntensity": motion_execution.get("intensity"),
                 "threeBeatChoreographyCount": len(motion_execution.get("threeBeatChoreography") or []),
+                "motionDirectionPlanStatus": direction_plan.get("status"),
+                "motionDirectionEffect": direction_plan.get("effectDirection"),
+                "motionDirectionLanding": direction_plan.get("landingDirection"),
+                "motionDirectionMatched": direction_plan.get("directionMatch"),
                 "bgmHitChoreographyReady": bgm_choreography.get("target") == "cut_or_effect_on_bgm_phrase_hit"
                 and bgm_choreography.get("allowOffPhrase") is False,
                 "captionQuietZoneReady": caption_policy.get("avoidTitleCollision") is True
@@ -786,6 +808,8 @@ def build_candidate(package_dir: Path, *, fps: float, update_blueprint: bool) ->
             "rowsWithThreeBeatMotion": rows_with_three_beat_motion,
             "rowsWithBgmHitMotion": rows_with_bgm_hit_motion,
             "rowsWithCaptionQuietMotion": rows_with_caption_quiet_motion,
+            "rowsWithMotionDirectionPlan": rows_with_motion_direction_plan,
+            "rowsWithMotionDirectionMatch": rows_with_motion_direction_match,
             "motionExecutionFromChoreographyCount": motion_execution_from_choreography,
             "motionExecutionDerivedCount": motion_execution_derived,
             "blockedMotionExecutionRowCount": blocked_motion_execution_rows,

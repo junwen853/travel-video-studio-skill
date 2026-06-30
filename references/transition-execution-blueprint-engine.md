@@ -4,13 +4,13 @@ Use this reference after `transition-execution-engine.md` when transition recipe
 
 ## Purpose
 
-`prepare_transition_execution_blueprint.py` materializes transition execution rows, transition reference selections, and transition choreography into blueprint-level candidate transition objects. It prevents "Cross Dissolve here", "rotation match cut here", "candidate A/B/C selected", or "add a cool rotation" from remaining a prose instruction with no timeline evidence.
+`prepare_transition_execution_blueprint.py` materializes transition execution rows, transition reference selections, transition choreography, and motion-direction plans into blueprint-level candidate transition objects. It prevents "Cross Dissolve here", "rotation match cut here", "candidate A/B/C selected", or "add a cool rotation" from remaining a prose instruction with no timeline evidence.
 
 The default behavior is non-destructive:
 
 - reads `transition_execution_plan/transition_execution_plan.json`
 - reads `transition_reference_selection/transition_reference_selection.json`
-- reads `transition_choreography_plan/transition_choreography_plan.json`
+- reads `transition_choreography_plan/transition_choreography_plan.json`, including `motionDirectionPlan`
 - uses `bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json` as the base when it is ready, otherwise `resolve_timeline_blueprint.json`
 - writes `transition_execution_blueprint/resolve_timeline_blueprint_transition_execution.json`
 - writes `transition_execution_blueprint/transition_execution_blueprint_report.json` and `.md`
@@ -39,7 +39,7 @@ The script adds:
 
 Each candidate transition records the approved transition type, Resolve effect name, duration frames, selected candidate rank/type/family/intensity, selected Resolve recipe, selected preview hint, keyframe plan, BGM cue, subtitle policy, audio policy, bridge requirement, motion evidence, `transitionMotionExecution`, and decision/readback fields.
 
-`transitionMotionExecution` must carry the choreography family, source transition style, restrained intensity, outgoing/bridge-or-motion/landing three-beat choreography, BGM phrase-hit target, caption/title quiet-zone policy, Resolve keyframe recipe, and safety checks for BGM-only/no-source-voice, title safety, and no template motion.
+`transitionMotionExecution` must carry the choreography family, source transition style, restrained intensity, outgoing/bridge-or-motion/landing three-beat choreography, BGM phrase-hit target, caption/title quiet-zone policy, `motionDirectionPlan`, Resolve keyframe recipe, and safety checks for BGM-only/no-source-voice, title safety, direction match, and no template motion.
 
 ## Required Follow-Up
 

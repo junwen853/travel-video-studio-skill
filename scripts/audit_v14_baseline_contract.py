@@ -62,6 +62,7 @@ SKILL_PATTERNS = {
     "transition_visual_match": "audit_transition_visual_match_contract.py",
     "transition_choreography_plan": "prepare_transition_choreography_plan.py",
     "transition_choreography_contract": "audit_transition_choreography_contract.py",
+    "transition_motion_direction": "audit_transition_motion_direction_contract.py",
     "transition_preview_packet": "prepare_transition_preview_packet.py",
     "transition_preview_quality": "audit_transition_preview_quality_contract.py",
     "transition_audition_packet": "prepare_transition_audition_packet.py",
@@ -152,6 +153,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_visual_match_contract.py",
     "prepare_transition_choreography_plan.py",
     "audit_transition_choreography_contract.py",
+    "audit_transition_motion_direction_contract.py",
     "prepare_transition_preview_packet.py",
     "audit_transition_preview_quality_contract.py",
     "prepare_transition_audition_packet.py",
@@ -315,6 +317,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_visual_match = load_json(package_dir / "transition_visual_match_contract_audit.json") or {}
     transition_choreography_plan = load_json(package_dir / "transition_choreography_plan" / "transition_choreography_plan.json") or {}
     transition_choreography_contract = load_json(package_dir / "transition_choreography_contract_audit.json") or {}
+    transition_motion_direction = load_json(package_dir / "transition_motion_direction_contract_audit.json") or {}
     transition_preview_packet = load_json(package_dir / "transition_preview_packet" / "transition_preview_packet.json") or {}
     transition_preview_quality = load_json(package_dir / "transition_preview_quality_contract_audit.json") or {}
     transition_audition_packet = load_json(package_dir / "transition_audition_packet" / "transition_audition_packet.json") or {}
@@ -991,6 +994,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(transition_execution_blueprint_summary.get("rowsWithThreeBeatMotion") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("rowsWithBgmHitMotion") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("rowsWithCaptionQuietMotion") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithMotionDirectionPlan") or 0) == transition_execution_blueprint_rows
+        and int(transition_execution_blueprint_summary.get("rowsWithMotionDirectionMatch") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("motionExecutionFromChoreographyCount") or 0) == transition_execution_blueprint_rows
         and int(transition_execution_blueprint_summary.get("motionExecutionDerivedCount") or 0) == 0
         and int(transition_execution_blueprint_summary.get("blockedMotionExecutionRowCount") or 0) == 0
@@ -1686,6 +1691,33 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionChoreographyContractSummary": transition_choreography_contract_summary,
         },
     )
+    transition_motion_direction_summary = get_summary(transition_motion_direction)
+    motion_direction_rows = int(transition_motion_direction_summary.get("motionDirectionRowCount") or 0)
+    important_motion_rows = int(transition_motion_direction_summary.get("importantMotionRowCount") or 0)
+    add_check(
+        checks,
+        "Transition motion direction contract proves V14 motion accents have source/bridge/landing direction match instead of random rotation, whip, push, or speed-ramp effects",
+        transition_motion_direction.get("status") == "passed"
+        and int(transition_motion_direction_summary.get("transitionRowCount") or 0) >= 1
+        and int(transition_motion_direction_summary.get("readyMotionDirectionRowCount") or 0) == motion_direction_rows
+        and int(transition_motion_direction_summary.get("blockedMotionDirectionRowCount") or 0) == 0
+        and int(transition_motion_direction_summary.get("rowsWithEffectDirection") or 0) >= motion_direction_rows
+        and int(transition_motion_direction_summary.get("rowsWithLandingDirection") or 0) >= motion_direction_rows
+        and int(transition_motion_direction_summary.get("rowsWithDirectionMatch") or 0) >= motion_direction_rows
+        and int(transition_motion_direction_summary.get("rowsWithDirectionConfidence") or 0) >= motion_direction_rows
+        and int(transition_motion_direction_summary.get("bgmAlignedMotionRowCount") or 0) >= motion_direction_rows
+        and int(transition_motion_direction_summary.get("titleSafeMotionRowCount") or 0) >= motion_direction_rows
+        and (
+            important_motion_rows == 0
+            or int(transition_motion_direction_summary.get("importantMotionRowsWithBridgeSupport") or 0) >= important_motion_rows
+        )
+        and int(transition_motion_direction_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_motion_direction.get("blockers"),
+        {
+            "transitionMotionDirectionStatus": transition_motion_direction.get("status"),
+            "transitionMotionDirectionSummary": transition_motion_direction_summary,
+        },
+    )
     transition_preview_summary = get_summary(transition_preview_packet)
     transition_preview_quality_summary = get_summary(transition_preview_quality)
     transition_audition_summary = get_summary(transition_audition_packet)
@@ -1749,6 +1781,14 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         )
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithMotionDirection") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_summary.get("rowsWithMotionDirectionMatch") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("auditionQualityReadyRowCount") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
         )
         and (
@@ -1766,6 +1806,14 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("rowsWithCaptionQuietMotion") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithMotionDirection") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
+        )
+        and (
+            int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
+            or int(transition_audition_quality_summary.get("rowsWithMotionDirectionMatch") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
         )
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
