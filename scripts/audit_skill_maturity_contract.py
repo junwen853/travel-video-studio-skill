@@ -79,6 +79,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_breathing_room_contract.py",
         "audit_scene_flow_arc_contract.py",
         "audit_final_cut_smoothness_contract.py",
+        "audit_transition_continuity_rehearsal_contract.py",
         "audit_timeline_variety_contract.py",
         "prepare_unattended_repair_queue.py",
         "audit_unattended_first_draft_contract.py",
@@ -181,6 +182,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_breathing_room_contract_rule": "audit_transition_breathing_room_contract.py",
     "scene_flow_arc_contract_rule": "audit_scene_flow_arc_contract.py",
     "final_cut_smoothness_contract_rule": "audit_final_cut_smoothness_contract.py",
+    "transition_continuity_rehearsal_contract_rule": "audit_transition_continuity_rehearsal_contract.py",
     "unattended_repair_queue_rule": "prepare_unattended_repair_queue.py",
     "reference_profile_application_contract_rule": "audit_reference_profile_application_contract.py",
     "reference_transition_profile_contract_rule": "audit_reference_transition_profile_contract.py",
@@ -242,6 +244,7 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_breathing_room_contract_reference_rule": "transition-breathing-room-contract.md",
     "scene_flow_arc_contract_reference_rule": "scene-flow-arc-contract.md",
     "final_cut_smoothness_contract_reference_rule": "final-cut-smoothness-contract.md",
+    "transition_continuity_rehearsal_contract_reference_rule": "transition-continuity-rehearsal-contract.md",
     "footage_select_engine_rule": "footage-select-engine.md",
     "source_selection_repair_reference_rule": "source-selection-repair-contract.md",
     "first_assembly_source_order_contract_reference_rule": "first-assembly-source-order-contract.md",
@@ -321,6 +324,7 @@ REQUIRED_STYLE_PATTERNS = {
     "transition_breathing_room_contract": "transition-breathing-room-contract.md",
     "scene_flow_arc_contract": "scene-flow-arc-contract.md",
     "final_cut_smoothness_contract": "final-cut-smoothness-contract.md",
+    "transition_continuity_rehearsal_contract": "transition-continuity-rehearsal-contract.md",
     "transition_choreography_engine": "transition-choreography-engine.md",
     "transition_choreography_contract": "transition-choreography-contract.md",
     "transition_motion_direction_contract": "transition-motion-direction-contract.md",
@@ -379,6 +383,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_breathing_room_contract": "transition breathing-room contract",
     "scene_flow_arc_contract": "scene flow arc contract",
     "final_cut_smoothness_contract": "final cut smoothness contract",
+    "transition_continuity_rehearsal_contract": "transition continuity rehearsal contract",
     "transition_preview_packet": "transition preview packet",
     "transition_preview_quality_contract": "transition preview quality contract",
     "transition_audition_packet": "transition audition packet",
@@ -6312,6 +6317,104 @@ def final_cut_smoothness_contract_ready(evidence: dict[str, Any]) -> bool:
     )
 
 
+def transition_continuity_rehearsal_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_continuity_rehearsal_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    reports = data.get("reports") if isinstance(data.get("reports"), dict) else {}
+    def report_status(key: str) -> Any:
+        row = reports.get(key)
+        return row.get("status") if isinstance(row, dict) else None
+
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "transitionRowCount": summary.get("transitionRowCount"),
+        "rehearsalReadyRowCount": summary.get("rehearsalReadyRowCount"),
+        "blockedRehearsalRowCount": summary.get("blockedRehearsalRowCount"),
+        "adjacentPairCount": summary.get("adjacentPairCount"),
+        "rehearsalReadyPairCount": summary.get("rehearsalReadyPairCount"),
+        "blockedAdjacentPairCount": summary.get("blockedAdjacentPairCount"),
+        "rowsWithMotionStyle": summary.get("rowsWithMotionStyle"),
+        "adjacentMotionPairCount": summary.get("adjacentMotionPairCount"),
+        "backToBackImportantPairCount": summary.get("backToBackImportantPairCount"),
+        "landingToNextOutgoingAnchorReadyPairCount": summary.get("landingToNextOutgoingAnchorReadyPairCount"),
+        "purposeRunMax": summary.get("purposeRunMax"),
+        "highImpactPurposeRunViolationCount": summary.get("highImpactPurposeRunViolationCount"),
+        "storyboardReadyRowCount": summary.get("storyboardReadyRowCount"),
+        "readySensoryContinuityRowCount": summary.get("readySensoryContinuityRowCount"),
+        "motionSpacingViolationCount": summary.get("motionSpacingViolationCount"),
+        "decorativeRepeatedRunMax": summary.get("decorativeRepeatedRunMax"),
+        "sceneFlowBlockedCheckCount": summary.get("sceneFlowBlockedCheckCount"),
+        "finalCutBlockedCheckCount": summary.get("finalCutBlockedCheckCount"),
+        "blockedCheckCount": summary.get("blockedCheckCount"),
+        "transitionStoryboardStatus": report_status("transitionStoryboard"),
+        "transitionSensoryContinuityStatus": report_status("transitionSensoryContinuity"),
+        "transitionAuditionQualityStatus": report_status("transitionAuditionQuality"),
+        "transitionAuditionVisualProofStatus": report_status("transitionAuditionVisualProof"),
+        "transitionAuditionRoleIntegrityStatus": report_status("transitionAuditionRoleIntegrity"),
+        "transitionBreathingRoomStatus": report_status("transitionBreathingRoom"),
+        "transitionEffectPaletteStatus": report_status("transitionEffectPalette"),
+        "transitionCadenceStatus": report_status("transitionCadence"),
+        "referenceTransitionProfileStatus": report_status("referenceTransitionProfile"),
+        "sceneFlowArcStatus": report_status("sceneFlowArc"),
+        "finalCutSmoothnessStatus": report_status("finalCutSmoothness"),
+        "blockerCount": len(data.get("blockers") or []),
+        "blockers": data.get("blockers") or [],
+        "warnings": data.get("warnings") or [],
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_continuity_rehearsal_contract_ready(evidence: dict[str, Any]) -> bool:
+    rows = int(evidence.get("transitionRowCount") or 0)
+    pairs = int(evidence.get("adjacentPairCount") or 0)
+    upstream_keys = (
+        "transitionStoryboardStatus",
+        "transitionSensoryContinuityStatus",
+        "transitionAuditionQualityStatus",
+        "transitionAuditionVisualProofStatus",
+        "transitionAuditionRoleIntegrityStatus",
+        "transitionBreathingRoomStatus",
+        "transitionEffectPaletteStatus",
+        "transitionCadenceStatus",
+        "referenceTransitionProfileStatus",
+        "sceneFlowArcStatus",
+        "finalCutSmoothnessStatus",
+    )
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and rows >= 1
+        and int(evidence.get("rehearsalReadyRowCount") or 0) == rows
+        and int(evidence.get("blockedRehearsalRowCount") or 0) == 0
+        and int(evidence.get("rehearsalReadyPairCount") or 0) == pairs
+        and int(evidence.get("blockedAdjacentPairCount") or 0) == 0
+        and int(evidence.get("landingToNextOutgoingAnchorReadyPairCount") or 0) == pairs
+        and int(evidence.get("adjacentMotionPairCount") or 0) == 0
+        and int(evidence.get("backToBackImportantPairCount") or 0) == 0
+        and int(evidence.get("highImpactPurposeRunViolationCount") or 0) == 0
+        and int(evidence.get("motionSpacingViolationCount") or 0) == 0
+        and int(evidence.get("sceneFlowBlockedCheckCount") or 0) == 0
+        and int(evidence.get("finalCutBlockedCheckCount") or 0) == 0
+        and int(evidence.get("blockedCheckCount") or 0) == 0
+        and int(evidence.get("blockerCount") or 0) == 0
+        and all(evidence.get(key) == "passed" for key in upstream_keys)
+        and not evidence.get("blockers")
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
 def transition_storyboard_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_storyboard_contract_audit.json"
     data = load_json(path) or {}
@@ -7798,6 +7901,23 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Final cut smoothness contract proves adjacent shots land cleanly instead of rough hard joins or effect-hidden jumps",
         final_cut_smoothness_contract_ready(final_cut_smoothness_evidence),
         final_cut_smoothness_evidence,
+    )
+    transition_continuity_rehearsal_evidence = transition_continuity_rehearsal_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition continuity rehearsal contract proves approved transition rows connect as one watchable sequence",
+        transition_storyboard_contract_ready(transition_storyboard_evidence)
+        and transition_breathing_room_contract_ready(transition_breathing_room_evidence)
+        and scene_flow_arc_contract_ready(scene_flow_arc_evidence)
+        and final_cut_smoothness_contract_ready(final_cut_smoothness_evidence)
+        and transition_continuity_rehearsal_contract_ready(transition_continuity_rehearsal_evidence),
+        {
+            "transitionStoryboard": transition_storyboard_evidence,
+            "transitionBreathingRoom": transition_breathing_room_evidence,
+            "sceneFlowArc": scene_flow_arc_evidence,
+            "finalCutSmoothness": final_cut_smoothness_evidence,
+            "transitionContinuityRehearsal": transition_continuity_rehearsal_evidence,
+        },
     )
     timeline_variety_evidence = timeline_variety_contract_evidence(package_dir)
     add_check(

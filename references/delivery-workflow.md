@@ -34,6 +34,7 @@ Expected files:
 - `shot_flow_continuity_contract_audit.json` / `.md`: no-write audit proving each chapter's final clip order progresses through movement, texture, payoff, and aftertaste/handoff instead of random jumps hidden by effects
 - `scene_flow_arc_contract_audit.json` / `.md`: no-write audit proving chapters and chapter handoffs form setup, movement, lived-in texture, payoff, and aftertaste arcs instead of landmark stacks or effect-hidden jumps
 - `final_cut_smoothness_contract_audit.json` / `.md`: no-write audit proving the final candidate's adjacent shots have bridge, match, breathing, stable landing, and rare motion-effect proof instead of rough hard joins
+- `transition_continuity_rehearsal_contract_audit.json` / `.md`: no-write audit proving approved transition storyboard rows connect as one continuous watchable sequence, with landing-to-next-outgoing continuity and no stacked motion/BGM handoff accents without stable buffer
 - `long_form_structure.md`: 20-minute chapter and pacing structure
 - `voiceover_script.txt`: approved or draft narration
 - `narration_text_only_v4.txt`: required when the user rejects rendered voiceover audio
@@ -79,6 +80,7 @@ Expected files:
 - `transition_audition_role_integrity_contract_audit.json` / `.md`: segment-role gate proving the watchable audition MP4 was actually assembled from ordered outgoing, bridge/motion, and landing segments
 - `transition_storyboard_contract_audit.json` / `.md`: storyboard gate proving important day/place/title/timeline/ending transitions have viewer purpose, outgoing shot, bridge-or-motion beat, landing shot, preview/frame evidence, and transition audition evidence
 - `transition_breathing_room_contract_audit.json` / `.md`: no-write gate proving important and motion transitions land on stable readable footage, motion accents are rare/separated, and title/subtitle zones are not hit by fast effects
+- `transition_continuity_rehearsal_contract_audit.json` / `.md`: whole-transition-chain rehearsal gate proving the landing shot of each approved boundary carries into the next boundary's outgoing shot, motion styles do not stack, and important route/title/time jumps get scene breath
 - `final_source_usage_contract_audit.json` / `.md`: active/final-blueprint gate proving final raw clips actually match footage-select hero/main/texture choices and do not reintroduce unmatched, repair, reject, or utility-dominant source material
 - `transition_quality_contract_audit.json` / `.md`: final transition quality gate proving visual-boundary coverage, BGM-hit timing, title/subtitle avoidance, motion evidence, and no repeated/template effects
 - `shot_transition_boundary_contract_audit.json` / `.md`: shot-to-shot boundary gate proving each adjacent from/to pair maps to transition metadata with BGM-hit, title-safe, BGM-only, and motion-evidence checks

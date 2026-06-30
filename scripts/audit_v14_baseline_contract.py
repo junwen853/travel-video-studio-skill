@@ -83,6 +83,7 @@ SKILL_PATTERNS = {
     "transition_breathing_room_contract": "audit_transition_breathing_room_contract.py",
     "scene_flow_arc_contract": "audit_scene_flow_arc_contract.py",
     "final_cut_smoothness_contract": "audit_final_cut_smoothness_contract.py",
+    "transition_continuity_rehearsal_contract": "audit_transition_continuity_rehearsal_contract.py",
     "timeline_variety_contract": "audit_timeline_variety_contract.py",
     "unattended_repair_queue": "prepare_unattended_repair_queue.py",
     "unattended_first_draft_contract": "audit_unattended_first_draft_contract.py",
@@ -177,6 +178,7 @@ REQUIRED_SCRIPTS = [
     "audit_transition_breathing_room_contract.py",
     "audit_scene_flow_arc_contract.py",
     "audit_final_cut_smoothness_contract.py",
+    "audit_transition_continuity_rehearsal_contract.py",
     "audit_timeline_variety_contract.py",
     "prepare_unattended_repair_queue.py",
     "audit_unattended_first_draft_contract.py",
@@ -287,6 +289,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
+    transition_continuity_rehearsal = load_json(package_dir / "transition_continuity_rehearsal_contract_audit.json") or {}
     footage_select = load_json(package_dir / "footage_select_plan" / "footage_select_plan.json") or {}
     raw_intake = load_json(package_dir / "raw_intake_completeness_audit.json") or {}
     source_selection_repair = load_json(package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json") or {}
@@ -2126,6 +2129,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     transition_breathing_room_summary = get_summary(transition_breathing_room)
     scene_flow_arc_summary = get_summary(scene_flow_arc)
     final_cut_smoothness_summary = get_summary(final_cut_smoothness)
+    transition_continuity_rehearsal_summary = get_summary(transition_continuity_rehearsal)
     add_check(
         checks,
         "Transition breathing-room contract proves V14 transitions land on stable footage and do not become motion-effect spam",
@@ -2202,6 +2206,26 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "finalCutSmoothnessStatus": final_cut_smoothness.get("status"),
             "finalCutSmoothnessSummary": final_cut_smoothness_summary,
             "blockers": final_cut_smoothness.get("blockers"),
+        },
+    )
+    add_check(
+        checks,
+        "Transition continuity rehearsal contract proves approved transition rows connect as one watchable sequence",
+        transition_continuity_rehearsal.get("status") == "passed"
+        and int(transition_continuity_rehearsal_summary.get("transitionRowCount") or 0) >= 1
+        and int(transition_continuity_rehearsal_summary.get("rehearsalReadyRowCount") or 0) == int(transition_continuity_rehearsal_summary.get("transitionRowCount") or 0)
+        and int(transition_continuity_rehearsal_summary.get("rehearsalReadyPairCount") or 0) == int(transition_continuity_rehearsal_summary.get("adjacentPairCount") or 0)
+        and int(transition_continuity_rehearsal_summary.get("blockedRehearsalRowCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("blockedAdjacentPairCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("adjacentMotionPairCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("backToBackImportantPairCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("highImpactPurposeRunViolationCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("blockedCheckCount") or 0) == 0
+        and not transition_continuity_rehearsal.get("blockers"),
+        {
+            "transitionContinuityRehearsalStatus": transition_continuity_rehearsal.get("status"),
+            "transitionContinuityRehearsalSummary": transition_continuity_rehearsal_summary,
+            "blockers": transition_continuity_rehearsal.get("blockers"),
         },
     )
     reference_transition_profile_summary = get_summary(reference_transition_profile)
@@ -2399,6 +2423,11 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and transition_audition_quality.get("status") == "passed"
         and transition_audition_visual_proof.get("status") == "passed"
         and transition_audition_role_integrity.get("status") == "passed"
+        and transition_continuity_rehearsal.get("status") == "passed"
+        and int(transition_continuity_rehearsal_summary.get("blockedRehearsalRowCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("blockedAdjacentPairCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("adjacentMotionPairCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("backToBackImportantPairCount") or 0) == 0
         and (
             int(transition_storyboard_summary.get("importantBoundaryCount") or 0) == 0
             or int(transition_audition_quality_summary.get("rowsWithMotionExecution") or 0) >= int(transition_storyboard_summary.get("importantBoundaryCount") or 0)
@@ -2514,6 +2543,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "transitionAuditionRoleIntegritySummary": transition_audition_role_integrity_summary,
             "transitionStoryboardStatus": transition_storyboard.get("status"),
             "transitionStoryboardSummary": transition_storyboard_summary,
+            "transitionContinuityRehearsalStatus": transition_continuity_rehearsal.get("status"),
+            "transitionContinuityRehearsalSummary": transition_continuity_rehearsal_summary,
             "referenceSceneGrammarStatus": reference_scene_grammar.get("status"),
             "referenceSceneGrammarSummary": reference_scene_grammar_summary,
             "unattendedFirstDraftStatus": unattended_first_draft.get("status"),

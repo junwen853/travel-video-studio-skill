@@ -565,6 +565,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
     shot_flow_continuity = load_json(package_dir / "shot_flow_continuity_contract_audit.json") or {}
     transition_breathing_room = load_json(package_dir / "transition_breathing_room_contract_audit.json") or {}
+    transition_continuity_rehearsal = load_json(package_dir / "transition_continuity_rehearsal_contract_audit.json") or {}
     scene_flow_arc = load_json(package_dir / "scene_flow_arc_contract_audit.json") or {}
     final_cut_smoothness = load_json(package_dir / "final_cut_smoothness_contract_audit.json") or {}
     tq_summary = summary_of(transition_quality)
@@ -606,6 +607,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
     css_summary = summary_of(chapter_story_spine)
     sfc_summary = summary_of(shot_flow_continuity)
     tbr_summary = summary_of(transition_breathing_room)
+    tcr_summary = summary_of(transition_continuity_rehearsal)
     sfa_summary = summary_of(scene_flow_arc)
     fcs_summary = summary_of(final_cut_smoothness)
     add_gate(
@@ -681,6 +683,7 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and transition_audition_role_integrity.get("status") == "passed"
         and transition_storyboard.get("status") == "passed"
         and reference_transition_profile.get("status") == "passed"
+        and transition_continuity_rehearsal.get("status") == "passed"
         and as_int(tq_summary.get("blockedRowCount")) == 0
         and as_int(sb_summary.get("blockedBoundaryCount")) == 0
         and as_int(tm_summary.get("blockedBoundaryCount")) == 0
@@ -822,6 +825,13 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             as_int(tsc_summary.get("importantBoundaryCount")) == 0
             or as_int(tsc_summary.get("importantRowsWithRouteOrMoodContinuity")) >= as_int(tsc_summary.get("importantBoundaryCount"))
         )
+        and as_int(tcr_summary.get("blockedRehearsalRowCount")) == 0
+        and as_int(tcr_summary.get("blockedAdjacentPairCount")) == 0
+        and as_int(tcr_summary.get("rehearsalReadyRowCount")) >= as_int(tcr_summary.get("transitionRowCount"))
+        and as_int(tcr_summary.get("rehearsalReadyPairCount")) >= as_int(tcr_summary.get("adjacentPairCount"))
+        and as_int(tcr_summary.get("adjacentMotionPairCount")) == 0
+        and as_int(tcr_summary.get("backToBackImportantPairCount")) == 0
+        and as_int(tcr_summary.get("highImpactPurposeRunViolationCount")) == 0
         and (
             as_int(tsb_summary.get("importantBoundaryCount")) == 0
             or as_int(tap_summary.get("readyAuditionRowCount")) >= as_int(tsb_summary.get("importantBoundaryCount"))
@@ -1079,6 +1089,8 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "transitionStoryboardSummary": tsb_summary,
             "referenceTransitionProfileStatus": reference_transition_profile.get("status"),
             "referenceTransitionProfileSummary": rtp_summary,
+            "transitionContinuityRehearsalStatus": transition_continuity_rehearsal.get("status"),
+            "transitionContinuityRehearsalSummary": tcr_summary,
             "sceneFlowArcStatus": scene_flow_arc.get("status"),
             "sceneFlowArcSummary": sfa_summary,
             "finalCutSmoothnessStatus": final_cut_smoothness.get("status"),
@@ -1153,6 +1165,27 @@ def build_report(package_dir: Path) -> dict[str, Any]:
             "status": transition_breathing_room.get("status"),
             "summary": tbr_summary,
             "blockers": transition_breathing_room.get("blockers") or [],
+        },
+    )
+
+    add_gate(
+        gates,
+        "Transition continuity rehearsal proves approved storyboard rows connect as a watchable sequence",
+        transition_continuity_rehearsal.get("status") == "passed"
+        and as_int(tcr_summary.get("transitionRowCount")) >= 1
+        and as_int(tcr_summary.get("rehearsalReadyRowCount")) == as_int(tcr_summary.get("transitionRowCount"))
+        and as_int(tcr_summary.get("rehearsalReadyPairCount")) == as_int(tcr_summary.get("adjacentPairCount"))
+        and as_int(tcr_summary.get("blockedRehearsalRowCount")) == 0
+        and as_int(tcr_summary.get("blockedAdjacentPairCount")) == 0
+        and as_int(tcr_summary.get("adjacentMotionPairCount")) == 0
+        and as_int(tcr_summary.get("backToBackImportantPairCount")) == 0
+        and as_int(tcr_summary.get("highImpactPurposeRunViolationCount")) == 0
+        and as_int(tcr_summary.get("blockedCheckCount")) == 0
+        and not transition_continuity_rehearsal.get("blockers"),
+        {
+            "status": transition_continuity_rehearsal.get("status"),
+            "summary": tcr_summary,
+            "blockers": transition_continuity_rehearsal.get("blockers") or [],
         },
     )
 
