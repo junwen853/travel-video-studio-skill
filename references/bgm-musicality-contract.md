@@ -17,6 +17,7 @@ The audit writes:
 
 - sine tones, hums, buzzes, silence, placeholders, and procedural test beds that can pass simple audibility checks
 - BGM manifests without named, traceable music rows
+- BGM selection packages without positive audition evidence, provider/music identity, explicit non-procedural/non-tone decisions, Content-ID check, or opening/body/transition/ending fit notes
 - selected beds without opening/body/transition/ending phrase coverage
 - one-band audio, flat dynamics, clipped audio, or mostly silent beds
 - transitions that are not tied to BGM phrase cues when a phrase blueprint exists
@@ -24,10 +25,11 @@ The audit writes:
 ## Repair Order
 
 1. Replace hum/tone/procedural beds with a real local music track or a built bed from traceable local tracks.
-2. Rebuild the full-duration A3 bed with `build_bgm_bed.py` when multiple source tracks need crossfades.
-3. Rerun `prepare_bgm_selection_package.py`, then `prepare_bgm_phrase_blueprint.py`.
-4. Rerun `audit_bgm_audio_contract.py` and this musicality audit before Resolve apply or final QA.
-5. If this audit passes with warnings, do a human listen pass before claiming reference/Malta-quality delivery.
+2. Fill the BGM selection decision with provider, music identity type, positive audition result, audition notes, structure notes, opening/body/transition/ending fit notes, explicit `isProceduralGenerated=false`, explicit `isPlaceholderTone=false`, and Content-ID risk check.
+3. Rebuild the full-duration A3 bed with `build_bgm_bed.py` when multiple source tracks need crossfades.
+4. Rerun `prepare_bgm_selection_package.py`, then `prepare_bgm_phrase_blueprint.py`.
+5. Rerun `audit_bgm_audio_contract.py` and this musicality audit before Resolve apply or final QA.
+6. If this audit passes with warnings, do a human listen pass before claiming reference/Malta-quality delivery.
 
 ## Safety
 

@@ -316,6 +316,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     feedback = load_json(package_dir / "feedback_regression_audit" / "feedback_regression_audit.json") or {}
     audio_policy = load_json(package_dir / "audio_scene_policy_plan" / "audio_scene_policy_plan.json") or {}
     bgm = load_json(package_dir / "bgm_audio_contract_audit.json") or {}
+    bgm_selection = load_json(package_dir / "bgm_selection_package" / "bgm_selection_package.json") or {}
     bgm_musicality = load_json(package_dir / "bgm_musicality_contract_audit.json") or {}
     caption = load_json(package_dir / "caption_story_plan" / "caption_story_plan.json") or {}
     blueprint = load_json(package_dir / "resolve_timeline_blueprint.json") or {}
@@ -739,6 +740,29 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "a2Items": track_count(track_summary, "audio", 2),
             "a3Items": track_count(track_summary, "audio", 3),
             "textOnlyNarrationExportExists": (package_dir / "caption_story_plan" / "text_only_narration_export.txt").exists(),
+        },
+    )
+    bgm_selection_summary = get_summary(bgm_selection)
+    bgm_selection_policy = bgm_selection.get("policy") if isinstance(bgm_selection.get("policy"), dict) else {}
+    add_check(
+        checks,
+        "BGM selection package proves the final bed was auditioned as real music before musicality QA",
+        bgm_selection.get("status") == "ready_with_materialized_bgm_selection_package"
+        and int(bgm_selection_summary.get("selectionQualityReadyBedCount") or 0) >= 1
+        and int(bgm_selection_summary.get("selectedQualityIssueCount") or 0) == 0
+        and int(bgm_selection_summary.get("candidateRowsWithAuditionEvidence") or 0) >= 1
+        and int(bgm_selection_summary.get("candidateRowsWithExplicitNonProceduralDecision") or 0) >= 1
+        and int(bgm_selection_summary.get("readyMusicalSourceTrackCount") or 0) >= 1
+        and bgm_selection_policy.get("requiresHumanAuditionDecisionBeforeFinalBed") is True
+        and bgm_selection_policy.get("requiresRealMusicIdentityBeforeFinalBed") is True
+        and bgm_selection_policy.get("rejectsProceduralToneOrHumBeforeSelection") is True
+        and bgm_selection_policy.get("requiresSectionFitBeforeFinalBed") is True
+        and bgm_selection_policy.get("requiresContentIdRiskCheckBeforeFinalBed") is True
+        and not bgm_selection.get("blockers"),
+        {
+            "bgmSelectionStatus": bgm_selection.get("status"),
+            "bgmSelectionSummary": bgm_selection_summary,
+            "blockers": bgm_selection.get("blockers") or [],
         },
     )
     bgm_musicality_summary = get_summary(bgm_musicality)

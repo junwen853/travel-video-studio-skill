@@ -43,7 +43,7 @@ Then run:
 python3 <skill-dir>/scripts/prepare_bgm_selection_package.py --package-dir <package>
 ```
 
-This package proves the selected music can actually ship: the final BGM bed must be local, license-traceable, long enough for the film, referenced by the active Resolve blueprint, and rebuildable from local source tracks through `build_bgm_bed.py`. A provider search URL or license homepage is not enough; the package must expose exact candidate rows, decision fields, track manifest, build command, and next BGM/audio contract audit.
+This package proves the selected music can actually ship: the final BGM bed must be local, license-traceable, long enough for the film, referenced by the active Resolve blueprint, explicitly auditioned as real music, marked non-procedural and non-tone, Content-ID checked, section-fit approved for opening/body/transitions/ending, and rebuildable from local source tracks through `build_bgm_bed.py`. A provider search URL or license homepage is not enough; the package must expose exact candidate rows, decision fields, track manifest, build command, and next BGM/audio plus musicality contract audits.
 
 Record the BGM phrase blueprint as a required later step. After transition and effect candidate blueprints exist, read `bgm-phrase-blueprint-engine.md` and run:
 
@@ -53,7 +53,7 @@ python3 <skill-dir>/scripts/prepare_bgm_phrase_blueprint.py --package-dir <packa
 
 This blueprint step turns the selected bed into section/phrase/transition-cue metadata. A BGM complaint is not closed until opening/body/transition/ending windows, clip annotations, timeline markers, and per-transition BGM cue rows exist in a non-destructive candidate blueprint.
 
-After phrase rows exist, read `bgm-musicality-contract.md` and run `audit_bgm_musicality_contract.py`. A BGM complaint is still open if the selected bed is a sine tone, hum, buzz, silence, placeholder, one-band audio, flat dynamics, unnamed/untraceable music, or missing opening/body/transition/ending phrase coverage.
+After phrase rows exist, read `bgm-musicality-contract.md` and run `audit_bgm_musicality_contract.py`. A BGM complaint is still open if the selection package lacks a positive audition decision, provider/music identity, non-procedural/non-tone flags, section-fit notes, or Content-ID check, or if the selected bed is a sine tone, hum, buzz, silence, placeholder, one-band audio, flat dynamics, unnamed/untraceable music, or missing opening/body/transition/ending phrase coverage.
 
 Then run:
 

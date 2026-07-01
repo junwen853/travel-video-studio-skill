@@ -1130,6 +1130,17 @@ def bgm_selection_package_evidence(package_dir: Path) -> dict[str, Any]:
         "approvedLicenseUrl",
         "approvedLocalPath",
         "durationSeconds",
+        "provider",
+        "musicIdentityType",
+        "auditionResult",
+        "auditionedBy",
+        "auditionedAt",
+        "auditionNotes",
+        "approvedMoodMatch",
+        "musicalStructureNotes",
+        "openingBodyTransitionEndingFit",
+        "isProceduralGenerated",
+        "isPlaceholderTone",
         "loopOrCrossfadePlan",
         "attributionRequired",
         "attributionText",
@@ -1147,6 +1158,7 @@ def bgm_selection_package_evidence(package_dir: Path) -> dict[str, Any]:
             candidates_with_decision_fields += 1
     build_command = commands.get("buildBgmBed") if isinstance(commands.get("buildBgmBed"), list) else []
     next_audit = commands.get("nextAudit") if isinstance(commands.get("nextAudit"), list) else []
+    next_musicality_audit = commands.get("nextMusicalityAudit") if isinstance(commands.get("nextMusicalityAudit"), list) else []
     track_manifest = Path(str(summary.get("trackManifestForBuildBed") or ""))
     return {
         "path": str(path),
@@ -1156,7 +1168,12 @@ def bgm_selection_package_evidence(package_dir: Path) -> dict[str, Any]:
         "candidateCount": summary.get("candidateCount"),
         "materializedBedCount": summary.get("materializedBedCount"),
         "verifiedMaterializedBedCount": summary.get("verifiedMaterializedBedCount"),
+        "selectionQualityReadyBedCount": summary.get("selectionQualityReadyBedCount"),
+        "selectedQualityIssueCount": summary.get("selectedQualityIssueCount"),
+        "candidateRowsWithAuditionEvidence": summary.get("candidateRowsWithAuditionEvidence"),
+        "candidateRowsWithExplicitNonProceduralDecision": summary.get("candidateRowsWithExplicitNonProceduralDecision"),
         "readySourceTrackCount": summary.get("readySourceTrackCount"),
+        "readyMusicalSourceTrackCount": summary.get("readyMusicalSourceTrackCount"),
         "blueprintBgmAssetCount": summary.get("blueprintBgmAssetCount"),
         "bgmCueCount": summary.get("bgmCueCount"),
         "sectionPlanCount": summary.get("sectionPlanCount"),
@@ -1170,6 +1187,7 @@ def bgm_selection_package_evidence(package_dir: Path) -> dict[str, Any]:
         "candidatesWithDecisionFields": candidates_with_decision_fields,
         "buildCommandUsesBuildBgmBed": any("build_bgm_bed.py" in str(item) for item in build_command),
         "nextAuditUsesBgmContract": any("audit_bgm_audio_contract.py" in str(item) for item in next_audit),
+        "nextMusicalityAuditUsesContract": any("audit_bgm_musicality_contract.py" in str(item) for item in next_musicality_audit),
         "downloadsExternalAssets": policy.get("downloadsExternalAssets"),
         "writesResolve": policy.get("writesResolve"),
         "queuesRender": policy.get("queuesRender"),
@@ -1177,6 +1195,11 @@ def bgm_selection_package_evidence(package_dir: Path) -> dict[str, Any]:
         "requiresExactTrackUrlBeforeDownload": policy.get("requiresExactTrackUrlBeforeDownload"),
         "requiresLicenseUrlBeforeUse": policy.get("requiresLicenseUrlBeforeUse"),
         "requiresLocalPathBeforeBuild": policy.get("requiresLocalPathBeforeBuild"),
+        "requiresHumanAuditionDecisionBeforeFinalBed": policy.get("requiresHumanAuditionDecisionBeforeFinalBed"),
+        "requiresRealMusicIdentityBeforeFinalBed": policy.get("requiresRealMusicIdentityBeforeFinalBed"),
+        "rejectsProceduralToneOrHumBeforeSelection": policy.get("rejectsProceduralToneOrHumBeforeSelection"),
+        "requiresSectionFitBeforeFinalBed": policy.get("requiresSectionFitBeforeFinalBed"),
+        "requiresContentIdRiskCheckBeforeFinalBed": policy.get("requiresContentIdRiskCheckBeforeFinalBed"),
         "requiresAudibleBgmAuditAfterRender": policy.get("requiresAudibleBgmAuditAfterRender"),
         "blockers": data.get("blockers") or [],
     }
@@ -1190,7 +1213,12 @@ def bgm_selection_package_ready(evidence: dict[str, Any]) -> bool:
         and candidates >= 1
         and int(evidence.get("materializedBedCount") or 0) >= 1
         and int(evidence.get("verifiedMaterializedBedCount") or 0) >= 1
+        and int(evidence.get("selectionQualityReadyBedCount") or 0) >= 1
+        and int(evidence.get("selectedQualityIssueCount") or 0) == 0
+        and int(evidence.get("candidateRowsWithAuditionEvidence") or 0) >= 1
+        and int(evidence.get("candidateRowsWithExplicitNonProceduralDecision") or 0) >= 1
         and int(evidence.get("readySourceTrackCount") or 0) >= 1
+        and int(evidence.get("readyMusicalSourceTrackCount") or 0) >= 1
         and int(evidence.get("blueprintBgmAssetCount") or 0) >= 1
         and int(evidence.get("bgmCueCount") or 0) >= 1
         and int(evidence.get("sectionPlanCount") or 0) >= 4
@@ -1203,6 +1231,7 @@ def bgm_selection_package_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("candidatesWithDecisionFields") or 0) == candidates
         and evidence.get("buildCommandUsesBuildBgmBed") is True
         and evidence.get("nextAuditUsesBgmContract") is True
+        and evidence.get("nextMusicalityAuditUsesContract") is True
         and evidence.get("downloadsExternalAssets") is False
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False
@@ -1210,6 +1239,11 @@ def bgm_selection_package_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("requiresExactTrackUrlBeforeDownload") is True
         and evidence.get("requiresLicenseUrlBeforeUse") is True
         and evidence.get("requiresLocalPathBeforeBuild") is True
+        and evidence.get("requiresHumanAuditionDecisionBeforeFinalBed") is True
+        and evidence.get("requiresRealMusicIdentityBeforeFinalBed") is True
+        and evidence.get("rejectsProceduralToneOrHumBeforeSelection") is True
+        and evidence.get("requiresSectionFitBeforeFinalBed") is True
+        and evidence.get("requiresContentIdRiskCheckBeforeFinalBed") is True
         and evidence.get("requiresAudibleBgmAuditAfterRender") is True
         and not evidence.get("blockers")
     )
