@@ -39,6 +39,7 @@ Each inserted beat records:
 - title-zone policy
 - candidate score
 - source-diversity proof so one clip is not reused for most bridge beats
+- source-handle proof so the real source window covers the planned beat duration
 
 ## Required Follow-Up
 
@@ -66,6 +67,7 @@ Pass:
 - inserted beat clip count is greater than zero
 - every bridge sequence row has decision fields
 - route bridge rows use at least three distinct source clips when enough beats exist, and no 3+ beat sequence repeats the same source on adjacent beats
+- every inserted bridge beat has enough real source duration for its timeline duration
 - inserted clips are video-only and on the declared overlay track
 - no Resolve writes, render queues, downloads, or source-footage modifications occur
 
@@ -73,6 +75,7 @@ Reject:
 
 - the report adds no clips to the candidate blueprint
 - required beats cannot resolve to local source clips
+- a selected bridge clip is shorter than the intended beat and would require freeze, stretch, or loop filler
 - a 2-5 shot bridge repeats the same source across most beats or repeats one source on adjacent beats
 - inserted bridge clips carry source-camera audio into BGM-only transition windows
 - the active blueprint is changed without explicit `--update-blueprint`

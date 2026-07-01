@@ -992,6 +992,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(bridge_sequence_blueprint_summary.get("sourceDiversityIssueRowCount") or 0) == 0
         and int(bridge_sequence_blueprint_summary.get("adjacentRepeatedSourceRowCount") or 0) == 0
         and int(bridge_sequence_blueprint_summary.get("actualUniqueSourceTotal") or 0) >= int(bridge_sequence_blueprint_summary.get("minimumUniqueSourceTotal") or 0)
+        and int(bridge_sequence_blueprint_summary.get("rowsWithSourceHandle") or 0) == bridge_sequence_blueprint_rows
+        and int(bridge_sequence_blueprint_summary.get("sourceHandleIssueRowCount") or 0) == 0
+        and int(bridge_sequence_blueprint_summary.get("shortSourceCandidateCount") or 0) == 0
+        and int(bridge_sequence_blueprint_summary.get("shortSourceWindowBeatCount") or 0) == 0
         and candidate_path.exists()
         and isinstance(candidate_blueprint.get("bridgeSequenceBlueprintPlan"), dict)
         and all(clip.get("includeSourceAudio") is False for clip in bridge_insert_clips),
@@ -1023,6 +1027,9 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(bridge_sequence_application_summary.get("appliedBeatClipCount") or 0) >= bridge_sequence_application_expected
         and int(bridge_sequence_application_summary.get("missingBeatClipCount") or 0) == 0
         and int(bridge_sequence_application_summary.get("sourceAudioLeakClipCount") or 0) == 0
+        and int(bridge_sequence_application_summary.get("rowsWithSourceHandle") or 0) == bridge_sequence_application_rows
+        and int(bridge_sequence_application_summary.get("sourceHandleIssueRowCount") or 0) == 0
+        and int(bridge_sequence_application_summary.get("shortSourceWindowBeatCount") or 0) == 0
         and int(bridge_sequence_application_summary.get("rowsWithSourceDiversity") or 0) == bridge_sequence_application_rows
         and int(bridge_sequence_application_summary.get("sourceDiversityIssueRowCount") or 0) == 0
         and int(bridge_sequence_application_summary.get("adjacentRepeatedSourceRowCount") or 0) == 0
@@ -2860,6 +2867,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(bridge_sequence_blueprint_summary.get("sourceDiversityIssueRowCount") or 0) == 0
         and int(bridge_sequence_blueprint_summary.get("adjacentRepeatedSourceRowCount") or 0) == 0
         and int(bridge_sequence_blueprint_summary.get("actualUniqueSourceTotal") or 0) >= int(bridge_sequence_blueprint_summary.get("minimumUniqueSourceTotal") or 0)
+        and int(bridge_sequence_blueprint_summary.get("rowsWithSourceHandle") or 0) == int(bridge_sequence_blueprint_summary.get("sequenceRowCount") or 0)
+        and int(bridge_sequence_blueprint_summary.get("sourceHandleIssueRowCount") or 0) == 0
+        and int(bridge_sequence_blueprint_summary.get("shortSourceCandidateCount") or 0) == 0
+        and int(bridge_sequence_blueprint_summary.get("shortSourceWindowBeatCount") or 0) == 0
         and effect_motion_blueprint.get("status") == "ready_with_effect_motion_blueprint"
         and bgm_phrase_blueprint.get("status") == "ready_with_bgm_phrase_blueprint"
         and rhythm_recut_blueprint.get("status") in {"ready_with_rhythm_recut_blueprint", "ready_no_recut_needed"}

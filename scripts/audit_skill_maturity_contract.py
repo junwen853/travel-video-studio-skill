@@ -4463,6 +4463,10 @@ def bridge_sequence_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
         "adjacentRepeatedSourceRowCount": summary.get("adjacentRepeatedSourceRowCount"),
         "minimumUniqueSourceTotal": summary.get("minimumUniqueSourceTotal"),
         "actualUniqueSourceTotal": summary.get("actualUniqueSourceTotal"),
+        "rowsWithSourceHandle": summary.get("rowsWithSourceHandle"),
+        "sourceHandleIssueRowCount": summary.get("sourceHandleIssueRowCount"),
+        "shortSourceCandidateCount": summary.get("shortSourceCandidateCount"),
+        "shortSourceWindowBeatCount": summary.get("shortSourceWindowBeatCount"),
         "overlayTrackIndex": overlay_track,
         "candidateClipCount": summary.get("candidateClipCount"),
         "sourceClipCount": summary.get("sourceClipCount"),
@@ -4507,6 +4511,10 @@ def bridge_sequence_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("sourceDiversityIssueRowCount") or 0) == 0
         and int(evidence.get("adjacentRepeatedSourceRowCount") or 0) == 0
         and int(evidence.get("actualUniqueSourceTotal") or 0) >= int(evidence.get("minimumUniqueSourceTotal") or 0)
+        and int(evidence.get("rowsWithSourceHandle") or 0) == row_count
+        and int(evidence.get("sourceHandleIssueRowCount") or 0) == 0
+        and int(evidence.get("shortSourceCandidateCount") or 0) == 0
+        and int(evidence.get("shortSourceWindowBeatCount") or 0) == 0
         and int(evidence.get("overlayTrackIndex") or 0) >= 2
         and evidence.get("insertClipsVideoOnly") is True
         and evidence.get("insertClipsOnOverlayTrack") is True
@@ -4548,6 +4556,9 @@ def bridge_sequence_application_contract_evidence(package_dir: Path) -> dict[str
         "missingBeatClipCount": summary.get("missingBeatClipCount"),
         "finalBridgeInsertClipCount": summary.get("finalBridgeInsertClipCount"),
         "sourceAudioLeakClipCount": summary.get("sourceAudioLeakClipCount"),
+        "rowsWithSourceHandle": summary.get("rowsWithSourceHandle"),
+        "sourceHandleIssueRowCount": summary.get("sourceHandleIssueRowCount"),
+        "shortSourceWindowBeatCount": summary.get("shortSourceWindowBeatCount"),
         "rowsWithSourceDiversity": summary.get("rowsWithSourceDiversity"),
         "sourceDiversityIssueRowCount": summary.get("sourceDiversityIssueRowCount"),
         "adjacentRepeatedSourceRowCount": summary.get("adjacentRepeatedSourceRowCount"),
@@ -4582,6 +4593,9 @@ def bridge_sequence_application_contract_ready(evidence: dict[str, Any]) -> bool
         and int(evidence.get("missingBeatClipCount") or 0) == 0
         and int(evidence.get("finalBridgeInsertClipCount") or 0) >= expected_count
         and int(evidence.get("sourceAudioLeakClipCount") or 0) == 0
+        and int(evidence.get("rowsWithSourceHandle") or 0) == required_count
+        and int(evidence.get("sourceHandleIssueRowCount") or 0) == 0
+        and int(evidence.get("shortSourceWindowBeatCount") or 0) == 0
         and int(evidence.get("rowsWithSourceDiversity") or 0) == required_count
         and int(evidence.get("sourceDiversityIssueRowCount") or 0) == 0
         and int(evidence.get("adjacentRepeatedSourceRowCount") or 0) == 0

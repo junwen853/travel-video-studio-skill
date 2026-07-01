@@ -98,6 +98,28 @@ def timeline_end(clip: dict[str, Any]) -> float:
     return start + duration
 
 
+def clip_duration(clip: dict[str, Any]) -> float:
+    return max(0.0, timeline_end(clip) - timeline_start(clip))
+
+
+def source_start(clip: dict[str, Any]) -> float:
+    return float(as_float(clip.get("sourceStartSeconds"), 0.0) or 0.0)
+
+
+def source_end(clip: dict[str, Any]) -> float:
+    explicit = as_float(clip.get("sourceEndSeconds"))
+    if explicit is not None and explicit > source_start(clip):
+        return explicit
+    source_duration = float(as_float(clip.get("sourceDurationSeconds"), 0.0) or 0.0)
+    if source_duration > 0:
+        return source_start(clip) + source_duration
+    return source_start(clip)
+
+
+def source_window_duration(clip: dict[str, Any]) -> float:
+    return max(0.0, source_end(clip) - source_start(clip))
+
+
 def safety() -> dict[str, bool]:
     return {
         "writesResolve": False,
@@ -224,6 +246,7 @@ def row_audit(row: dict[str, Any], clips: list[dict[str, Any]], materialized: di
     unique_source_count = len({item for item in source_sequence if item})
     minimum_unique_source_count = min_unique_sources_for_row(row, len(expected))
     adjacent_repeats = adjacent_repeat_count(source_sequence)
+    short_window_count = sum(1 for clip in matched if source_window_duration(clip) + 0.001 < clip_duration(clip))
     issues: list[str] = []
     if not matched:
         issues.append("planned_bridge_sequence_row_missing_from_final_candidate")
@@ -233,6 +256,11 @@ def row_audit(row: dict[str, Any], clips: list[dict[str, Any]], materialized: di
         issues.append("final_candidate_missing_required_bridge_beat_functions")
     if leaks:
         issues.append("bridge_sequence_insert_has_source_audio_enabled")
+    if short_window_count:
+        issues.append("bridge_sequence_insert_source_window_shorter_than_timeline_duration")
+    source_handle_issues: list[str] = []
+    if short_window_count:
+        source_handle_issues.append("bridge_sequence_insert_source_window_shorter_than_timeline_duration")
     if len(matched) >= len(expected) and unique_source_count < minimum_unique_source_count:
         issues.append("bridge_sequence_uses_too_few_distinct_sources")
     if len(expected) >= 3 and adjacent_repeats > 0:
@@ -245,6 +273,9 @@ def row_audit(row: dict[str, Any], clips: list[dict[str, Any]], materialized: di
             issues.append("bridge_sequence_blueprint_materialized_too_few_beats")
         if mat and mat.get("sourceDiversityStatus") != "passed":
             issues.append("bridge_sequence_blueprint_source_diversity_not_passed")
+        if mat and mat.get("sourceHandleStatus") != "passed":
+            issues.append("bridge_sequence_blueprint_source_handle_not_passed")
+            source_handle_issues.append("bridge_sequence_blueprint_source_handle_not_passed")
     return {
         "rowIndex": row_index,
         "status": "passed" if not issues else "blocked",
@@ -256,6 +287,9 @@ def row_audit(row: dict[str, Any], clips: list[dict[str, Any]], materialized: di
         "appliedBeatFunctions": matched_functions,
         "missingBeatFunctions": missing_functions,
         "sourceAudioLeakCount": len(leaks),
+        "shortSourceWindowBeatCount": short_window_count,
+        "sourceHandleStatus": "passed" if not source_handle_issues else "blocked",
+        "sourceHandleIssues": source_handle_issues,
         "uniqueSourceCount": unique_source_count,
         "minimumUniqueSourceCount": minimum_unique_source_count,
         "adjacentRepeatedSourceCount": adjacent_repeats,
@@ -309,6 +343,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     blockers = [f"bridge sequence row {row.get('rowIndex')}: {', '.join(row.get('issues') or [])}" for row in blocked[:80]]
     diversity_issue_rows = [row for row in audited if row.get("sourceDiversityStatus") != "passed"]
     adjacent_repeat_rows = [row for row in audited if as_int(row.get("adjacentRepeatedSourceCount")) > 0]
+    handle_issue_rows = [row for row in audited if row.get("sourceHandleStatus") != "passed"]
     warnings: list[str] = []
     if plan.get("status") != "ready_with_bridge_sequence_plan":
         blockers.append(f"bridge_sequence_plan status is not ready: {plan.get('status')}")
@@ -356,6 +391,9 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "missingBeatClipCount": max(0, expected_total - applied_total),
             "finalBridgeInsertClipCount": len(inserts),
             "sourceAudioLeakClipCount": len(leaks),
+            "rowsWithSourceHandle": sum(1 for row in audited if row.get("sourceHandleStatus") == "passed"),
+            "sourceHandleIssueRowCount": len(handle_issue_rows),
+            "shortSourceWindowBeatCount": sum(as_int(row.get("shortSourceWindowBeatCount")) for row in audited),
             "rowsWithSourceDiversity": sum(1 for row in audited if row.get("sourceDiversityStatus") == "passed"),
             "sourceDiversityIssueRowCount": len(diversity_issue_rows),
             "adjacentRepeatedSourceRowCount": len(adjacent_repeat_rows),
@@ -401,6 +439,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Expected beats: {row.get('expectedBeatCount')} `{', '.join(row.get('expectedBeatFunctions') or [])}`",
                 f"- Applied beats: {row.get('appliedBeatClipCount')} `{', '.join(row.get('appliedBeatFunctions') or [])}`",
                 f"- Source audio leaks: {row.get('sourceAudioLeakCount')}",
+                f"- Source handles: `{row.get('sourceHandleStatus')}` short windows `{row.get('shortSourceWindowBeatCount')}`",
                 f"- Source diversity: `{row.get('sourceDiversityStatus')}` {row.get('uniqueSourceCount')}/{row.get('minimumUniqueSourceCount')} unique, adjacent repeats `{row.get('adjacentRepeatedSourceCount')}`",
                 f"- Sources: `{', '.join(row.get('sourceNames') or [])}`",
                 f"- Issues: `{', '.join(row.get('issues') or [])}`",
