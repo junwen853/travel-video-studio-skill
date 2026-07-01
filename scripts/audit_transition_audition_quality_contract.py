@@ -256,6 +256,12 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         blockers.append("missing transition_audition_packet/transition_audition_packet.json")
     if packet.get("status") not in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}:
         blockers.append(f"transition audition packet status is {packet.get('status')}")
+    if packet_summary.get("buildClips") is not True:
+        blockers.append("transition audition packet summary.buildClips is not true; rerun prepare_transition_audition_packet.py --build-clips")
+    if packet_summary.get("builtClips") is not True:
+        blockers.append("transition audition packet summary.builtClips is not true; rerun prepare_transition_audition_packet.py --build-clips")
+    if packet_inputs.get("buildClips") is not True:
+        blockers.append("transition audition packet inputs.buildClips is not true; rerun prepare_transition_audition_packet.py --build-clips")
     if args.require_no_audio:
         if packet_summary.get("auditionsAreMuted") is not True:
             blockers.append("transition audition packet summary.auditionsAreMuted is not true; rerun prepare_transition_audition_packet.py --build-clips")
@@ -273,6 +279,9 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "transitionAuditionPacketStatus": packet.get("status"),
         "packetAuditionsAreMuted": packet_summary.get("auditionsAreMuted"),
         "packetSourceAudioStripped": packet_summary.get("sourceAudioStripped"),
+        "packetSummaryBuildClips": packet_summary.get("buildClips"),
+        "packetSummaryBuiltClips": packet_summary.get("builtClips"),
+        "packetInputBuildClips": packet_inputs.get("buildClips"),
         "packetInputAuditionsAreMuted": packet_inputs.get("auditionsAreMuted"),
         "packetPolicyAuditionsAreMuted": packet_policy.get("auditionsAreMuted"),
         "packetPolicySourceAudioStrippedWithFfmpegAn": packet_policy.get("sourceAudioStrippedWithFfmpegAn"),

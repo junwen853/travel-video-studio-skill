@@ -1,6 +1,6 @@
 # Transition Preview Packet Engine
 
-Use this engine after transition grammar, visual-match, choreography, motion-direction, cutpoint, action-anchor, sensory-continuity, scene-arc, effect-palette, microstructure, pair-continuity, execution-readiness, transition-polish, bridge-application, and final-blueprint-lineage checks exist, and before `audit_transition_preview_quality_contract.py`, `prepare_transition_audition_packet.py`, `audit_transition_audition_quality_contract.py`, and `audit_transition_storyboard_contract.py`.
+Use this engine after transition grammar, visual-match, choreography, motion-direction, cutpoint, action-anchor, sensory-continuity, scene-arc, effect-palette, microstructure, pair-continuity, execution-readiness, transition-polish, bridge-application, and final-blueprint-lineage checks exist, and before `audit_transition_preview_quality_contract.py`, `prepare_transition_audition_packet.py --build-clips`, `audit_transition_audition_quality_contract.py`, and `audit_transition_storyboard_contract.py`.
 
 ## Purpose
 

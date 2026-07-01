@@ -1,6 +1,6 @@
 # Transition Preview Quality Contract
 
-Use this contract immediately after `prepare_transition_preview_packet.py` and before `prepare_transition_audition_packet.py`, `audit_transition_audition_quality_contract.py`, `audit_transition_storyboard_contract.py`, Resolve apply, final QA, maturity, or V14 baseline claims.
+Use this contract immediately after `prepare_transition_preview_packet.py` and before `prepare_transition_audition_packet.py --build-clips`, `audit_transition_audition_quality_contract.py`, `audit_transition_storyboard_contract.py`, Resolve apply, final QA, maturity, or V14 baseline claims.
 
 This contract checks outgoing and landing preview frames. When an important transition also uses materialized bridge sequence inserts, pair it with `audit_transition_bridge_visual_evidence_contract.py --package-dir <package> --extract-frames` so the middle bridge beats are also proven as real local video clips with probe/frame evidence and BGM-only audio.
 
