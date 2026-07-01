@@ -388,6 +388,20 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "allowKeywordRoutes": False,
         "expandRepairRows": True,
     },
+    "one_shot_autonomy_contract_audit": {
+        "path": "one_shot_autonomy_contract_audit.json",
+        "accepted": {"passed"},
+        "optionalIfMissing": True,
+        "phase": "final_watchdown",
+        "priority": "P0",
+        "ownerScript": "audit_one_shot_autonomy_contract.py",
+        "requiredArtifact": "one_shot_autonomy_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_one_shot_autonomy_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun one-shot autonomy aggregation and prove raw intake, source selection, story, rhythm, BGM, captions, titles, transitions, repair closure, whole-film satisfaction, unattended first draft, and blueprint preflight all pass together.",
+        "forbiddenWorkaround": "Do not claim another AI can produce a V14-level first draft from a raw unordered folder while the one-shot autonomy gate has open rows.",
+        "allowKeywordRoutes": False,
+        "expandRepairRows": True,
+    },
     "resolve_blueprint_preflight": {
         "path": "resolve_blueprint_preflight.json",
         "accepted": {"ready", "ready_with_warnings"},
@@ -402,6 +416,17 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
 }
 
 KEYWORD_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
+    (
+        ("one shot", "one-shot", "autonomy", "raw folder", "first run", "第一版", "首轮自动"),
+        {
+            "phase": "final_watchdown",
+            "ownerScript": "audit_one_shot_autonomy_contract.py",
+            "requiredArtifact": "one_shot_autonomy_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_one_shot_autonomy_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "One-shot autonomy contract passes with zero raw-intake, source-selection, story, rhythm, BGM, caption, title, transition, aggregate, repair, or preflight rows.",
+            "forbiddenWorkaround": "Do not ask the next user or AI for extra diagnosis when the package has open one-shot autonomy rows.",
+        },
+    ),
     (
         ("first draft satisfaction", "first_draft_satisfaction", "satisfaction"),
         {
@@ -486,6 +511,7 @@ ACTION_FIELDS = ("ownerScript", "requiredArtifact", "command", "acceptanceEviden
 FINAL_QA_META_STAGES = {
     "unattended_repair_queue",
     "unattended_first_draft_contract_audit",
+    "one_shot_autonomy_contract_audit",
     "skill_maturity_contract_audit",
     "v14_baseline_contract_audit",
 }
@@ -544,6 +570,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/audit_whole_film_satisfaction_contract.py --package-dir <package> --json",
             "acceptanceEvidence": "Rerun whole-film satisfaction aggregation and final QA until this stage passes with zero whole-film rows and zero metric issues.",
             "forbiddenWorkaround": "Do not claim reference-level delivery from isolated technical passes while opening, chapters, rhythm, audio, transitions, reference fit, director intent, watchdown, final viewer friction, first-draft satisfaction, or repair queue rows remain open.",
+        },
+    ),
+    (
+        ("one_shot_autonomy", "one-shot autonomy", "blocked_one_shot_autonomy", "first run"),
+        {
+            "phase": "final_watchdown",
+            "ownerScript": "audit_one_shot_autonomy_contract.py",
+            "requiredArtifact": "one_shot_autonomy_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_one_shot_autonomy_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun one-shot autonomy aggregation and final QA until this stage passes with zero autonomy rows and zero metric issues.",
+            "forbiddenWorkaround": "Do not claim the Skill can produce a V14-level first draft from raw unordered footage while source, story, rhythm, BGM, captions, title, transition, whole-film, repair-queue, or preflight rows remain open.",
         },
     ),
     (

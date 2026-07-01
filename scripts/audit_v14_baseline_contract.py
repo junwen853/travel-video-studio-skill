@@ -104,6 +104,7 @@ SKILL_PATTERNS = {
     "final_viewer_friction": "audit_final_viewer_friction_contract.py",
     "first_draft_satisfaction": "audit_first_draft_satisfaction_contract.py",
     "whole_film_satisfaction": "audit_whole_film_satisfaction_contract.py",
+    "one_shot_autonomy": "audit_one_shot_autonomy_contract.py",
     "transition_reference_readiness": "audit_transition_reference_readiness_contract.py",
     "transition_sequence_satisfaction": "audit_transition_sequence_satisfaction_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
@@ -217,6 +218,7 @@ REQUIRED_SCRIPTS = [
     "audit_final_viewer_friction_contract.py",
     "audit_first_draft_satisfaction_contract.py",
     "audit_whole_film_satisfaction_contract.py",
+    "audit_one_shot_autonomy_contract.py",
     "audit_transition_reference_readiness_contract.py",
     "audit_transition_sequence_satisfaction_contract.py",
     "prepare_reference_style_repair_plan.py",
@@ -398,6 +400,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     final_viewer_friction = load_json(package_dir / "final_viewer_friction_contract_audit.json") or {}
     first_draft_satisfaction = load_json(package_dir / "first_draft_satisfaction_contract_audit.json") or {}
     whole_film_satisfaction = load_json(package_dir / "whole_film_satisfaction_contract_audit.json") or {}
+    one_shot_autonomy = load_json(package_dir / "one_shot_autonomy_contract_audit.json") or {}
     transition_reference_readiness = load_json(package_dir / "transition_reference_readiness_contract_audit.json") or {}
     transition_sequence_satisfaction = load_json(package_dir / "transition_sequence_satisfaction_contract_audit.json") or {}
     unattended_repair_queue = load_json(package_dir / "unattended_repair_queue" / "unattended_repair_queue.json") or {}
@@ -3056,6 +3059,22 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "wholeFilmSatisfactionStatus": whole_film_satisfaction.get("status"),
             "wholeFilmSatisfactionSummary": whole_film_satisfaction_summary,
+        },
+    )
+    one_shot_autonomy_summary = get_summary(one_shot_autonomy)
+    add_check(
+        checks,
+        "One-shot autonomy contract proves V14 handoff can start from raw unordered footage without extra user diagnosis",
+        one_shot_autonomy.get("status") == "passed"
+        and int(one_shot_autonomy_summary.get("requiredReportCount") or 0) >= 20
+        and int(one_shot_autonomy_summary.get("passedReportCount") or 0) == int(one_shot_autonomy_summary.get("requiredReportCount") or 0)
+        and int(one_shot_autonomy_summary.get("oneShotAutonomyRowCount") or 0) == 0
+        and int(one_shot_autonomy_summary.get("p0OneShotAutonomyRowCount") or 0) == 0
+        and int(one_shot_autonomy_summary.get("p1OneShotAutonomyRowCount") or 0) == 0
+        and int(one_shot_autonomy_summary.get("metricIssueCount") or 0) == 0,
+        {
+            "oneShotAutonomyStatus": one_shot_autonomy.get("status"),
+            "oneShotAutonomySummary": one_shot_autonomy_summary,
         },
     )
     transition_reference_readiness_summary = get_summary(transition_reference_readiness)

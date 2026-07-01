@@ -632,6 +632,26 @@ def summarize_whole_film_satisfaction_contract(report: dict[str, Any] | None) ->
     }
 
 
+def summarize_one_shot_autonomy_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "requiredReportCount": summary.get("requiredReportCount"),
+        "passedReportCount": summary.get("passedReportCount"),
+        "oneShotAutonomyRowCount": summary.get("oneShotAutonomyRowCount"),
+        "p0OneShotAutonomyRowCount": summary.get("p0OneShotAutonomyRowCount"),
+        "p1OneShotAutonomyRowCount": summary.get("p1OneShotAutonomyRowCount"),
+        "metricIssueCount": summary.get("metricIssueCount"),
+        "warningCount": summary.get("warningCount"),
+        "phaseCounts": summary.get("phaseCounts"),
+        "ownerScripts": summary.get("ownerScripts"),
+        "blockers": [row.get("repairId") for row in report.get("oneShotAutonomyRows") or []],
+    }
+
+
 def summarize_transition_reference_readiness_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -4254,6 +4274,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     unattended_first_draft_cmd = ["python3", str(SCRIPTS_DIR / "audit_unattended_first_draft_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_unattended_first_draft_contract", unattended_first_draft_cmd, ok_codes={0, 2}))
 
+    one_shot_autonomy_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_one_shot_autonomy_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_one_shot_autonomy_contract", one_shot_autonomy_cmd, ok_codes={0, 2}))
+
     audit_cmd = ["python3", str(SCRIPTS_DIR / "audit_delivery_package.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_delivery_package", audit_cmd, ok_codes={0, 2}))
 
@@ -4400,6 +4429,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     final_viewer_friction_summary = None
     first_draft_satisfaction_summary = None
     whole_film_satisfaction_summary = None
+    one_shot_autonomy_summary = None
     unattended_repair_queue_summary = None
     rhythm_recut_apply_summary = None
     skill_maturity_summary = None
@@ -5013,6 +5043,17 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                     f"Unattended first draft warning: {item}"
                     for item in unattended_first_draft_summary.get("warnings") or []
                 )
+        if step["id"] == "audit_one_shot_autonomy_contract":
+            one_shot_autonomy_summary = summarize_one_shot_autonomy_contract(payload)
+            if one_shot_autonomy_summary and str(one_shot_autonomy_summary.get("status") or "").startswith("blocked"):
+                blockers.extend(
+                    f"One-shot autonomy blocker: {item}"
+                    for item in one_shot_autonomy_summary.get("blockers") or []
+                )
+            if one_shot_autonomy_summary and one_shot_autonomy_summary.get("warningCount"):
+                warnings.append(
+                    f"One-shot autonomy warning count: {one_shot_autonomy_summary.get('warningCount')}"
+                )
         if step["id"] == "audit_skill_maturity_contract":
             skill_maturity_summary = summarize_skill_maturity_contract(payload)
             if skill_maturity_summary and skill_maturity_summary.get("status") == "blocked":
@@ -5158,6 +5199,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "whole_film_satisfaction_contract_audit.json").exists():
         whole_film_satisfaction_summary = summarize_whole_film_satisfaction_contract(
             load_json(package_dir / "whole_film_satisfaction_contract_audit.json")
+        )
+    if package_dir and (package_dir / "one_shot_autonomy_contract_audit.json").exists():
+        one_shot_autonomy_summary = summarize_one_shot_autonomy_contract(
+            load_json(package_dir / "one_shot_autonomy_contract_audit.json")
         )
     if package_dir and (package_dir / "transition_reference_readiness_contract_audit.json").exists():
         transition_reference_readiness_summary = summarize_transition_reference_readiness_contract(
@@ -5601,6 +5646,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "finalViewerFrictionSummary": final_viewer_friction_summary,
         "firstDraftSatisfactionSummary": first_draft_satisfaction_summary,
         "wholeFilmSatisfactionSummary": whole_film_satisfaction_summary,
+        "oneShotAutonomySummary": one_shot_autonomy_summary,
         "unattendedRepairQueueSummary": unattended_repair_queue_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "skillMaturitySummary": skill_maturity_summary,
@@ -5650,6 +5696,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review final_viewer_friction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_final_viewer_friction means title, BGM, caption, source, story, transition, reference-fit, route-texture, or whole-film watchdown issues still need owner-script repairs.",
             "Review first_draft_satisfaction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_first_draft_satisfaction means the first serious draft still has source, opening, BGM, caption, story, rhythm, transition, reference-fit, route-texture, or watchdown rows that must be repaired through owner scripts.",
             "Review whole_film_satisfaction_contract_audit.json before final QA, V14, Skill maturity, release, or handoff; blocked_whole_film_satisfaction means opening, chapters, rhythm, audio/captions, transitions, reference fit, director/route texture, watchdown, viewer friction, first-draft satisfaction, or unattended repair rows still stop a reference-level viewer experience.",
+            "Review one_shot_autonomy_contract_audit.json before final QA, V14, Skill maturity, release, or handoff; blocked_one_shot_autonomy means raw intake, source selection, story, rhythm, BGM, captions, titles, transitions, repair closure, whole-film satisfaction, unattended first draft, or preflight still prevents a no-extra-diagnosis first run.",
             "Review transition_reference_readiness_contract_audit.json before final viewer friction, final QA, V14, or handoff; blocked_transition_reference_readiness means the transition chain still has open craft/report/watch-reel/rendered-proof/repair-closure rows.",
             "Review transition_sequence_satisfaction_contract_audit.json before final viewer friction, first-draft satisfaction, final QA, V14, or handoff; blocked_transition_sequence_satisfaction means the ordered transition sequence still feels random, flashy, audio-leaky, or unlanded as a viewer experience.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",
@@ -5701,6 +5748,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Preflight bridge_sequence_blueprint/resolve_timeline_blueprint_bridge_sequence.json before approving bridge sequence inserts for Resolve.",
             "Review rhythm_recut_blueprint/resolve_timeline_blueprint_rhythm_recut.json and preflight it before replacing the active Resolve blueprint.",
             "Review unattended_first_draft_contract_audit.json before Resolve apply or handoff; it proves raw intake, story, BGM, captions, titles, rhythm, transitions, repair closure, and blueprint preflight are connected.",
+            "Review one_shot_autonomy_contract_audit.json before handing the Skill to another AI; it proves the raw-folder-to-reference-level first-draft chain is closed without extra user diagnosis.",
             "Review skill_maturity_contract_audit.json before handing the package to another AI; it proves the reusable Skill safeguards, not only one timeline, cover the known failure set.",
             "Review v14_baseline_contract_audit.json before claiming a first draft should feel like V14; it proves the V14 lessons are active gates rather than historical notes.",
             "Review unattended_repair_queue/unattended_repair_queue.md when any gate blocks; it orders P0/P1 repairs by owner script, command, required artifact, acceptance evidence, and forbidden workaround.",

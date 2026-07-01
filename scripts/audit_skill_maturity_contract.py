@@ -43,6 +43,7 @@ REQUIRED_SCRIPTS = {
         "audit_final_viewer_friction_contract.py",
         "audit_first_draft_satisfaction_contract.py",
         "audit_whole_film_satisfaction_contract.py",
+        "audit_one_shot_autonomy_contract.py",
         "audit_transition_reference_readiness_contract.py",
         "audit_transition_sequence_satisfaction_contract.py",
         "audit_reference_profile_application_contract.py",
@@ -294,6 +295,9 @@ REQUIRED_SKILL_PATTERNS = {
     "whole_film_satisfaction_contract_rule": "audit_whole_film_satisfaction_contract.py",
     "whole_film_satisfaction_status_rule": "blocked_whole_film_satisfaction",
     "whole_film_satisfaction_reference_rule": "whole-film-satisfaction-contract.md",
+    "one_shot_autonomy_contract_rule": "audit_one_shot_autonomy_contract.py",
+    "one_shot_autonomy_status_rule": "blocked_one_shot_autonomy",
+    "one_shot_autonomy_reference_rule": "one-shot-autonomy-contract.md",
     "transition_reference_readiness_contract_rule": "audit_transition_reference_readiness_contract.py",
     "transition_reference_readiness_status_rule": "blocked_transition_reference_readiness",
     "transition_reference_readiness_reference_rule": "transition-reference-readiness-contract.md",
@@ -376,6 +380,7 @@ REQUIRED_STYLE_PATTERNS = {
     "final_viewer_friction_contract": "final-viewer-friction-contract.md",
     "first_draft_satisfaction_contract": "first-draft-satisfaction-contract.md",
     "whole_film_satisfaction_contract": "whole-film-satisfaction-contract.md",
+    "one_shot_autonomy_contract": "one-shot-autonomy-contract.md",
     "transition_reference_readiness_contract": "transition-reference-readiness-contract.md",
     "transition_sequence_satisfaction_contract": "transition-sequence-satisfaction-contract.md",
     "reference_profile_application_contract": "reference-profile-application-contract.md",
@@ -453,6 +458,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "final_viewer_friction_contract": "final viewer friction",
     "first_draft_satisfaction_contract": "first draft satisfaction",
     "whole_film_satisfaction_contract": "whole film satisfaction",
+    "one_shot_autonomy_contract": "one shot autonomy",
     "transition_reference_readiness_contract": "transition reference-readiness",
     "transition_sequence_satisfaction_contract": "transition sequence satisfaction",
     "cover_title_formula": "Cover And Hero Title Style",
@@ -886,6 +892,53 @@ def whole_film_satisfaction_contract_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("wholeFilmSatisfactionRowCount") or 0) == 0
         and int(evidence.get("p0WholeFilmSatisfactionRowCount") or 0) == 0
         and int(evidence.get("p1WholeFilmSatisfactionRowCount") or 0) == 0
+        and int(evidence.get("metricIssueCount") or 0) == 0
+        and int(evidence.get("rowCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+
+
+def one_shot_autonomy_contract_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "one_shot_autonomy_contract_audit.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data, dict) and isinstance(data.get("summary"), dict) else {}
+    rows = data.get("oneShotAutonomyRows") if isinstance(data, dict) and isinstance(data.get("oneShotAutonomyRows"), list) else []
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status") if isinstance(data, dict) else None,
+        "requiredReportCount": summary.get("requiredReportCount"),
+        "passedReportCount": summary.get("passedReportCount"),
+        "oneShotAutonomyRowCount": summary.get("oneShotAutonomyRowCount"),
+        "p0OneShotAutonomyRowCount": summary.get("p0OneShotAutonomyRowCount"),
+        "p1OneShotAutonomyRowCount": summary.get("p1OneShotAutonomyRowCount"),
+        "metricIssueCount": summary.get("metricIssueCount"),
+        "ownerScripts": summary.get("ownerScripts") or [],
+        "rowCount": len(rows),
+        "rowsWithOwnerScript": sum(1 for row in rows if isinstance(row, dict) and row.get("ownerScript")),
+        "rowsWithCommand": sum(1 for row in rows if isinstance(row, dict) and row.get("command")),
+        "rowsWithAcceptanceEvidence": sum(1 for row in rows if isinstance(row, dict) and row.get("acceptanceEvidence")),
+        "writesResolve": (data.get("safety") or {}).get("writesResolve") if isinstance(data.get("safety"), dict) else None,
+        "queuesRender": (data.get("safety") or {}).get("queuesRender") if isinstance(data.get("safety"), dict) else None,
+        "downloadsExternalAssets": (data.get("safety") or {}).get("downloadsExternalAssets") if isinstance(data.get("safety"), dict) else None,
+        "modifiesSourceFootage": (data.get("safety") or {}).get("modifiesSourceFootage") if isinstance(data.get("safety"), dict) else None,
+        "modifiesSourceDrive": (data.get("safety") or {}).get("modifiesSourceDrive") if isinstance(data.get("safety"), dict) else None,
+    }
+
+
+def one_shot_autonomy_contract_ready(evidence: dict[str, Any]) -> bool:
+    return (
+        evidence.get("exists")
+        and evidence.get("status") == "passed"
+        and int(evidence.get("requiredReportCount") or 0) >= 20
+        and int(evidence.get("passedReportCount") or 0) == int(evidence.get("requiredReportCount") or 0)
+        and int(evidence.get("oneShotAutonomyRowCount") or 0) == 0
+        and int(evidence.get("p0OneShotAutonomyRowCount") or 0) == 0
+        and int(evidence.get("p1OneShotAutonomyRowCount") or 0) == 0
         and int(evidence.get("metricIssueCount") or 0) == 0
         and int(evidence.get("rowCount") or 0) == 0
         and evidence.get("writesResolve") is False
@@ -8626,6 +8679,13 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
         "Whole film satisfaction contract proves opening, chapters, rhythm, BGM/captions, transitions, reference fit, director intent, watchdown, viewer friction, first draft, and repair queue close as one viewer experience",
         whole_film_satisfaction_contract_ready(whole_film_satisfaction_evidence),
         whole_film_satisfaction_evidence,
+    )
+    one_shot_autonomy_evidence = one_shot_autonomy_contract_evidence(package_dir)
+    add_check(
+        checks,
+        "One-shot autonomy contract proves a raw unordered folder can reach the reference-level first-draft chain without extra user diagnosis",
+        one_shot_autonomy_contract_ready(one_shot_autonomy_evidence),
+        one_shot_autonomy_evidence,
     )
     transition_reference_readiness_evidence = transition_reference_readiness_contract_evidence(package_dir)
     add_check(
