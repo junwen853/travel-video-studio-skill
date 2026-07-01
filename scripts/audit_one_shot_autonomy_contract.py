@@ -263,6 +263,84 @@ REPORT_SPECS: tuple[dict[str, Any], ...] = (
         "forbiddenWorkaround": "Do not claim transitions are ready because isolated transition scripts passed.",
     },
     {
+        "reportId": "reference_profile_application_contract_audit",
+        "path": "reference_profile_application_contract_audit.json",
+        "accepted": {"passed"},
+        "priority": "P0",
+        "phase": "reference_fit",
+        "viewerSymptom": "Reference videos may have been analyzed but never applied to opening, chapter, rhythm, creator-cut, transition, caption, or audio plans.",
+        "ownerScript": "audit_reference_profile_application_contract.py",
+        "requiredArtifact": "reference_profile_application_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_reference_profile_application_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Reference profile application proves non-copying multi-video style targets reach downstream edit plans instead of staying as unused analysis.",
+        "forbiddenWorkaround": "Do not claim the Skill learned from Bilibili/Malta references when the profile is not applied by concrete package artifacts.",
+    },
+    {
+        "reportId": "reference_transition_profile_contract_audit",
+        "path": "reference_transition_profile_contract_audit.json",
+        "accepted": {"passed"},
+        "priority": "P0",
+        "phase": "reference_fit",
+        "viewerSymptom": "Transitions may still be random, flashy, or template-like rather than reference-calibrated bridge, breath, match, and restrained motion.",
+        "ownerScript": "audit_reference_transition_profile_contract.py",
+        "requiredArtifact": "reference_transition_profile_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_reference_transition_profile_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Reference transition profile proves the current film's transition language matches learned bridge, breath, match, BGM-hit, quiet-zone, and motion-balance targets.",
+        "forbiddenWorkaround": "Do not add rotation, whip, zoom, or speed-ramp effects without reference-calibrated transition-language proof.",
+    },
+    {
+        "reportId": "reference_scene_grammar_contract_audit",
+        "path": "reference_scene_grammar_contract_audit.json",
+        "accepted": {"passed"},
+        "priority": "P0",
+        "phase": "reference_fit",
+        "viewerSymptom": "Opening, chapters, transitions, or ending may still feel like a flat scenic montage rather than Parallel World/Malta-style scene grammar.",
+        "ownerScript": "audit_reference_scene_grammar_contract.py",
+        "requiredArtifact": "reference_scene_grammar_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_reference_scene_grammar_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Reference scene grammar proves opening functions, chapter arcs, pair continuity, and ending aftertaste survive into the active blueprint.",
+        "forbiddenWorkaround": "Do not hide missing context, movement, lived-in texture, payoff, or aftertaste with titles or transition effects.",
+    },
+    {
+        "reportId": "timeline_variety_contract_audit",
+        "path": "timeline_variety_contract_audit.json",
+        "accepted": {"passed"},
+        "priority": "P0",
+        "phase": "reference_fit",
+        "viewerSymptom": "The final timeline may still repeat the same source/function rhythm and lack movement, texture, payoff, or aftertaste.",
+        "ownerScript": "audit_timeline_variety_contract.py",
+        "requiredArtifact": "timeline_variety_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_timeline_variety_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Timeline variety proves source/function runs are controlled and movement, lived-in texture, destination payoff, and ending aftertaste are present.",
+        "forbiddenWorkaround": "Do not use transitions, BGM, or title cards to conceal weak or repetitive shot selection.",
+    },
+    {
+        "reportId": "director_intent_contract_audit",
+        "path": "director_intent_contract_audit.json",
+        "accepted": {"passed", "passed_with_warnings"},
+        "priority": "P0",
+        "phase": "reference_fit",
+        "viewerSymptom": "The film may pass technical gates but lack a coherent director-style opening, route arc, pacing arc, ending, or non-template travel-film structure.",
+        "ownerScript": "audit_director_intent_contract.py",
+        "requiredArtifact": "director_intent_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_director_intent_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Director intent proves style anchors, route texture, BGM/story behavior, location honesty, and final QA combine into a coherent non-copying travel film.",
+        "forbiddenWorkaround": "Do not call a technically valid montage creator-level if it lacks a route, emotion, pacing, and ending intent.",
+    },
+    {
+        "reportId": "route_texture_contract_audit",
+        "path": "route_texture_contract_audit.json",
+        "accepted": {"passed", "passed_with_warnings"},
+        "priority": "P0",
+        "phase": "route_texture",
+        "viewerSymptom": "Day/place changes may still feel like title-only jumps without transport, street, lived-in detail, bridge footage, or landmark payoff.",
+        "ownerScript": "audit_route_texture_contract.py",
+        "requiredArtifact": "route_texture_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_route_texture_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Route texture proves actual timeline evidence for movement, bridge material, street/lived-in detail, and landmark payoff around route transitions.",
+        "forbiddenWorkaround": "Do not replace route movement or lived-in texture with black cards, generic aerials, or famous-place title cards.",
+    },
+    {
         "reportId": "final_viewer_friction_contract_audit",
         "path": "final_viewer_friction_contract_audit.json",
         "accepted": {"passed"},
@@ -515,6 +593,88 @@ def metric_issues(report_id: str, summary: dict[str, Any]) -> list[str]:
         for key in ("transitionSequenceRowCount", "p0TransitionSequenceRowCount", "metricIssueCount"):
             if as_int(summary.get(key)) != 0:
                 issues.append(f"{key} is {summary.get(key)}")
+    if report_id == "reference_profile_application_contract_audit":
+        if as_int(summary.get("styleTargetKeyCount")) < 4:
+            issues.append(f"styleTargetKeyCount is {summary.get('styleTargetKeyCount')}; expected at least 4")
+        if as_int(summary.get("passedArtifactCount")) != as_int(summary.get("requiredArtifactCount")):
+            issues.append("passedArtifactCount does not match requiredArtifactCount")
+        if as_int(summary.get("passedDirectReferenceArtifactCount")) != as_int(summary.get("directReferenceArtifactCount")):
+            issues.append("passedDirectReferenceArtifactCount does not match directReferenceArtifactCount")
+        if as_int(summary.get("blockerCount")) != 0:
+            issues.append(f"blockerCount is {summary.get('blockerCount')}")
+    if report_id == "reference_transition_profile_contract_audit":
+        total = as_int(summary.get("transitionRowCount"))
+        if total <= 0:
+            issues.append("transitionRowCount is 0")
+        if as_int(summary.get("readyReportCount")) != as_int(summary.get("requiredReportCount")):
+            issues.append("readyReportCount does not match requiredReportCount")
+        if total >= 4 and as_float(summary.get("motionShare")) > 0.25:
+            issues.append(f"motionShare is {summary.get('motionShare')}; expected <= 0.25")
+        if as_float(summary.get("importantBridgeBreathCoverage")) < 1.0:
+            issues.append(f"importantBridgeBreathCoverage is {summary.get('importantBridgeBreathCoverage')}; expected 1.0")
+        if as_int(summary.get("maxFamilyRun")) > 4:
+            issues.append(f"maxFamilyRun is {summary.get('maxFamilyRun')}; expected <= 4")
+        if total >= 4 and as_float(summary.get("dominantFamilyShare")) > 0.65:
+            issues.append(f"dominantFamilyShare is {summary.get('dominantFamilyShare')}; expected <= 0.65")
+        if as_int(summary.get("blockerCount")) != 0:
+            issues.append(f"blockerCount is {summary.get('blockerCount')}")
+    if report_id == "reference_scene_grammar_contract_audit":
+        chapter_count = as_int(summary.get("chapterCount"))
+        if as_int(summary.get("visualClipCount")) < 3:
+            issues.append(f"visualClipCount is {summary.get('visualClipCount')}; expected at least 3")
+        if as_int(summary.get("openingFunctionCount")) < 2:
+            issues.append(f"openingFunctionCount is {summary.get('openingFunctionCount')}; expected at least 2")
+        if chapter_count < 1:
+            issues.append("chapterCount is 0")
+        if as_int(summary.get("chaptersPassed")) != chapter_count:
+            issues.append("chaptersPassed does not match chapterCount")
+        if as_int(summary.get("chaptersBlocked")) != 0:
+            issues.append(f"chaptersBlocked is {summary.get('chaptersBlocked')}")
+        if as_int(summary.get("endingClipCount")) < 1:
+            issues.append("endingClipCount is 0")
+        if summary.get("pairContinuityStatus") != "passed":
+            issues.append(f"pairContinuityStatus is {summary.get('pairContinuityStatus')}")
+        if as_int(summary.get("weakPairFitCount")) != 0:
+            issues.append(f"weakPairFitCount is {summary.get('weakPairFitCount')}")
+        for key in ("openingStoryPlanExists", "chapterArcPlanExists", "creatorCutPlanExists"):
+            if summary.get(key) is not True:
+                issues.append(f"{key} is not true")
+        if as_int(summary.get("blockerCount")) != 0:
+            issues.append(f"blockerCount is {summary.get('blockerCount')}")
+    if report_id == "timeline_variety_contract_audit":
+        if as_int(summary.get("visualClipCount")) < 3:
+            issues.append(f"visualClipCount is {summary.get('visualClipCount')}; expected at least 3")
+        if as_int(summary.get("rawSourceClipCount")) < 1:
+            issues.append("rawSourceClipCount is 0")
+        if as_int(summary.get("globalFunctionGroupCount")) < 4:
+            issues.append(f"globalFunctionGroupCount is {summary.get('globalFunctionGroupCount')}; expected at least 4")
+        if as_int(summary.get("sameSourceRunMax")) > 3:
+            issues.append(f"sameSourceRunMax is {summary.get('sameSourceRunMax')}; expected <= 3")
+        if as_int(summary.get("sameFunctionRunMax")) > 4:
+            issues.append(f"sameFunctionRunMax is {summary.get('sameFunctionRunMax')}; expected <= 4")
+        for key in ("movementReady", "textureReady", "payoffReady", "aftertasteReady"):
+            if summary.get(key) is not True:
+                issues.append(f"{key} is not true")
+        if as_int(summary.get("chaptersNeedingVarietyOrRetime")) != 0:
+            issues.append(f"chaptersNeedingVarietyOrRetime is {summary.get('chaptersNeedingVarietyOrRetime')}")
+        if as_int(summary.get("referenceSceneChaptersBlocked")) != 0:
+            issues.append(f"referenceSceneChaptersBlocked is {summary.get('referenceSceneChaptersBlocked')}")
+        if summary.get("transitionCadenceStatus") != "passed":
+            issues.append(f"transitionCadenceStatus is {summary.get('transitionCadenceStatus')}")
+        if summary.get("finalBlueprintLineageStatus") != "passed":
+            issues.append(f"finalBlueprintLineageStatus is {summary.get('finalBlueprintLineageStatus')}")
+        if as_int(summary.get("blockedCheckCount")) != 0:
+            issues.append(f"blockedCheckCount is {summary.get('blockedCheckCount')}")
+    if report_id == "director_intent_contract_audit":
+        if as_int(summary.get("blocked")) != 0:
+            issues.append(f"blocked is {summary.get('blocked')}")
+        if as_int(summary.get("total")) > 0 and (
+            as_int(summary.get("passed")) + as_int(summary.get("warnings")) < as_int(summary.get("total"))
+        ):
+            issues.append("passed + warnings is below total")
+    if report_id == "route_texture_contract_audit":
+        if as_int(summary.get("chapterWindowCount")) > 0 and as_int(summary.get("passedChapters")) < as_int(summary.get("chapterWindowCount")):
+            issues.append("passedChapters is below chapterWindowCount")
     if report_id == "final_viewer_friction_contract_audit":
         if as_int(summary.get("evidenceReportCount")) < 20:
             issues.append(f"evidenceReportCount is {summary.get('evidenceReportCount')}; expected at least 20")
