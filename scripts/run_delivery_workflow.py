@@ -2660,6 +2660,26 @@ def summarize_title_visual_proof_contract(report: dict[str, Any] | None) -> dict
     }
 
 
+def summarize_title_bridge_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    checks = report.get("checks") if isinstance(report.get("checks"), list) else []
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "visualManifest": report.get("visualManifest"),
+        "blueprint": report.get("blueprint"),
+        "expectedOpeningTitle": report.get("expectedOpeningTitle"),
+        "segmentCount": report.get("segmentCount"),
+        "titleClipCount": report.get("titleClipCount"),
+        "passedCheckCount": sum(1 for row in checks if isinstance(row, dict) and row.get("status") == "passed"),
+        "warningCheckCount": sum(1 for row in checks if isinstance(row, dict) and row.get("status") == "warning"),
+        "blockedCheckCount": sum(1 for row in checks if isinstance(row, dict) and row.get("status") == "blocked"),
+        "blockers": report.get("blockers") or [],
+        "warnings": report.get("warnings") or [],
+    }
+
+
 def summarize_title_typography_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -3828,6 +3848,9 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_title_visual_proof_contract", title_visual_proof_cmd, ok_codes={0, 2}))
 
+    title_bridge_cmd = ["python3", str(SCRIPTS_DIR / "audit_title_bridge_contract.py"), "--package-dir", str(package_dir), "--json"]
+    steps.append(run_step("audit_title_bridge_contract", title_bridge_cmd, ok_codes={0, 2}))
+
     title_repair_cmd = [
         "python3",
         str(SCRIPTS_DIR / "prepare_title_typography_repair_plan.py"),
@@ -4492,6 +4515,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     title_typography_summary = None
     cover_title_summary = None
     title_visual_proof_summary = None
+    title_bridge_summary = None
     title_typography_repair_summary = None
     visual_establishing_summary = None
     effect_motion_summary = None
@@ -4718,6 +4742,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             title_visual_proof_summary = summarize_title_visual_proof_contract(payload)
             if title_visual_proof_summary and report_is_blocked(title_visual_proof_summary):
                 blockers.extend(f"Title visual proof blocker: {item}" for item in title_visual_proof_summary.get("blockers") or [])
+        if step["id"] == "audit_title_bridge_contract":
+            title_bridge_summary = summarize_title_bridge_contract(payload)
+            if title_bridge_summary and report_is_blocked(title_bridge_summary):
+                blockers.extend(f"Title bridge blocker: {item}" for item in title_bridge_summary.get("blockers") or [])
+            if title_bridge_summary and title_bridge_summary.get("warnings"):
+                warnings.extend(f"Title bridge warning: {item}" for item in title_bridge_summary.get("warnings") or [])
         if step["id"] == "prepare_title_typography_repair_plan":
             title_typography_repair_summary = summarize_title_typography_repair_plan(payload)
             if (
@@ -5385,6 +5415,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         title_visual_proof_summary = summarize_title_visual_proof_contract(
             load_json(package_dir / "title_visual_proof_contract_audit.json")
         )
+    if package_dir and (package_dir / "title_bridge_contract_audit.json").exists():
+        title_bridge_summary = summarize_title_bridge_contract(load_json(package_dir / "title_bridge_contract_audit.json"))
     if package_dir and (package_dir / "title_typography_repair_plan" / "title_typography_repair_plan.json").exists():
         title_typography_repair_summary = summarize_title_typography_repair_plan(
             load_json(package_dir / "title_typography_repair_plan" / "title_typography_repair_plan.json")
@@ -5820,6 +5852,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "titleTypographySummary": title_typography_summary,
         "coverTitleSummary": cover_title_summary,
         "titleVisualProofSummary": title_visual_proof_summary,
+        "titleBridgeSummary": title_bridge_summary,
         "titleTypographyRepairSummary": title_typography_repair_summary,
         "visualEstablishingSummary": visual_establishing_summary,
         "effectMotionSummary": effect_motion_summary,
