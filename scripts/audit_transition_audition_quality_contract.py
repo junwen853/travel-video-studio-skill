@@ -244,6 +244,9 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     package_dir = package_dir.expanduser().resolve()
     packet_path = package_dir / "transition_audition_packet" / "transition_audition_packet.json"
     packet = load_json(packet_path) or {}
+    packet_summary = packet.get("summary") if isinstance(packet.get("summary"), dict) else {}
+    packet_inputs = packet.get("inputs") if isinstance(packet.get("inputs"), dict) else {}
+    packet_policy = packet.get("policy") if isinstance(packet.get("policy"), dict) else {}
     rows = packet_rows(packet)
     audited = [audit_row(row, package_dir, args) for row in rows]
     blocked = [row for row in audited if row.get("status") == "blocked"]
@@ -253,9 +256,26 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         blockers.append("missing transition_audition_packet/transition_audition_packet.json")
     if packet.get("status") not in {"ready_with_transition_audition_packet", "ready_no_important_transitions"}:
         blockers.append(f"transition audition packet status is {packet.get('status')}")
+    if args.require_no_audio:
+        if packet_summary.get("auditionsAreMuted") is not True:
+            blockers.append("transition audition packet summary.auditionsAreMuted is not true; rerun prepare_transition_audition_packet.py --build-clips")
+        if packet_summary.get("sourceAudioStripped") is not True:
+            blockers.append("transition audition packet summary.sourceAudioStripped is not true; rerun prepare_transition_audition_packet.py --build-clips")
+        if packet_inputs.get("auditionsAreMuted") is not True:
+            blockers.append("transition audition packet inputs.auditionsAreMuted is not true; rerun prepare_transition_audition_packet.py --build-clips")
+        if packet_policy.get("auditionsAreMuted") is not True:
+            blockers.append("transition audition packet policy.auditionsAreMuted is not true; rerun prepare_transition_audition_packet.py --build-clips")
+        if packet_policy.get("sourceAudioStrippedWithFfmpegAn") is not True:
+            blockers.append("transition audition packet policy.sourceAudioStrippedWithFfmpegAn is not true; rerun prepare_transition_audition_packet.py --build-clips")
     for row in blocked[: args.max_blocked_rows_in_report]:
         blockers.append(f"row {row.get('rowIndex')}: {', '.join(row.get('issues') or [])}")
     summary = {
+        "transitionAuditionPacketStatus": packet.get("status"),
+        "packetAuditionsAreMuted": packet_summary.get("auditionsAreMuted"),
+        "packetSourceAudioStripped": packet_summary.get("sourceAudioStripped"),
+        "packetInputAuditionsAreMuted": packet_inputs.get("auditionsAreMuted"),
+        "packetPolicyAuditionsAreMuted": packet_policy.get("auditionsAreMuted"),
+        "packetPolicySourceAudioStrippedWithFfmpegAn": packet_policy.get("sourceAudioStrippedWithFfmpegAn"),
         "auditionRowCount": len(audited),
         "importantAuditionRowCount": sum(1 for row in audited if row.get("importantBoundary")),
         "auditionQualityReadyRowCount": len(audited) - len(blocked),
@@ -296,6 +316,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "inputs": {
             "transitionAuditionPacket": str(packet_path),
             "transitionAuditionPacketStatus": packet.get("status"),
+            "packetInputAuditionsAreMuted": packet_inputs.get("auditionsAreMuted"),
             "minDurationSeconds": args.min_duration_seconds,
             "minWidth": args.min_width,
             "minHeight": args.min_height,

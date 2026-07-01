@@ -17,6 +17,7 @@ The audit reads `transition_audition_packet/transition_audition_packet.json` and
 ## Pass Standard
 
 - The audition packet status is `ready_with_transition_audition_packet` or `ready_no_important_transitions`.
+- The audition packet report explicitly proves muted generation: `summary.auditionsAreMuted`, `summary.sourceAudioStripped`, `inputs.auditionsAreMuted`, `policy.auditionsAreMuted`, and `policy.sourceAudioStrippedWithFfmpegAn` are all `true`.
 - Every important audition row has a package-local MP4 file.
 - Every important audition row carries ready `motionExecution` from the transition execution blueprint.
 - Every important audition row carries ready `actionAnchor` from the transition execution blueprint.
@@ -29,4 +30,4 @@ The audit reads `transition_audition_packet/transition_audition_packet.json` and
 
 ## Repair
 
-If a clip is missing, too short, unreadable, outside the package, contains audio, lacks ready motion execution, lacks motion-direction proof, lacks cutpoint timing proof, lacks action-anchor proof, lacks sensory-continuity proof, or fails frame-delta proof in the visual contract, rebuild the audition packet after repairing the transition execution blueprint, transition cutpoint contract, transition action-anchor contract, transition sensory-continuity contract, transition preview packet, and bridge visual evidence.
+If a packet lacks muted-generation policy fields, or if a clip is missing, too short, unreadable, outside the package, contains audio, lacks ready motion execution, lacks motion-direction proof, lacks cutpoint timing proof, lacks action-anchor proof, lacks sensory-continuity proof, or fails frame-delta proof in the visual contract, rebuild the audition packet after repairing the transition execution blueprint, transition cutpoint contract, transition action-anchor contract, transition sensory-continuity contract, transition preview packet, and bridge visual evidence.

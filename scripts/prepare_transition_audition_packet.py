@@ -602,10 +602,12 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     warnings.extend(warning for row in audition_rows for warning in row.get("warnings") or [])
     if needs_rows:
         warnings.append("Run with --build-clips to render package-local transition audition MP4 files.")
-    if rows and not selected:
-        status = "ready_no_important_transitions"
-    elif blockers or blocked_rows:
+    if blockers or blocked_rows:
         status = "blocked_transition_audition_packet"
+    elif packet.get("status") == "ready_no_important_transitions" and not audition_rows:
+        status = "ready_no_important_transitions"
+    elif rows and not selected:
+        status = "ready_no_important_transitions"
     elif needs_rows:
         status = "needs_audition_build"
     elif ready_rows and len(ready_rows) == len(audition_rows):
@@ -650,6 +652,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "ffmpegAvailable": ffmpeg_available,
         "buildClips": bool(args.build_clips),
         "builtClips": bool(args.build_clips),
+        "auditionsAreMuted": True,
+        "sourceAudioStripped": True,
         "edgeSeconds": args.edge_seconds,
         "bridgeSeconds": args.bridge_seconds,
     }
@@ -668,6 +672,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "transitionExecutionBlueprint": execution_input,
             "includeAllRows": bool(args.include_all_rows),
             "buildClips": bool(args.build_clips),
+            "auditionsAreMuted": True,
+            "sourceAudioStripped": True,
             "ffmpegBin": args.ffmpeg_bin,
         },
         "summary": summary,
@@ -678,6 +684,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "importantTransitionsNeedWatchableAuditions": True,
             "auditionsMustCarryTransitionMotionExecution": True,
             "auditionsAreMuted": True,
+            "sourceAudioStrippedWithFfmpegAn": True,
             "sourceFootageReadOnly": True,
             "packageLocalEvidence": True,
         },

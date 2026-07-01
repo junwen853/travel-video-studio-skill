@@ -35,7 +35,7 @@ It writes:
 - Status is `ready_with_transition_audition_packet` or `ready_no_important_transitions`.
 - Every important transition row has a package-local `transition_audition.mp4`.
 - Every important audition row has ready `motionExecution`, cutpoint timing, action anchors, and sensory continuity with three-beat choreography, BGM-hit policy, caption/title quiet-zone policy, motion-direction evidence for visible motion effects, readable outgoing/landing holds, outgoing action, bridge-or-match connector, visual/audio/caption/route-or-mood/landing continuity, stable landing shot, and a Resolve keyframe effect.
-- Auditions are muted visual proof; they must not carry source-camera voice or noise.
+- Auditions are muted visual proof; they must not carry source-camera voice or noise, and the packet must record `auditionsAreMuted` plus `sourceAudioStripped` policy fields for downstream audits.
 - The script writes only package-local review files. It does not write Resolve, queue renders, download assets, modify source footage, or modify source drives.
 
 ## Repair

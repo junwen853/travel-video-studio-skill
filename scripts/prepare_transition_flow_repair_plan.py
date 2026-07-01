@@ -96,7 +96,7 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "accepted": {"passed"},
         "ownerScript": "prepare_transition_audition_packet.py",
         "requiredArtifact": "transition_audition_packet/transition_audition_packet.json",
-        "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
     },
     "transition_cutpoint_contract_audit": {
         "path": "transition_cutpoint_contract_audit.json",
@@ -131,21 +131,21 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "accepted": {"passed"},
         "ownerScript": "prepare_transition_audition_packet.py",
         "requiredArtifact": "transition_audition_packet/transition_audition_packet.json",
-        "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
     },
     "transition_audition_visual_proof_contract_audit": {
         "path": "transition_audition_visual_proof_contract_audit.json",
         "accepted": {"passed"},
         "ownerScript": "prepare_transition_audition_packet.py",
         "requiredArtifact": "transition_audition_packet/transition_audition_packet.json",
-        "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
     },
     "transition_audition_role_integrity_contract_audit": {
         "path": "transition_audition_role_integrity_contract_audit.json",
         "accepted": {"passed"},
         "ownerScript": "prepare_transition_audition_packet.py",
         "requiredArtifact": "transition_audition_packet/transition_audition_packet.json",
-        "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
     },
     "transition_storyboard_contract_audit": {
         "path": "transition_storyboard_contract_audit.json",
@@ -297,7 +297,7 @@ ISSUE_ACTIONS: list[tuple[tuple[str, ...], dict[str, str]]] = [
         {
             "ownerScript": "prepare_transition_audition_packet.py",
             "requiredArtifact": "transition_audition_packet/transition_audition_packet.json",
-            "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
             "repairType": "refresh_transition_preview_or_audition",
             "requiredAction": "Regenerate nonblank preview/audition/storyboard evidence after the repaired transition candidate exists.",
             "acceptanceEvidence": "Preview quality, audition quality, audition visual proof, role integrity, storyboard, and rendered-transition proof audits pass.",
