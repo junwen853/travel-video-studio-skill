@@ -33,6 +33,7 @@ The script writes:
 ## Pass Criteria
 
 - `bridge_sequence_plan` is `ready_with_bridge_sequence_plan`.
+- `bridge_sequence_plan.summary.missingBeatRowCount`, `repairRowCount`, and `blockingBridgeSequenceIssueCount` are all `0`.
 - `bridge_sequence_blueprint_report` is `ready_with_bridge_sequence_blueprint`.
 - The selected final candidate blueprint exists and is inside the package.
 - Every ready important bridge-sequence row has its planned `bridge_sequence_insert` clips in the final candidate.
@@ -42,6 +43,7 @@ The script writes:
 ## Blocking Failures
 
 - A title/day/place/timeline-gap row was planned but no bridge insert survives in the final candidate.
+- A required route-motion, establishing, lived-in, payoff, title-clean, or aftertaste bridge beat is still missing in the plan.
 - The final candidate has fewer bridge insert clips than the planned required beats.
 - The final candidate keeps only a decorative transition effect where a 2-5 shot bridge sequence was planned.
 - Inserted scenic/title/transition clips leak source audio.

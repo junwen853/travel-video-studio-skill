@@ -233,10 +233,12 @@ def row_anchor(row: dict[str, Any]) -> float | None:
     return None
 
 
-def candidate_score(clip: dict[str, Any], beat_function: str, row: dict[str, Any], anchor: float | None) -> tuple[int, float]:
+def candidate_score(clip: dict[str, Any], beat_function: str, row: dict[str, Any], anchor: float | None) -> tuple[int, float, bool]:
     text = clip_text(clip)
     terms = BEAT_TERMS.get(beat_function, ())
-    score = sum(3 for term in terms if term.lower() in text)
+    term_hits = sum(1 for term in terms if term.lower() in text)
+    semantic_match = term_hits > 0
+    score = term_hits * 3
     role = text
     if "hero" in role or "opening" in role or "payoff" in role:
         score += 2 if beat_function in {"arrival_establishing", "destination_payoff", "title_clean_hold"} else 0
@@ -257,14 +259,14 @@ def candidate_score(clip: dict[str, Any], beat_function: str, row: dict[str, Any
             distance = min(abs(anchor - start), abs(anchor - end))
             if distance <= 45:
                 score += 1
-    return score, distance
+    return score, distance, semantic_match
 
 
 def candidates_for_beat(clips: list[dict[str, Any]], beat_function: str, row: dict[str, Any], anchor: float | None) -> list[dict[str, Any]]:
     scored: list[tuple[int, float, dict[str, Any]]] = []
     for clip in clips:
-        score, distance = candidate_score(clip, beat_function, row, anchor)
-        if score <= 0:
+        score, distance, semantic_match = candidate_score(clip, beat_function, row, anchor)
+        if score <= 0 or not semantic_match:
             continue
         scored.append((score, distance, clip))
     scored.sort(key=lambda item: (-item[0], item[1], source_name(item[2])))
@@ -404,8 +406,12 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
     repairs = repair_rows(sequence_rows, motif_repairs)
     status = (
         "ready_with_bridge_sequence_plan"
-        if row_count and rows_with_decisions == row_count
-        else ("blocked_missing_transition_inputs" if not row_count else "needs_bridge_sequence_decisions")
+        if row_count
+        and rows_with_decisions == row_count
+        and rows_ready == row_count
+        and missing_beat_rows == 0
+        and len(repairs) == 0
+        else ("blocked_missing_transition_inputs" if not row_count else "needs_bridge_sequence_repair")
     )
     return {
         "createdAt": datetime.now().isoformat(timespec="seconds"),
@@ -431,6 +437,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "rowsWithBgmPhraseCue": rows_bgm,
             "titleBoundaryRowsSafe": rows_title_safe,
             "repairRowCount": len(repairs),
+            "blockingBridgeSequenceIssueCount": missing_beat_rows + len(repairs),
             "sourceVideoClipCount": len(clips),
         },
         "upstreamEvidence": {
@@ -460,7 +467,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
         "selectionRubric": {
             "pass": [
                 "Important title, route, chapter, and timeline-gap boundaries are represented as 2-5 shot bridge sequences, not just one transition effect.",
-                "Every required beat has a local candidate or a repair owner before Resolve apply.",
+                "Every required beat has local candidate evidence or an approved verified fallback before the plan can be marked ready.",
                 "Route jumps include movement, arrival, and lived-in texture when source footage supports it.",
                 "Title bridge beats suppress subtitles and extra route/date text.",
                 "BGM phrase cues map the bridge sequence timing instead of cutting randomly across the music.",

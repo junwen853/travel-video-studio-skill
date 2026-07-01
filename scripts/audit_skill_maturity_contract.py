@@ -4333,6 +4333,7 @@ def bridge_sequence_plan_evidence(package_dir: Path) -> dict[str, Any]:
         "rowsWithBgmPhraseCue": summary.get("rowsWithBgmPhraseCue"),
         "titleBoundaryRowsSafe": summary.get("titleBoundaryRowsSafe"),
         "repairRowCount": summary.get("repairRowCount"),
+        "blockingBridgeSequenceIssueCount": summary.get("blockingBridgeSequenceIssueCount"),
         "rowCount": len(rows),
         "repairRows": len(repairs),
         "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
@@ -4370,6 +4371,7 @@ def bridge_sequence_plan_ready(evidence: dict[str, Any]) -> bool:
         and evidence.get("status") == "ready_with_bridge_sequence_plan"
         and row_count >= 3
         and int(evidence.get("rowCount") or 0) == row_count
+        and int(evidence.get("rowsReadyWithSequence") or 0) == row_count
         and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
         and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
         and int(evidence.get("rowsWithTwoToFiveBeatsByRow") or 0) == row_count
@@ -4380,7 +4382,11 @@ def bridge_sequence_plan_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("totalRequiredBeatCount") or 0) == int(evidence.get("totalRequiredBeatCountByRow") or 0)
         and int(evidence.get("requiredBeatsWithLocalCandidates") or 0) == int(evidence.get("requiredBeatsWithLocalCandidatesByRow") or 0)
         and int(evidence.get("rowsWithAllRequiredBeatCandidates") or 0) == int(evidence.get("rowsWithAllCandidatesByRow") or 0)
-        and repair_count >= missing_rows
+        and int(evidence.get("rowsWithAllRequiredBeatCandidates") or 0) == row_count
+        and int(evidence.get("requiredBeatsWithLocalCandidates") or 0) == int(evidence.get("totalRequiredBeatCount") or 0)
+        and missing_rows == 0
+        and repair_count == 0
+        and int(evidence.get("blockingBridgeSequenceIssueCount") or 0) == 0
         and int(evidence.get("repairRows") or 0) == repair_count
         and int(evidence.get("repairRowsWithOwner") or 0) == repair_count
         and int(evidence.get("repairRowsWithDecisionFields") or 0) == repair_count

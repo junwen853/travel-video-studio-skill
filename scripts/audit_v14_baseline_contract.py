@@ -954,11 +954,16 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         "Bridge sequence plan turns important transitions into 2-5 shot route/title bridge sequences",
         bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
         and bridge_sequence_rows >= 3
+        and int(bridge_sequence_summary.get("rowsReadyWithSequence") or 0) == bridge_sequence_rows
         and int(bridge_sequence_summary.get("rowsWithDecisionFields") or 0) == bridge_sequence_rows
         and int(bridge_sequence_summary.get("totalRequiredBeatCount") or 0) >= bridge_sequence_rows * 2
+        and int(bridge_sequence_summary.get("requiredBeatsWithLocalCandidates") or 0) == int(bridge_sequence_summary.get("totalRequiredBeatCount") or 0)
+        and int(bridge_sequence_summary.get("rowsWithAllRequiredBeatCandidates") or 0) == bridge_sequence_rows
         and int(bridge_sequence_summary.get("rowsWithBgmPhraseCue") or 0) == bridge_sequence_rows
         and int(bridge_sequence_summary.get("titleBoundaryRowsSafe") or 0) == bridge_sequence_rows
-        and int(bridge_sequence_summary.get("repairRowCount") or 0) >= int(bridge_sequence_summary.get("missingBeatRowCount") or 0),
+        and int(bridge_sequence_summary.get("missingBeatRowCount") or 0) == 0
+        and int(bridge_sequence_summary.get("repairRowCount") or 0) == 0
+        and int(bridge_sequence_summary.get("blockingBridgeSequenceIssueCount") or 0) == 0,
         {
             "bridgeSequenceStatus": bridge_sequence.get("status"),
             "bridgeSequenceSummary": bridge_sequence_summary,
@@ -2837,6 +2842,11 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(transition_motif_coherence_summary.get("selectionMismatchCount") or 0) == 0
         and int(transition_motif_coherence_summary.get("openingEndingMotionRowCount") or 0) == 0
         and bridge_sequence.get("status") == "ready_with_bridge_sequence_plan"
+        and int(bridge_sequence_summary.get("missingBeatRowCount") or 0) == 0
+        and int(bridge_sequence_summary.get("repairRowCount") or 0) == 0
+        and int(bridge_sequence_summary.get("blockingBridgeSequenceIssueCount") or 0) == 0
+        and int(bridge_sequence_summary.get("requiredBeatsWithLocalCandidates") or 0) == int(bridge_sequence_summary.get("totalRequiredBeatCount") or 0)
+        and int(bridge_sequence_summary.get("rowsWithAllRequiredBeatCandidates") or 0) == int(bridge_sequence_summary.get("sequenceRowCount") or 0)
         and bridge_sequence_blueprint.get("status") == "ready_with_bridge_sequence_blueprint"
         and effect_motion_blueprint.get("status") == "ready_with_effect_motion_blueprint"
         and bgm_phrase_blueprint.get("status") == "ready_with_bgm_phrase_blueprint"

@@ -71,13 +71,14 @@ Pass:
 - `bridge_sequence_plan.json` exists and status is `ready_with_bridge_sequence_plan`
 - `bridge_sequence_blueprint_report.json` exists and status is `ready_with_bridge_sequence_blueprint` when local beat candidates are available
 - every sequence row has decision fields, BGM phrase cue, title-zone safety, and required beat rows
-- missing local candidates create repair rows with owner scripts and acceptance evidence
+- every required beat has a selected local candidate or approved verified fallback before the plan can be `ready`; missing local candidates create repair rows, but any `missingBeatRowCount`, `repairRowCount`, or `blockingBridgeSequenceIssueCount` above zero blocks V14/maturity claims
 - important route/title/timeline-gap boundaries are represented as materialized candidate sequence beats, not only one transition effect
 
 Reject:
 
 - a city/day/place jump relies on a single dissolve, spin, black card, or title card
 - a missing route-motion or lived-in beat is hidden by a flashy effect
+- a bridge sequence plan is called ready while any required beat is still missing or only described in a repair row
 - title bridge beats contain subtitles, route/date clutter, stacked titles, or workflow labels
 - selected bridge footage has no local source path and no verified licensed fallback decision
 - a bridge sequence plan remains prose-only when local candidate footage exists and can be placed in a candidate blueprint
