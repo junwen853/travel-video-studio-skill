@@ -18,6 +18,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Builds recognition reports, route reviews, route decision sheets, and delivery packages.
 - Learns from multiple local reference videos as an aggregate, non-copying batch profile.
 - Builds a reference-review repair plan so supplied creator/reference videos must be reviewed as full films before the Skill learns from them: full timeline strips, opening/title, chapter rhythm, transition language, ending, BGM/audio/caption behavior, and non-copying takeaways must be closed before final QA.
+- Runs story-style, reference-alignment, director-intent, route-texture, stock/aerial closure, and director-polish gates inside the safe workflow so a technically valid but AI-looking draft blocks before handoff.
 - Plans BGM, BGM phrase cues, subtitles, city/aerial establishing shots, chapter titles, transitions, typography, visual bridge material, and restrained effect-motion candidates with final application proof.
 - Builds a title typography repair plan for ghosted/stacked hero titles, route/date/internal labels, black or stale `title_cards`, title-zone subtitle collisions, missing scenic title proof, and weak cover/hero title formula.
 - Audits BGM musicality so scenic/title/transition sections use real named music with phrase coverage, dynamics, and multi-band energy instead of hums, tones, silence, or placeholders.
@@ -105,9 +106,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.108.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.108/travel-video-studio-skill-v0.1.108.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.108.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.109.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.109/travel-video-studio-skill-v0.1.109.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.109.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:

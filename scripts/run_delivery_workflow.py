@@ -409,6 +409,34 @@ def summarize_bgm_musicality_contract(report: dict[str, Any] | None) -> dict[str
     }
 
 
+def summarize_style_gate_report(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "scorePercent": report.get("scorePercent"),
+        "passed": summary.get("passed"),
+        "blocked": summary.get("blocked"),
+        "warnings": summary.get("warnings"),
+        "total": summary.get("total"),
+        "upstreamPassed": summary.get("upstreamPassed"),
+        "upstreamTotal": summary.get("upstreamTotal"),
+        "chapterCount": summary.get("chapterCount"),
+        "transitionPlanCount": summary.get("transitionPlanCount"),
+        "matchedTransitions": summary.get("matchedTransitions"),
+        "chapterWindowCount": summary.get("chapterWindowCount"),
+        "passedChapters": summary.get("passedChapters"),
+        "unresolvedPlaceholderCount": summary.get("unresolvedPlaceholderCount"),
+        "stockAerialClosureStatus": summary.get("stockAerialClosureStatus"),
+        "effectPlanCount": summary.get("effectPlanCount"),
+        "renderedSubtitleCount": summary.get("renderedSubtitleCount"),
+        "blockers": report.get("blockers") or [],
+        "warningsList": report.get("warnings") or [],
+    }
+
+
 def summarize_transition_bridge_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     if not plan:
         return None
@@ -4281,6 +4309,63 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("resolve_blueprint_preflight", preflight_cmd, ok_codes={0, 2}))
 
+    story_style_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_story_style_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--audio-mode",
+        "bgm_only",
+        "--require-rendered-subtitles",
+        "--json",
+    ]
+    steps.append(run_step("audit_story_style_contract", story_style_cmd, ok_codes={0, 2}))
+
+    reference_style_alignment_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_reference_style_alignment.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_reference_style_alignment", reference_style_alignment_cmd, ok_codes={0, 2}))
+
+    director_intent_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_director_intent_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_director_intent_contract", director_intent_cmd, ok_codes={0, 2}))
+
+    route_texture_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_route_texture_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_route_texture_contract", route_texture_cmd, ok_codes={0, 2}))
+
+    stock_aerial_closure_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_stock_aerial_closure.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_stock_aerial_closure", stock_aerial_closure_cmd, ok_codes={0, 2}))
+
+    director_polish_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_director_polish_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_director_polish_contract", director_polish_cmd, ok_codes={0, 2}))
+
     editorial_watchdown_cmd = [
         "python3",
         str(SCRIPTS_DIR / "prepare_editorial_watchdown_repair_plan.py"),
@@ -4411,6 +4496,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     audio_scene_policy_summary = None
     edit_rhythm_summary = None
     creator_cut_summary = None
+    story_style_summary = None
+    reference_style_alignment_summary = None
+    director_intent_summary = None
+    route_texture_summary = None
+    stock_aerial_closure_summary = None
+    director_polish_summary = None
     transition_grammar_summary = None
     transition_execution_summary = None
     transition_reference_candidates_summary = None
@@ -4665,6 +4756,58 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             edit_rhythm_summary = summarize_edit_rhythm_plan(payload)
         if step["id"] == "prepare_creator_cut_plan":
             creator_cut_summary = summarize_creator_cut_plan(payload)
+        if step["id"] == "audit_story_style_contract":
+            story_style_summary = summarize_style_gate_report(payload)
+            if story_style_summary and story_style_summary.get("status") != "passed":
+                blockers.extend(f"Story style blocker: {item}" for item in story_style_summary.get("blockers") or [])
+                if not story_style_summary.get("blockers"):
+                    blockers.append(f"Story style blocker: status is {story_style_summary.get('status')}")
+        if step["id"] == "audit_reference_style_alignment":
+            reference_style_alignment_summary = summarize_style_gate_report(payload)
+            if reference_style_alignment_summary and reference_style_alignment_summary.get("status") != "passed":
+                blockers.extend(
+                    f"Reference style alignment blocker: {item}"
+                    for item in reference_style_alignment_summary.get("blockers") or []
+                )
+                if not reference_style_alignment_summary.get("blockers"):
+                    blockers.append(
+                        f"Reference style alignment blocker: status is {reference_style_alignment_summary.get('status')}"
+                    )
+        if step["id"] == "audit_director_intent_contract":
+            director_intent_summary = summarize_style_gate_report(payload)
+            if director_intent_summary and director_intent_summary.get("status") == "blocked":
+                blockers.extend(f"Director intent blocker: {item}" for item in director_intent_summary.get("blockers") or [])
+                if not director_intent_summary.get("blockers"):
+                    blockers.append("Director intent blocker: status is blocked")
+            if director_intent_summary and director_intent_summary.get("warningsList"):
+                warnings.extend(f"Director intent warning: {item}" for item in director_intent_summary.get("warningsList") or [])
+        if step["id"] == "audit_route_texture_contract":
+            route_texture_summary = summarize_style_gate_report(payload)
+            if route_texture_summary and route_texture_summary.get("status") == "blocked":
+                blockers.extend(f"Route texture blocker: {item}" for item in route_texture_summary.get("blockers") or [])
+                if not route_texture_summary.get("blockers"):
+                    blockers.append("Route texture blocker: status is blocked")
+            if route_texture_summary and route_texture_summary.get("warningsList"):
+                warnings.extend(f"Route texture warning: {item}" for item in route_texture_summary.get("warningsList") or [])
+        if step["id"] == "audit_stock_aerial_closure":
+            stock_aerial_closure_summary = summarize_style_gate_report(payload)
+            if stock_aerial_closure_summary and stock_aerial_closure_summary.get("status") == "blocked":
+                blockers.extend(f"Stock/aerial closure blocker: {item}" for item in stock_aerial_closure_summary.get("blockers") or [])
+                if not stock_aerial_closure_summary.get("blockers"):
+                    blockers.append("Stock/aerial closure blocker: status is blocked")
+            if stock_aerial_closure_summary and stock_aerial_closure_summary.get("warningsList"):
+                warnings.extend(
+                    f"Stock/aerial closure warning: {item}"
+                    for item in stock_aerial_closure_summary.get("warningsList") or []
+                )
+        if step["id"] == "audit_director_polish_contract":
+            director_polish_summary = summarize_style_gate_report(payload)
+            if director_polish_summary and director_polish_summary.get("status") == "blocked":
+                blockers.extend(f"Director polish blocker: {item}" for item in director_polish_summary.get("blockers") or [])
+                if not director_polish_summary.get("blockers"):
+                    blockers.append("Director polish blocker: status is blocked")
+            if director_polish_summary and director_polish_summary.get("warningsList"):
+                warnings.extend(f"Director polish warning: {item}" for item in director_polish_summary.get("warningsList") or [])
         if step["id"] == "prepare_transition_grammar_plan":
             transition_grammar_summary = summarize_transition_grammar_plan(payload)
         if step["id"] == "prepare_transition_execution_plan":
@@ -5314,6 +5457,20 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         creator_cut_summary = summarize_creator_cut_plan(
             load_json(package_dir / "creator_cut_plan" / "creator_cut_plan.json")
         )
+    if package_dir and (package_dir / "story_style_contract_audit.json").exists():
+        story_style_summary = summarize_style_gate_report(load_json(package_dir / "story_style_contract_audit.json"))
+    if package_dir and (package_dir / "reference_style_alignment_audit.json").exists():
+        reference_style_alignment_summary = summarize_style_gate_report(
+            load_json(package_dir / "reference_style_alignment_audit.json")
+        )
+    if package_dir and (package_dir / "director_intent_contract_audit.json").exists():
+        director_intent_summary = summarize_style_gate_report(load_json(package_dir / "director_intent_contract_audit.json"))
+    if package_dir and (package_dir / "route_texture_contract_audit.json").exists():
+        route_texture_summary = summarize_style_gate_report(load_json(package_dir / "route_texture_contract_audit.json"))
+    if package_dir and (package_dir / "stock_aerial_closure_audit.json").exists():
+        stock_aerial_closure_summary = summarize_style_gate_report(load_json(package_dir / "stock_aerial_closure_audit.json"))
+    if package_dir and (package_dir / "director_polish_contract_audit.json").exists():
+        director_polish_summary = summarize_style_gate_report(load_json(package_dir / "director_polish_contract_audit.json"))
     if package_dir and (package_dir / "transition_grammar_plan" / "transition_grammar_plan.json").exists():
         transition_grammar_summary = summarize_transition_grammar_plan(
             load_json(package_dir / "transition_grammar_plan" / "transition_grammar_plan.json")
@@ -5667,6 +5824,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "audioScenePolicySummary": audio_scene_policy_summary,
         "editRhythmSummary": edit_rhythm_summary,
         "creatorCutSummary": creator_cut_summary,
+        "storyStyleSummary": story_style_summary,
+        "referenceStyleAlignmentSummary": reference_style_alignment_summary,
+        "directorIntentSummary": director_intent_summary,
+        "routeTextureSummary": route_texture_summary,
+        "stockAerialClosureSummary": stock_aerial_closure_summary,
+        "directorPolishSummary": director_polish_summary,
         "transitionGrammarSummary": transition_grammar_summary,
         "transitionExecutionSummary": transition_execution_summary,
         "transitionReferenceCandidatesSummary": transition_reference_candidates_summary,
@@ -5788,6 +5951,8 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review feedback_regression_plan.json so original user complaints stay in pre-render audio policy, post-render feedback audit, and final QA commands.",
             "Review reference_batch_profile.json when local reference videos are supplied so rhythm/style targets are based on measured reference evidence.",
             "Review reference_review_repair_plan/reference_review_repair_plan.json when local reference videos are supplied so full-film review evidence is closed before reference learning, final QA, V14, or Skill maturity claims.",
+            "Review story_style_contract_audit.json and reference_style_alignment_audit.json before calling a draft Bilibili/Malta-like; these must pass, not only render technically.",
+            "Review director_intent_contract_audit.json, route_texture_contract_audit.json, stock_aerial_closure_audit.json, and director_polish_contract_audit.json before handoff; blocked director gates mean the film still lacks route arc, lived-in texture, closed aerial/stock decisions, or premium polish.",
             "Review editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json before handoff; ready_with_editorial_watchdown_repair_plan means the current final MP4 still has open full-film viewer-review rows.",
             "Review final_viewer_friction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_final_viewer_friction means title, BGM, caption, source, story, transition, reference-fit, route-texture, or whole-film watchdown issues still need owner-script repairs.",
             "Review first_draft_satisfaction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_first_draft_satisfaction means the first serious draft still has source, opening, BGM, caption, story, rhythm, transition, reference-fit, route-texture, or watchdown rows that must be repaired through owner scripts.",
