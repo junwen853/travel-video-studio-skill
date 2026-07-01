@@ -38,6 +38,7 @@ The script writes:
 - The selected final candidate blueprint exists and is inside the package.
 - Every ready important bridge-sequence row has its planned `bridge_sequence_insert` clips in the final candidate.
 - Applied bridge beat functions cover the required plan functions.
+- Applied bridge beats preserve source diversity: route bridge rows must not collapse into one repeated clip, and 3+ beat rows cannot repeat the same source on adjacent beats.
 - Bridge insert clips are video-only/BGM-led and do not carry source-camera audio.
 
 ## Blocking Failures
@@ -45,6 +46,7 @@ The script writes:
 - A title/day/place/timeline-gap row was planned but no bridge insert survives in the final candidate.
 - A required route-motion, establishing, lived-in, payoff, title-clean, or aftertaste bridge beat is still missing in the plan.
 - The final candidate has fewer bridge insert clips than the planned required beats.
+- The final candidate repeats one source across most bridge beats or repeats the same source on adjacent bridge beats.
 - The final candidate keeps only a decorative transition effect where a 2-5 shot bridge sequence was planned.
 - Inserted scenic/title/transition clips leak source audio.
 - The selected candidate blueprint is missing, stale, or outside the package.

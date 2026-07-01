@@ -65,6 +65,26 @@ def source_name(value: Any) -> str:
     return Path(text).name if text else ""
 
 
+def source_key(value: Any) -> str:
+    text = str(value or "")
+    return text or source_name(value)
+
+
+def min_unique_sources_for_row(row: dict[str, Any], expected_count: int) -> int:
+    sequence_type = str(row.get("sequenceType") or "")
+    if expected_count <= 1:
+        return expected_count
+    if sequence_type == "route_texture_bridge_sequence":
+        return min(3, expected_count)
+    if sequence_type in {"clean_title_bridge_sequence", "ending_aftertaste_sequence", "visual_match_sequence"}:
+        return min(2, expected_count)
+    return min(2, expected_count)
+
+
+def adjacent_repeat_count(values: list[str]) -> int:
+    return sum(1 for left, right in zip(values, values[1:]) if left and left == right)
+
+
 def timeline_start(clip: dict[str, Any]) -> float:
     return float(as_float(clip.get("timelineStartSeconds") or clip.get("recordStartSeconds") or clip.get("startSeconds"), 0.0) or 0.0)
 
@@ -200,6 +220,10 @@ def row_audit(row: dict[str, Any], clips: list[dict[str, Any]], materialized: di
     matched_set = {item for item in matched_functions if item}
     missing_functions = sorted(expected_set - matched_set)
     leaks = source_audio_leaks(matched)
+    source_sequence = [source_key(clip.get("sourcePath") or clip.get("sourceName")) for clip in matched]
+    unique_source_count = len({item for item in source_sequence if item})
+    minimum_unique_source_count = min_unique_sources_for_row(row, len(expected))
+    adjacent_repeats = adjacent_repeat_count(source_sequence)
     issues: list[str] = []
     if not matched:
         issues.append("planned_bridge_sequence_row_missing_from_final_candidate")
@@ -209,12 +233,18 @@ def row_audit(row: dict[str, Any], clips: list[dict[str, Any]], materialized: di
         issues.append("final_candidate_missing_required_bridge_beat_functions")
     if leaks:
         issues.append("bridge_sequence_insert_has_source_audio_enabled")
+    if len(matched) >= len(expected) and unique_source_count < minimum_unique_source_count:
+        issues.append("bridge_sequence_uses_too_few_distinct_sources")
+    if len(expected) >= 3 and adjacent_repeats > 0:
+        issues.append("bridge_sequence_repeats_same_source_on_adjacent_beats")
     mat = (materialized or {}).get(row_index) or {}
     if materialized is not None:
         if not mat:
             issues.append("bridge_sequence_blueprint_report_has_no_materialized_row")
         elif as_int(mat.get("insertedBeatCount")) < len(expected):
             issues.append("bridge_sequence_blueprint_materialized_too_few_beats")
+        if mat and mat.get("sourceDiversityStatus") != "passed":
+            issues.append("bridge_sequence_blueprint_source_diversity_not_passed")
     return {
         "rowIndex": row_index,
         "status": "passed" if not issues else "blocked",
@@ -226,6 +256,10 @@ def row_audit(row: dict[str, Any], clips: list[dict[str, Any]], materialized: di
         "appliedBeatFunctions": matched_functions,
         "missingBeatFunctions": missing_functions,
         "sourceAudioLeakCount": len(leaks),
+        "uniqueSourceCount": unique_source_count,
+        "minimumUniqueSourceCount": minimum_unique_source_count,
+        "adjacentRepeatedSourceCount": adjacent_repeats,
+        "sourceDiversityStatus": "passed" if unique_source_count >= minimum_unique_source_count and adjacent_repeats == 0 else "blocked",
         "timelineStartSeconds": round3(min((timeline_start(clip) for clip in matched), default=0.0)),
         "timelineEndSeconds": round3(max((timeline_end(clip) for clip in matched), default=0.0)),
         "sourceNames": [source_name(clip.get("sourcePath") or clip.get("sourceName")) for clip in matched],
@@ -273,6 +307,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     expected_total = sum(as_int(row.get("expectedBeatCount")) for row in audited)
     applied_total = sum(as_int(row.get("appliedBeatClipCount")) for row in audited)
     blockers = [f"bridge sequence row {row.get('rowIndex')}: {', '.join(row.get('issues') or [])}" for row in blocked[:80]]
+    diversity_issue_rows = [row for row in audited if row.get("sourceDiversityStatus") != "passed"]
+    adjacent_repeat_rows = [row for row in audited if as_int(row.get("adjacentRepeatedSourceCount")) > 0]
     warnings: list[str] = []
     if plan.get("status") != "ready_with_bridge_sequence_plan":
         blockers.append(f"bridge_sequence_plan status is not ready: {plan.get('status')}")
@@ -320,6 +356,11 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "missingBeatClipCount": max(0, expected_total - applied_total),
             "finalBridgeInsertClipCount": len(inserts),
             "sourceAudioLeakClipCount": len(leaks),
+            "rowsWithSourceDiversity": sum(1 for row in audited if row.get("sourceDiversityStatus") == "passed"),
+            "sourceDiversityIssueRowCount": len(diversity_issue_rows),
+            "adjacentRepeatedSourceRowCount": len(adjacent_repeat_rows),
+            "minimumUniqueSourceTotal": sum(as_int(row.get("minimumUniqueSourceCount")) for row in audited),
+            "actualUniqueSourceTotal": sum(as_int(row.get("uniqueSourceCount")) for row in audited),
             "blockerCount": len(blockers),
         },
         "sequenceRows": audited,
@@ -360,6 +401,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Expected beats: {row.get('expectedBeatCount')} `{', '.join(row.get('expectedBeatFunctions') or [])}`",
                 f"- Applied beats: {row.get('appliedBeatClipCount')} `{', '.join(row.get('appliedBeatFunctions') or [])}`",
                 f"- Source audio leaks: {row.get('sourceAudioLeakCount')}",
+                f"- Source diversity: `{row.get('sourceDiversityStatus')}` {row.get('uniqueSourceCount')}/{row.get('minimumUniqueSourceCount')} unique, adjacent repeats `{row.get('adjacentRepeatedSourceCount')}`",
                 f"- Sources: `{', '.join(row.get('sourceNames') or [])}`",
                 f"- Issues: `{', '.join(row.get('issues') or [])}`",
             ]

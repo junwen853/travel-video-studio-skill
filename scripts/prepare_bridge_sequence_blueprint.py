@@ -56,6 +56,11 @@ def source_name(value: Any) -> str:
     return Path(text).name if text else ""
 
 
+def source_key(value: Any) -> str:
+    text = str(value or "")
+    return text or source_name(value)
+
+
 def timeline_start(clip: dict[str, Any]) -> float:
     return float(as_float(clip.get("timelineStartSeconds") or clip.get("recordStartSeconds") or clip.get("startSeconds"), 0.0) or 0.0)
 
@@ -146,23 +151,40 @@ def choose_candidate(beat: dict[str, Any], used_sources: dict[str, int], lookup:
     candidates = beat.get("localCandidateEvidence") if isinstance(beat.get("localCandidateEvidence"), list) else []
     if not candidates:
         return None, None
-    scored: list[tuple[tuple[int, int, str], dict[str, Any], dict[str, Any]]] = []
+    scored: list[dict[str, Any]] = []
     for candidate in candidates:
         if not isinstance(candidate, dict):
             continue
-        source_path = str(candidate.get("sourcePath") or "")
+        source_path = source_key(candidate.get("sourcePath") or candidate.get("sourceName"))
         source_clip = select_source_clip(candidate, lookup)
         if not source_clip:
             continue
         use_count = used_sources.get(source_path, 0)
         score = int(as_float(candidate.get("score"), 0) or 0)
-        scored.append(((score, -use_count, source_name(source_path)), candidate, source_clip))
+        scored.append({"score": score, "useCount": use_count, "sourceKey": source_path, "candidate": candidate, "sourceClip": source_clip})
     if not scored:
         return None, None
-    scored.sort(key=lambda item: item[0], reverse=True)
-    candidate, source_clip = scored[0][1], scored[0][2]
-    used_sources[str(candidate.get("sourcePath") or "")] = used_sources.get(str(candidate.get("sourcePath") or ""), 0) + 1
+    pool = [row for row in scored if int(row["useCount"]) == 0] or scored
+    pool.sort(key=lambda item: (-int(item["score"]), int(item["useCount"]), str(item["sourceKey"])))
+    candidate, source_clip = pool[0]["candidate"], pool[0]["sourceClip"]
+    key = source_key(candidate.get("sourcePath") or candidate.get("sourceName"))
+    used_sources[key] = used_sources.get(key, 0) + 1
     return candidate, source_clip
+
+
+def min_unique_sources_for_row(row: dict[str, Any], required_count: int) -> int:
+    sequence_type = str(row.get("sequenceType") or "")
+    if required_count <= 1:
+        return required_count
+    if sequence_type == "route_texture_bridge_sequence":
+        return min(3, required_count)
+    if sequence_type in {"clean_title_bridge_sequence", "ending_aftertaste_sequence", "visual_match_sequence"}:
+        return min(2, required_count)
+    return min(2, required_count)
+
+
+def adjacent_repeat_count(values: list[str]) -> int:
+    return sum(1 for left, right in zip(values, values[1:]) if left and left == right)
 
 
 def source_window(source_clip: dict[str, Any], duration: float, use_index: int) -> tuple[float, float]:
@@ -244,16 +266,30 @@ def materialize_row(
             }
         )
         cursor += duration
+    source_sequence = [str(row.get("sourcePath") or row.get("sourceName") or "") for row in beat_rows]
+    unique_source_count = len({item for item in source_sequence if item})
+    minimum_unique_sources = min_unique_sources_for_row(row, len(beats))
+    adjacent_repeats = adjacent_repeat_count(source_sequence)
+    diversity_issues: list[str] = []
+    if len(inserted) >= len(beats) and unique_source_count < minimum_unique_sources:
+        diversity_issues.append("bridge_sequence_reuses_too_few_distinct_sources")
+    if len(beats) >= 3 and adjacent_repeats > 0:
+        diversity_issues.append("bridge_sequence_repeats_the_same_source_on_adjacent_beats")
     row_report = {
         "rowIndex": row.get("rowIndex"),
         "sequenceType": row.get("sequenceType"),
-        "status": "materialized" if not missing and inserted else "needs_bridge_sequence_blueprint_repair",
+        "status": "materialized" if not missing and inserted and not diversity_issues else "needs_bridge_sequence_blueprint_repair",
         "overlayTrackIndex": overlay_track,
         "targetStartSeconds": round3(start),
         "targetEndSeconds": round3(cursor),
         "insertedBeatCount": len(inserted),
         "requiredBeatCount": len(beats),
         "missingBeatCount": len(missing),
+        "uniqueSourceCount": unique_source_count,
+        "minimumUniqueSourceCount": minimum_unique_sources,
+        "adjacentRepeatedSourceCount": adjacent_repeats,
+        "sourceDiversityStatus": "passed" if not diversity_issues else "blocked",
+        "sourceDiversityIssues": diversity_issues,
         "insertedBeats": beat_rows,
         "missingBeats": missing,
         "bgmPhraseCue": row.get("bgmPhraseCue"),
@@ -368,9 +404,15 @@ def build_candidate(package_dir: Path, *, overlay_track: int, update_blueprint: 
         if int(row.get("insertedBeatCount") or 0) <= 0
         or int(row.get("insertedBeatCount") or 0) < int(row.get("requiredBeatCount") or 0)
     ]
+    diversity_issue_rows = [row for row in materialized_rows if row.get("sourceDiversityStatus") != "passed"]
+    adjacent_repeat_rows = [row for row in materialized_rows if int(row.get("adjacentRepeatedSourceCount") or 0) > 0]
     decision_keys = set(DECISION_FIELDS)
     rows_with_decisions = sum(1 for row in materialized_rows if decision_keys.issubset(set((row.get("decision") or {}).keys())))
-    status = "ready_with_bridge_sequence_blueprint" if materialized_rows and inserted_clips and not missing_rows and not incomplete_rows else "needs_bridge_sequence_blueprint_repair"
+    status = (
+        "ready_with_bridge_sequence_blueprint"
+        if materialized_rows and inserted_clips and not missing_rows and not incomplete_rows and not diversity_issue_rows
+        else "needs_bridge_sequence_blueprint_repair"
+    )
     report = {
         "createdAt": datetime.now().isoformat(timespec="seconds"),
         "status": status,
@@ -393,6 +435,11 @@ def build_candidate(package_dir: Path, *, overlay_track: int, update_blueprint: 
             "missingBeatRowCount": len(missing_rows),
             "missingBeatCount": sum(int(row.get("missingBeatCount") or 0) for row in materialized_rows),
             "incompleteRowCount": len(incomplete_rows),
+            "rowsWithSourceDiversity": sum(1 for row in materialized_rows if row.get("sourceDiversityStatus") == "passed"),
+            "sourceDiversityIssueRowCount": len(diversity_issue_rows),
+            "adjacentRepeatedSourceRowCount": len(adjacent_repeat_rows),
+            "minimumUniqueSourceTotal": sum(int(row.get("minimumUniqueSourceCount") or 0) for row in materialized_rows),
+            "actualUniqueSourceTotal": sum(int(row.get("uniqueSourceCount") or 0) for row in materialized_rows),
             "overlayTrackIndex": overlay_track,
             "candidateClipCount": len(candidate.get("clips") or []),
             "sourceClipCount": len(clips),
@@ -401,6 +448,7 @@ def build_candidate(package_dir: Path, *, overlay_track: int, update_blueprint: 
         "selectionRubric": {
             "pass": [
                 "The candidate blueprint contains actual bridge_sequence_insert clips for each required beat.",
+                "Route and title bridge rows use enough distinct source clips to avoid repetitive AI-looking beat reuse.",
                 "Bridge inserts are video-only and placed on a dedicated overlay track without mutating the active blueprint by default.",
                 "Every row has decision fields for approval, preflight, Resolve readback, and frame-sample evidence.",
                 "The candidate can be preflighted before any Resolve apply or package fork.",
@@ -408,6 +456,7 @@ def build_candidate(package_dir: Path, *, overlay_track: int, update_blueprint: 
             "reject": [
                 "The report only describes bridge beats but adds no candidate blueprint clips.",
                 "A required bridge beat cannot resolve to a local source clip.",
+                "A 2-5 shot bridge repeats one source for most beats or repeats the same source on adjacent beats.",
                 "The script writes Resolve, queues render, downloads assets, or mutates source footage.",
                 "Inserted bridge clips carry source-camera audio into BGM-only transition windows.",
             ],
@@ -457,6 +506,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Overlay track: V{row.get('overlayTrackIndex')}",
                 f"- Timeline: {row.get('targetStartSeconds')}s-{row.get('targetEndSeconds')}s",
                 f"- Inserted beats: {row.get('insertedBeatCount')}/{row.get('requiredBeatCount')}",
+                f"- Source diversity: `{row.get('sourceDiversityStatus')}` {row.get('uniqueSourceCount')}/{row.get('minimumUniqueSourceCount')} unique, adjacent repeats `{row.get('adjacentRepeatedSourceCount')}`",
             ]
         )
         for beat in row.get("insertedBeats") or []:

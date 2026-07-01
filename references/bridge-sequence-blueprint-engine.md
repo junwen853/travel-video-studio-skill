@@ -38,6 +38,7 @@ Each inserted beat records:
 - BGM phrase cue
 - title-zone policy
 - candidate score
+- source-diversity proof so one clip is not reused for most bridge beats
 
 ## Required Follow-Up
 
@@ -64,6 +65,7 @@ Pass:
 - candidate blueprint exists
 - inserted beat clip count is greater than zero
 - every bridge sequence row has decision fields
+- route bridge rows use at least three distinct source clips when enough beats exist, and no 3+ beat sequence repeats the same source on adjacent beats
 - inserted clips are video-only and on the declared overlay track
 - no Resolve writes, render queues, downloads, or source-footage modifications occur
 
@@ -71,5 +73,6 @@ Reject:
 
 - the report adds no clips to the candidate blueprint
 - required beats cannot resolve to local source clips
+- a 2-5 shot bridge repeats the same source across most beats or repeats one source on adjacent beats
 - inserted bridge clips carry source-camera audio into BGM-only transition windows
 - the active blueprint is changed without explicit `--update-blueprint`

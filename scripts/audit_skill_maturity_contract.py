@@ -4458,6 +4458,11 @@ def bridge_sequence_blueprint_evidence(package_dir: Path) -> dict[str, Any]:
         "missingBeatRowCount": summary.get("missingBeatRowCount"),
         "missingBeatCount": summary.get("missingBeatCount"),
         "incompleteRowCount": summary.get("incompleteRowCount"),
+        "rowsWithSourceDiversity": summary.get("rowsWithSourceDiversity"),
+        "sourceDiversityIssueRowCount": summary.get("sourceDiversityIssueRowCount"),
+        "adjacentRepeatedSourceRowCount": summary.get("adjacentRepeatedSourceRowCount"),
+        "minimumUniqueSourceTotal": summary.get("minimumUniqueSourceTotal"),
+        "actualUniqueSourceTotal": summary.get("actualUniqueSourceTotal"),
         "overlayTrackIndex": overlay_track,
         "candidateClipCount": summary.get("candidateClipCount"),
         "sourceClipCount": summary.get("sourceClipCount"),
@@ -4498,6 +4503,10 @@ def bridge_sequence_blueprint_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("missingBeatRowCount") or 0) == 0
         and int(evidence.get("missingBeatCount") or 0) == 0
         and int(evidence.get("incompleteRowCount") or 0) == 0
+        and int(evidence.get("rowsWithSourceDiversity") or 0) == row_count
+        and int(evidence.get("sourceDiversityIssueRowCount") or 0) == 0
+        and int(evidence.get("adjacentRepeatedSourceRowCount") or 0) == 0
+        and int(evidence.get("actualUniqueSourceTotal") or 0) >= int(evidence.get("minimumUniqueSourceTotal") or 0)
         and int(evidence.get("overlayTrackIndex") or 0) >= 2
         and evidence.get("insertClipsVideoOnly") is True
         and evidence.get("insertClipsOnOverlayTrack") is True
@@ -4539,6 +4548,11 @@ def bridge_sequence_application_contract_evidence(package_dir: Path) -> dict[str
         "missingBeatClipCount": summary.get("missingBeatClipCount"),
         "finalBridgeInsertClipCount": summary.get("finalBridgeInsertClipCount"),
         "sourceAudioLeakClipCount": summary.get("sourceAudioLeakClipCount"),
+        "rowsWithSourceDiversity": summary.get("rowsWithSourceDiversity"),
+        "sourceDiversityIssueRowCount": summary.get("sourceDiversityIssueRowCount"),
+        "adjacentRepeatedSourceRowCount": summary.get("adjacentRepeatedSourceRowCount"),
+        "minimumUniqueSourceTotal": summary.get("minimumUniqueSourceTotal"),
+        "actualUniqueSourceTotal": summary.get("actualUniqueSourceTotal"),
         "blockerCount": summary.get("blockerCount"),
         "blockers": data.get("blockers") or [],
         "writesResolve": safety.get("writesResolve"),
@@ -4568,6 +4582,10 @@ def bridge_sequence_application_contract_ready(evidence: dict[str, Any]) -> bool
         and int(evidence.get("missingBeatClipCount") or 0) == 0
         and int(evidence.get("finalBridgeInsertClipCount") or 0) >= expected_count
         and int(evidence.get("sourceAudioLeakClipCount") or 0) == 0
+        and int(evidence.get("rowsWithSourceDiversity") or 0) == required_count
+        and int(evidence.get("sourceDiversityIssueRowCount") or 0) == 0
+        and int(evidence.get("adjacentRepeatedSourceRowCount") or 0) == 0
+        and int(evidence.get("actualUniqueSourceTotal") or 0) >= int(evidence.get("minimumUniqueSourceTotal") or 0)
         and int(evidence.get("blockerCount") or 0) == 0
         and not evidence.get("blockers")
         and evidence.get("writesResolve") is False
