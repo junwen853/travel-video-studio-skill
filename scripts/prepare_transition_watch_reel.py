@@ -274,6 +274,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     blocked_rows = [row for row in reel_rows if row.get("status") == "blocked"]
     blockers: list[str] = []
     warnings = [warning for row in reel_rows for warning in row.get("warnings") or []]
+    if not args.require_muted:
+        warnings.append("Transition watch reel was run with --allow-audio; BGM-only travel review should keep --require-muted.")
 
     if not packet_path.exists():
         blockers.append("missing transition_audition_packet/transition_audition_packet.json")
@@ -329,6 +331,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "qualityStatus": quality.get("status"),
         "storyboardStatus": storyboard.get("status"),
         "buildReel": bool(args.build_reel),
+        "requireMuted": bool(args.require_muted),
     }
     return {
         "createdAt": datetime.now().isoformat(timespec="seconds"),
@@ -344,6 +347,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "transitionStoryboardStatus": storyboard.get("status"),
             "includeAllRows": bool(args.include_all_rows),
             "buildReel": bool(args.build_reel),
+            "requireMuted": bool(args.require_muted),
             "ffmpegBin": args.ffmpeg_bin,
             "ffprobeBin": args.ffprobe_bin,
         },
@@ -355,7 +359,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "policy": {
             "importantTransitionsNeedSingleWatchReel": True,
             "watchReelBuiltFromPackageLocalAuditionClips": True,
-            "watchReelIsMuted": True,
+            "watchReelMuteRequired": bool(args.require_muted),
+            "watchReelIsMuted": bool(args.require_muted),
             "sourceFootageReadOnly": True,
         },
         "safety": safety(),

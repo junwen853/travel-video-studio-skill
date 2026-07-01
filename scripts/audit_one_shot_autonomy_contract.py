@@ -232,7 +232,7 @@ REPORT_SPECS: tuple[dict[str, Any], ...] = (
         "viewerSymptom": "Important transitions may never have been watched in order as one muted sequence.",
         "ownerScript": "prepare_transition_watch_reel.py",
         "requiredArtifact": "transition_watch_reel/transition_watch_reel.json",
-        "command": "python3 <skill-dir>/scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel --json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel --require-muted --json",
         "acceptanceEvidence": "Important transition auditions are package-local, muted, ordered, concatenated into a watch reel, and ready for sequence review.",
         "forbiddenWorkaround": "Do not trust scattered preview frames or isolated audition clips when the ordered transition sequence has not been built.",
     },

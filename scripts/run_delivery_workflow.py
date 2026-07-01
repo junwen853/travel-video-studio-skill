@@ -4105,6 +4105,7 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
         "--package-dir",
         str(package_dir),
         "--build-reel",
+        "--require-muted",
         "--json",
     ]
     steps.append(run_step("prepare_transition_watch_reel", transition_watch_reel_cmd, ok_codes={0, 2}))

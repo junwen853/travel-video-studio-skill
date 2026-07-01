@@ -5,7 +5,7 @@ Use this contract after `prepare_transition_audition_packet.py --build-clips` an
 Run:
 
 ```bash
-python3 scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel --json
+python3 scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel --require-muted --json
 ```
 
 Accepted statuses:

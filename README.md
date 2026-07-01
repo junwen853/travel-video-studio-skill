@@ -28,6 +28,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Runs rhythm recut candidates from the latest BGM phrase blueprint and audits final application so long-shot repairs preserve transition, effect, music-cue metadata, and actual main-segment/cutaway survival in the final candidate.
 - Converts blocked reference/director/QA style gaps into concrete repair rows with owner scripts, required artifacts, and acceptance evidence.
 - Audits transition execution readiness so final transitions have package-local Resolve recipes, BGM hits, title-safe windows, pair readiness, and handle evidence before Resolve apply.
+- Requires the ordered transition watch reel to be explicitly muted in safe workflow, final QA, and repair commands, so transition review cannot leak source-camera/user audio or falsely claim BGM-only readiness.
 - Audits effect-motion application, transition-polish application, Resolve transition materialization, and Resolve transition apply paths so active/final blueprints cannot drop restrained title/rotation/whip/speed-ramp metadata, BGM-hit/title-safe transition metadata, marker/readback payloads, or visible-effect API/manual/bridge handoff proof after candidate generation.
 - Audits bridge-sequence application so planned route/title/day-change bridge beats cannot be dropped from the final candidate blueprint.
 - Audits final blueprint lineage, effect-motion application, film-level transition cadence, shot-to-shot transition microstructure, whole-film transition effect palette, motif coherence, pair-level visual match, transition choreography, transition cutpoint timing, transition action anchors, transition sensory continuity, transition bridge visual evidence, transition preview quality, transition audition quality, transition watch reel plus sequence-level review, transition storyboard proof, transition breathing-room, and transition viewer orientation so the active Resolve blueprint cannot silently fall back to an old or partial candidate, bare-cut montage, repeated-template chain, effect-spam transition rhythm, one dominant motif, arbitrary adjacent-pair cuts, unlanded BGM hits, unsafe titles, missing handles, missing leave/hit/landing cutpoint timing, missing readable outgoing/bridge-or-match/landing action anchors, missing visual/BGM/caption/route/landing continuity, missing route/title/caption/BGM/bridge orientation cues, dropped effect-motion rows, weak adjacent-pair joins, missing outgoing/bridge-or-motion/landing choreography, prose-only bridge beats, bridge clips without local video/frame evidence, blank/duplicate preview frames, unwatchable transition flow, missing ordered muted transition review reel, repeated template motion, stacked high-intensity effects, or unpreviewed day/title transitions after BGM phrase, effect motion, rhythm recut, bridge, transition execution, and transition polish stages.
@@ -108,9 +109,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.111.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.111/travel-video-studio-skill-v0.1.111.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.111.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.112.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.112/travel-video-studio-skill-v0.1.112.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.112.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:

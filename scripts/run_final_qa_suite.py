@@ -889,6 +889,7 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                     "--package-dir",
                     str(package_dir),
                     "--build-reel",
+                    "--require-muted",
                 ],
                 False,
             ),

@@ -65,7 +65,7 @@ SEQUENCE_SPECS: tuple[dict[str, Any], ...] = (
         "prepare_transition_watch_reel.py",
         "transition_watch_reel/transition_watch_reel.json",
         "The ordered transition watch reel is package-local, muted, built when important transitions exist, and reviewable.",
-        command="python3 <skill-dir>/scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel --json",
+        command="python3 <skill-dir>/scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel --require-muted --json",
     ),
     spec(
         "transition_watch_reel_review_contract_audit",
