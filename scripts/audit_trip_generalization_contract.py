@@ -87,13 +87,28 @@ REQUIRED_CONTRACT_TOKENS = {
         "decisionIssueCount",
         "rowsReviewedAfterFinalOutputMtime",
     ],
+    "prepare_reference_review_repair_plan.py": [
+        "TIME_RANGE_RE",
+        "GENERIC_DECISION_TEXT",
+        "decisionArchive",
+        "decisionIssueCount",
+        "rowsWithTimecodedOrFullRangeEvidence",
+        "rowsWithOpeningMiddleEndingDecisionEvidence",
+        "rowsWithTransitionAudioCaptionEndingDecisionEvidence",
+    ],
     "audit_skill_maturity_contract.py": [
         "rowsReviewedAfterFinalOutputMtime",
         "rowsWithTimecodedOrFullRange",
+        "rowsWithTimecodedOrFullRangeEvidence",
+        "rowsWithOpeningMiddleEndingDecisionEvidence",
+        "rowsWithTransitionAudioCaptionEndingDecisionEvidence",
     ],
     "audit_v14_baseline_contract.py": [
         "rowsReviewedAfterFinalOutputMtime",
         "rowsWithTimecodedOrFullRange",
+        "rowsWithTimecodedOrFullRangeEvidence",
+        "rowsWithOpeningMiddleEndingDecisionEvidence",
+        "rowsWithTransitionAudioCaptionEndingDecisionEvidence",
     ],
 }
 

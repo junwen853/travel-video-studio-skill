@@ -14,6 +14,32 @@ from typing import Any
 PROFILE_ACCEPTED = {"ready_with_reference_batch_profile"}
 MIN_REFERENCE_COUNT = 2
 MIN_SAMPLE_FRAMES_PER_REFERENCE = 12
+TIME_RANGE_RE = re.compile(r"(?i)(?:\bfull\b|\bentire\b|\bwhole\b|全片|完整|全程|从头到尾|\d{1,2}:\d{2}(?::\d{2})?)")
+NON_COPYING_RE = re.compile(r"(?i)(?:non[- ]?copy|do not copy|without copying|不要照搬|不照搬|非复制|不复制|只借鉴|借鉴.*不.*搬)")
+GENERIC_DECISION_TEXT = {
+    "ok",
+    "okay",
+    "pass",
+    "passed",
+    "done",
+    "none",
+    "n/a",
+    "na",
+    "no issue",
+    "no issues",
+    "fixed",
+    "reviewed",
+    "complete",
+    "completed",
+    "无",
+    "无问题",
+    "没问题",
+    "通过",
+    "完成",
+    "已完成",
+    "已看",
+    "看完了",
+}
 
 DECISION_TEMPLATE = {
     "reviewAccepted": False,
@@ -30,7 +56,16 @@ DECISION_TEMPLATE = {
     "editorNotes": "",
 }
 
-REQUIRED_DECISION_TEXT_FIELDS = tuple(key for key in DECISION_TEMPLATE if key not in {"reviewAccepted", "editorNotes"})
+CONTENT_DECISION_FIELDS = (
+    "fullFilmTimelineStripEvidence",
+    "openingTitleObservation",
+    "chapterRhythmObservation",
+    "transitionLanguageObservation",
+    "endingAftertasteObservation",
+    "audioBgmCaptionObservation",
+    "nonCopyingStyleNotes",
+    "applicableSkillUpdates",
+)
 
 
 def load_json(path: Path | None) -> Any | None:
@@ -49,6 +84,27 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def clean(value: Any, limit: int = 700) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()[:limit]
+
+
+def is_meaningful_text(value: Any, *, min_len: int = 16) -> bool:
+    text = clean(value, 1000)
+    if len(text) < min_len:
+        return False
+    normalized = re.sub(r"[\s.。,_-]+", " ", text).strip().lower()
+    return normalized not in GENERIC_DECISION_TEXT
+
+
+def parse_iso_datetime(value: Any) -> datetime | None:
+    text = clean(value, 100)
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone().replace(tzinfo=None)
+    return parsed
 
 
 def safe_id(value: Any) -> str:
@@ -77,8 +133,16 @@ def safety() -> dict[str, bool]:
 
 def existing_decisions(output_dir: Path) -> dict[str, dict[str, Any]]:
     data = load_json(output_dir / "reference_review_repair_plan.json") or {}
-    rows = data.get("repairRows") if isinstance(data, dict) else []
     out: dict[str, dict[str, Any]] = {}
+    if isinstance(data, dict):
+        for key in ("decisionArchive", "closedDecisionArchive"):
+            archive = data.get(key)
+            if not isinstance(archive, dict):
+                continue
+            for repair_id, decision in archive.items():
+                if isinstance(decision, dict) and clean(repair_id, 120):
+                    out[clean(repair_id, 120)] = dict(decision)
+    rows = data.get("repairRows") if isinstance(data, dict) else []
     for row in rows if isinstance(rows, list) else []:
         if not isinstance(row, dict):
             continue
@@ -96,10 +160,44 @@ def merge_decision(existing: dict[str, Any] | None) -> dict[str, Any]:
     return decision
 
 
-def decision_is_closed(decision: dict[str, Any]) -> bool:
+def decision_quality_issues(decision: dict[str, Any]) -> list[str]:
+    issues: list[str] = []
     if decision.get("reviewAccepted") is not True:
-        return False
-    return all(bool(clean(decision.get(key), 220)) for key in REQUIRED_DECISION_TEXT_FIELDS)
+        issues.append("reviewAccepted is not true")
+    for key in CONTENT_DECISION_FIELDS:
+        if not is_meaningful_text(decision.get(key)):
+            issues.append(f"{key} is missing, too short, or generic")
+    if not TIME_RANGE_RE.search(clean(decision.get("fullFilmTimelineStripEvidence"), 1000)):
+        issues.append("fullFilmTimelineStripEvidence lacks timecoded or full-film range evidence")
+    if not NON_COPYING_RE.search(clean(decision.get("nonCopyingStyleNotes"), 1000)):
+        issues.append("nonCopyingStyleNotes must explicitly forbid copying and convert observations into non-copying rules")
+    if not is_meaningful_text(decision.get("reviewedBy"), min_len=2):
+        issues.append("reviewedBy is missing")
+    if not parse_iso_datetime(decision.get("reviewedAt")):
+        issues.append("reviewedAt must be an ISO timestamp from the actual review")
+    return issues
+
+
+def has_timecoded_or_full_range_evidence(decision: dict[str, Any]) -> bool:
+    return bool(TIME_RANGE_RE.search(clean(decision.get("fullFilmTimelineStripEvidence"), 1000)))
+
+
+def has_opening_middle_ending_decision_evidence(decision: dict[str, Any]) -> bool:
+    return all(
+        is_meaningful_text(decision.get(key))
+        for key in ("openingTitleObservation", "chapterRhythmObservation", "endingAftertasteObservation")
+    )
+
+
+def has_transition_audio_caption_ending_decision_evidence(decision: dict[str, Any]) -> bool:
+    return all(
+        is_meaningful_text(decision.get(key))
+        for key in ("transitionLanguageObservation", "audioBgmCaptionObservation", "endingAftertasteObservation")
+    )
+
+
+def decision_is_closed(decision: dict[str, Any]) -> bool:
+    return not decision_quality_issues(decision)
 
 
 def analysis_markdown_path(analysis_path: Path) -> Path:
@@ -244,6 +342,11 @@ def build_profile_row(
     }
 
 
+def reference_repair_id(ordinal: int, row: dict[str, Any]) -> str:
+    name = Path(str(row.get("referencePath") or f"reference_{ordinal}")).stem
+    return f"reference_review_{safe_id(name)}"
+
+
 def build_reference_row(
     *,
     ordinal: int,
@@ -251,12 +354,11 @@ def build_reference_row(
     evidence: dict[str, Any],
     previous: dict[str, dict[str, Any]],
 ) -> dict[str, Any] | None:
-    name = Path(str(row.get("referencePath") or f"reference_{ordinal}")).stem
-    repair_id = f"reference_review_{safe_id(name)}"
+    repair_id = reference_repair_id(ordinal, row)
     decision = merge_decision(previous.get(repair_id))
+    decision_issues = decision_quality_issues(decision)
     issues = evidence_issues(evidence)
-    if not decision_is_closed(decision):
-        issues.append("full-film reference review decision fields are not complete")
+    issues.extend(decision_issues)
     if not issues:
         return None
     return {
@@ -272,9 +374,10 @@ def build_reference_row(
         "requiredArtifact": "reference_review_repair_plan/reference_review_repair_plan.json",
         "command": "python3 <skill-dir>/scripts/analyze_reference_video.py --reference <reference-video> --output-dir <package>/reference/reference_items/<id> --frames 48 --json",
         "requiredAction": "Review the reference as a full film: opening/title construction, chapter rhythm, transition context, ending aftertaste, audio/BGM/caption behavior, and non-copying takeaways. Fill every decision field in this row before rerunning the plan.",
-        "acceptanceEvidence": "The row has reviewAccepted=true plus timeline-strip evidence and concrete observations for opening/title, chapter rhythm, transition language, ending, audio/BGM/caption, and reusable non-copying Skill lessons.",
+        "acceptanceEvidence": "The row has reviewAccepted=true plus ISO reviewedAt, timecoded/full-film timeline-strip evidence, concrete observations for opening/title, chapter rhythm, transition language, ending, audio/BGM/caption, and reusable non-copying Skill lessons.",
         "forbiddenWorkaround": "Do not mark this closed from sampled-frame impressions alone, copied reference titles/music/subtitles, vague style adjectives, or unreviewed contact sheets.",
         "affectedEvidence": evidence,
+        "decisionIssues": decision_issues,
         "decision": decision,
     }
 
@@ -299,21 +402,45 @@ def build_plan(package_dir: Path, output_dir: Path) -> dict[str, Any]:
         repair_rows.append(profile_row)
 
     reference_evidence: list[dict[str, Any]] = []
+    reference_decisions: list[dict[str, Any]] = []
     for ordinal, row in enumerate(rows, start=1):
         if not isinstance(row, dict):
             continue
+        repair_id = reference_repair_id(ordinal, row)
+        decision = merge_decision(previous.get(repair_id))
+        reference_decisions.append(
+            {
+                "repairId": repair_id,
+                "referencePath": row.get("referencePath"),
+                "decision": decision,
+                "decisionIssues": decision_quality_issues(decision),
+            }
+        )
         evidence = reference_row_evidence(row, package_dir)
         reference_evidence.append(evidence)
         repair_row = build_reference_row(ordinal=ordinal, row=row, evidence=evidence, previous=previous)
         if repair_row:
             repair_rows.append(repair_row)
 
-    closed_decisions = sum(1 for row in rows if isinstance(row, dict) and decision_is_closed(merge_decision(previous.get(f"reference_review_{safe_id(Path(str(row.get('referencePath') or 'reference')).stem)}"))))
+    closed_decisions = sum(1 for item in reference_decisions if decision_is_closed(item["decision"]))
+    decision_issue_count = sum(len(item["decisionIssues"]) for item in reference_decisions)
     status = "ready_no_reference_review_repairs_needed" if not repair_rows else "ready_with_reference_review_repair_plan"
     summary = {
         "repairRowCount": len(repair_rows),
         "referenceVideoCount": len(rows),
         "referenceRowsWithClosedFullReviewDecision": closed_decisions,
+        "decisionArchiveCount": len(reference_decisions),
+        "decisionIssueCount": decision_issue_count,
+        "rowsWithDecisionIssues": len([item for item in reference_decisions if item["decisionIssues"]]),
+        "rowsWithTimecodedOrFullRangeEvidence": len(
+            [item for item in reference_decisions if has_timecoded_or_full_range_evidence(item["decision"])]
+        ),
+        "rowsWithOpeningMiddleEndingDecisionEvidence": len(
+            [item for item in reference_decisions if has_opening_middle_ending_decision_evidence(item["decision"])]
+        ),
+        "rowsWithTransitionAudioCaptionEndingDecisionEvidence": len(
+            [item for item in reference_decisions if has_transition_audio_caption_ending_decision_evidence(item["decision"])]
+        ),
         "profileStatus": profile.get("status"),
         "profileAccepted": profile.get("status") in PROFILE_ACCEPTED,
         "referencesWithAnalysis": sum(1 for item in reference_evidence if item.get("analysisExists")),
@@ -334,7 +461,13 @@ def build_plan(package_dir: Path, output_dir: Path) -> dict[str, Any]:
         "inputs": {
             "profile": {"path": str(profile_path), "exists": profile_path.exists(), "status": profile.get("status")},
             "referenceEvidence": reference_evidence,
+            "referenceDecisionIssues": [
+                {"repairId": item["repairId"], "referencePath": item["referencePath"], "decisionIssues": item["decisionIssues"]}
+                for item in reference_decisions
+                if item["decisionIssues"]
+            ],
         },
+        "decisionArchive": {str(item["repairId"]): item["decision"] for item in reference_decisions},
         "repairRows": repair_rows,
         "nextActions": [
             "Generate or refresh the reference batch profile with enough timeline samples for each supplied reference video.",

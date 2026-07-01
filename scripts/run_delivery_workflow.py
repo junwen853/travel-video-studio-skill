@@ -588,6 +588,12 @@ def summarize_reference_review_repair_plan(plan: dict[str, Any] | None) -> dict[
         "repairRowCount": summary.get("repairRowCount"),
         "referenceVideoCount": summary.get("referenceVideoCount"),
         "closedFullReviewDecisionCount": summary.get("referenceRowsWithClosedFullReviewDecision"),
+        "decisionArchiveCount": summary.get("decisionArchiveCount"),
+        "decisionIssueCount": summary.get("decisionIssueCount"),
+        "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
+        "rowsWithTimecodedOrFullRangeEvidence": summary.get("rowsWithTimecodedOrFullRangeEvidence"),
+        "rowsWithOpeningMiddleEndingDecisionEvidence": summary.get("rowsWithOpeningMiddleEndingDecisionEvidence"),
+        "rowsWithTransitionAudioCaptionEndingDecisionEvidence": summary.get("rowsWithTransitionAudioCaptionEndingDecisionEvidence"),
         "referencesWithAnalysis": summary.get("referencesWithAnalysis"),
         "referencesWithContactSheet": summary.get("referencesWithContactSheet"),
         "referencesWithOpeningMiddleEndingCoverage": summary.get("referencesWithOpeningMiddleEndingCoverage"),
@@ -3206,6 +3212,8 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Repair rows: {reference_review.get('repairRowCount')}",
                 f"- Reference videos: {reference_review.get('referenceVideoCount')}",
                 f"- Closed full-review decisions: {reference_review.get('closedFullReviewDecisionCount')}",
+                f"- Decision issues: {reference_review.get('decisionIssueCount')}",
+                f"- Timecoded/full-range decisions: {reference_review.get('rowsWithTimecodedOrFullRangeEvidence')}",
             ]
         )
     if report.get("editRhythmSummary"):

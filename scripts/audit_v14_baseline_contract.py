@@ -26,6 +26,8 @@ SKILL_PATTERNS = {
     "bgm_musicality": "audit_bgm_musicality_contract.py",
     "bilibili_malta": "bilibili-travel-style.md",
     "reference_batch_profile": "prepare_reference_batch_profile.py",
+    "reference_review_repair": "prepare_reference_review_repair_plan.py",
+    "reference_review_closed": "ready_no_reference_review_repairs_needed",
     "reference_profile_application": "audit_reference_profile_application_contract.py",
     "reference_transition_profile": "audit_reference_transition_profile_contract.py",
     "footage_select": "prepare_footage_select_plan.py",
@@ -139,6 +141,7 @@ REQUIRED_SCRIPTS = [
     "prepare_effect_motion_blueprint.py",
     "audit_effect_motion_application_contract.py",
     "prepare_reference_batch_profile.py",
+    "prepare_reference_review_repair_plan.py",
     "audit_reference_profile_application_contract.py",
     "audit_reference_transition_profile_contract.py",
     "prepare_footage_select_plan.py",
@@ -322,6 +325,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     effect_motion_application = load_json(package_dir / "effect_motion_application_contract_audit.json") or {}
     bgm_phrase_blueprint = load_json(package_dir / "bgm_phrase_blueprint" / "bgm_phrase_blueprint_report.json") or {}
     reference_batch = load_json(package_dir / "reference" / "reference_batch_profile.json") or {}
+    reference_review_repair = load_json(package_dir / "reference_review_repair_plan" / "reference_review_repair_plan.json") or {}
     reference_profile_application = load_json(package_dir / "reference_profile_application_contract_audit.json") or {}
     reference_transition_profile = load_json(package_dir / "reference_transition_profile_contract_audit.json") or {}
     chapter_story_spine = load_json(package_dir / "chapter_story_spine_contract_audit.json") or {}
@@ -2696,6 +2700,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         },
     )
     reference_batch_summary = get_summary(reference_batch)
+    reference_review_repair_summary = get_summary(reference_review_repair)
     reference_profile_application_summary = get_summary(reference_profile_application)
     route_summary = get_summary(route_texture)
     director_summary = get_summary(director_intent)
@@ -2714,6 +2719,21 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and cover_title.get("status") == "passed"
         and title_visual_proof.get("status") == "passed"
         and reference_batch.get("status") in {"ready_with_reference_batch_profile", "ready_with_single_reference_profile"}
+        and reference_review_repair.get("status") == "ready_no_reference_review_repairs_needed"
+        and int(reference_review_repair_summary.get("referenceVideoCount") or 0) >= 2
+        and int(reference_review_repair_summary.get("repairRowCount") or 0) == 0
+        and int(reference_review_repair_summary.get("decisionIssueCount") or 0) == 0
+        and int(reference_review_repair_summary.get("rowsWithDecisionIssues") or 0) == 0
+        and int(reference_review_repair_summary.get("referenceRowsWithClosedFullReviewDecision") or 0)
+        == int(reference_review_repair_summary.get("referenceVideoCount") or 0)
+        and int(reference_review_repair_summary.get("decisionArchiveCount") or 0)
+        == int(reference_review_repair_summary.get("referenceVideoCount") or 0)
+        and int(reference_review_repair_summary.get("rowsWithTimecodedOrFullRangeEvidence") or 0)
+        == int(reference_review_repair_summary.get("referenceVideoCount") or 0)
+        and int(reference_review_repair_summary.get("rowsWithOpeningMiddleEndingDecisionEvidence") or 0)
+        == int(reference_review_repair_summary.get("referenceVideoCount") or 0)
+        and int(reference_review_repair_summary.get("rowsWithTransitionAudioCaptionEndingDecisionEvidence") or 0)
+        == int(reference_review_repair_summary.get("referenceVideoCount") or 0)
         and reference_profile_application.get("status") == "passed"
         and reference_transition_profile.get("status") == "passed"
         and raw_intake.get("status") == "passed"
@@ -2870,6 +2890,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "titleVisualProofSummary": title_visual_summary,
             "referenceBatchStatus": reference_batch.get("status"),
             "referenceBatchSummary": reference_batch_summary,
+            "referenceReviewRepairStatus": reference_review_repair.get("status"),
+            "referenceReviewRepairSummary": reference_review_repair_summary,
             "referenceProfileApplicationStatus": reference_profile_application.get("status"),
             "referenceProfileApplicationSummary": reference_profile_application_summary,
             "referenceTransitionProfileStatus": reference_transition_profile.get("status"),

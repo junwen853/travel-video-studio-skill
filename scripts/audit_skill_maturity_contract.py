@@ -685,6 +685,12 @@ def reference_review_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
         "repairRowCount": summary.get("repairRowCount"),
         "referenceVideoCount": summary.get("referenceVideoCount"),
         "referenceRowsWithClosedFullReviewDecision": summary.get("referenceRowsWithClosedFullReviewDecision"),
+        "decisionArchiveCount": summary.get("decisionArchiveCount"),
+        "decisionIssueCount": summary.get("decisionIssueCount"),
+        "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
+        "rowsWithTimecodedOrFullRangeEvidence": summary.get("rowsWithTimecodedOrFullRangeEvidence"),
+        "rowsWithOpeningMiddleEndingDecisionEvidence": summary.get("rowsWithOpeningMiddleEndingDecisionEvidence"),
+        "rowsWithTransitionAudioCaptionEndingDecisionEvidence": summary.get("rowsWithTransitionAudioCaptionEndingDecisionEvidence"),
         "profileStatus": summary.get("profileStatus"),
         "profileAccepted": summary.get("profileAccepted"),
         "referencesWithAnalysis": summary.get("referencesWithAnalysis"),
@@ -708,6 +714,12 @@ def reference_review_repair_plan_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("rowCount") or 0) == 0
         and reference_count >= MIN_REFERENCE_COUNT
         and int(evidence.get("referenceRowsWithClosedFullReviewDecision") or 0) == reference_count
+        and int(evidence.get("decisionArchiveCount") or 0) == reference_count
+        and int(evidence.get("decisionIssueCount") or 0) == 0
+        and int(evidence.get("rowsWithDecisionIssues") or 0) == 0
+        and int(evidence.get("rowsWithTimecodedOrFullRangeEvidence") or 0) == reference_count
+        and int(evidence.get("rowsWithOpeningMiddleEndingDecisionEvidence") or 0) == reference_count
+        and int(evidence.get("rowsWithTransitionAudioCaptionEndingDecisionEvidence") or 0) == reference_count
         and evidence.get("profileAccepted") is True
         and int(evidence.get("referencesWithAnalysis") or 0) == reference_count
         and int(evidence.get("referencesWithContactSheet") or 0) == reference_count
