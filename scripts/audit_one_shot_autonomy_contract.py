@@ -224,6 +224,32 @@ REPORT_SPECS: tuple[dict[str, Any], ...] = (
         "forbiddenWorkaround": "Do not make unattended drafts depend on manual A/B/C choice after handoff.",
     },
     {
+        "reportId": "transition_watch_reel",
+        "path": "transition_watch_reel/transition_watch_reel.json",
+        "accepted": {"ready_with_transition_watch_reel", "ready_no_important_transitions"},
+        "priority": "P0",
+        "phase": "transitions",
+        "viewerSymptom": "Important transitions may never have been watched in order as one muted sequence.",
+        "ownerScript": "prepare_transition_watch_reel.py",
+        "requiredArtifact": "transition_watch_reel/transition_watch_reel.json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_watch_reel.py --package-dir <package> --build-reel --json",
+        "acceptanceEvidence": "Important transition auditions are package-local, muted, ordered, concatenated into a watch reel, and ready for sequence review.",
+        "forbiddenWorkaround": "Do not trust scattered preview frames or isolated audition clips when the ordered transition sequence has not been built.",
+    },
+    {
+        "reportId": "transition_watch_reel_review_contract_audit",
+        "path": "transition_watch_reel_review_contract_audit.json",
+        "accepted": {"passed", "passed_no_important_transitions"},
+        "priority": "P0",
+        "phase": "transitions",
+        "viewerSymptom": "The transition reel may leak audio, repeat one template motion, stack high-intensity effects, or feel unwatchable as a sequence.",
+        "ownerScript": "audit_transition_watch_reel_review_contract.py",
+        "requiredArtifact": "transition_watch_reel_review_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_transition_watch_reel_review_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Watch-reel review proves muted playback, valid timing, family restraint, high-intensity restraint, and passed sequence rows.",
+        "forbiddenWorkaround": "Do not approve transitions from a storyboard or metadata row when the ordered reel review still blocks.",
+    },
+    {
         "reportId": "transition_sequence_satisfaction_contract_audit",
         "path": "transition_sequence_satisfaction_contract_audit.json",
         "accepted": {"passed"},
@@ -248,6 +274,19 @@ REPORT_SPECS: tuple[dict[str, Any], ...] = (
         "command": "python3 <skill-dir>/scripts/audit_final_viewer_friction_contract.py --package-dir <package> --json",
         "acceptanceEvidence": "Final viewer friction contract has zero P0/P1 viewer-facing repair rows.",
         "forbiddenWorkaround": "Do not hide viewer-facing issues behind technical QA or package integrity.",
+    },
+    {
+        "reportId": "editorial_watchdown_repair_plan",
+        "path": "editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json",
+        "accepted": {"ready_no_editorial_watchdown_repairs_needed"},
+        "priority": "P0",
+        "phase": "aggregate",
+        "viewerSymptom": "The final MP4 may never have been watched end-to-end as one viewer experience.",
+        "ownerScript": "prepare_editorial_watchdown_repair_plan.py",
+        "requiredArtifact": "editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json",
+        "command": "python3 <skill-dir>/scripts/prepare_editorial_watchdown_repair_plan.py --package-dir <package> --final-output <final-mp4> --json",
+        "acceptanceEvidence": "Editorial watchdown closes every opening, chapter, transition, BGM/caption, ending, and reference-fit row for the current final MP4.",
+        "forbiddenWorkaround": "Do not call one-shot delivery ready from technical reports, sampled frames, or old renders without current-output watchdown closure.",
     },
     {
         "reportId": "first_draft_satisfaction_contract_audit",
@@ -440,6 +479,36 @@ def metric_issues(report_id: str, summary: dict[str, Any]) -> list[str]:
             issues.append("not every transition candidate row has a selected default")
         if as_int(summary.get("blockedSelectionRowCount")) != 0:
             issues.append(f"blockedSelectionRowCount is {summary.get('blockedSelectionRowCount')}")
+    if report_id == "transition_watch_reel":
+        important_count = as_int(summary.get("importantReelRowCount"))
+        clip_count = as_int(summary.get("clipCount"))
+        if important_count > 0:
+            if clip_count <= 0:
+                issues.append("clipCount is 0 despite important transition rows")
+            if as_int(summary.get("readyReelRowCount")) < important_count:
+                issues.append("readyReelRowCount is below importantReelRowCount")
+            if as_int(summary.get("blockedReelRowCount")) != 0:
+                issues.append(f"blockedReelRowCount is {summary.get('blockedReelRowCount')}")
+            if as_int(summary.get("packageLocalClipCount")) < clip_count:
+                issues.append("not every transition watch clip is package-local")
+            if as_int(summary.get("mutedClipCount")) < clip_count:
+                issues.append("not every transition watch clip is muted")
+            if summary.get("reelBuilt") is not True:
+                issues.append("reelBuilt is not true for important transition rows")
+    if report_id == "transition_watch_reel_review_contract_audit":
+        reel_rows = as_int(summary.get("reelRowCount"))
+        if as_int(summary.get("blockedReviewRowCount")) != 0:
+            issues.append(f"blockedReviewRowCount is {summary.get('blockedReviewRowCount')}")
+        if as_int(summary.get("blockedCheckCount")) != 0:
+            issues.append(f"blockedCheckCount is {summary.get('blockedCheckCount')}")
+        if summary.get("reelHasAudio") is True:
+            issues.append("reelHasAudio is true")
+        if as_int(summary.get("highIntensityRunMax")) > 1:
+            issues.append(f"highIntensityRunMax is {summary.get('highIntensityRunMax')}; expected <= 1")
+        if as_int(summary.get("familyRunMax")) > 2:
+            issues.append(f"familyRunMax is {summary.get('familyRunMax')}; expected <= 2")
+        if reel_rows > 0 and as_int(summary.get("passedReviewRowCount")) < reel_rows:
+            issues.append("passedReviewRowCount is below reelRowCount")
     if report_id == "transition_sequence_satisfaction_contract_audit":
         if as_int(summary.get("requiredSequenceReportCount")) < 30:
             issues.append(f"requiredSequenceReportCount is {summary.get('requiredSequenceReportCount')}; expected at least 30")
@@ -454,6 +523,18 @@ def metric_issues(report_id: str, summary: dict[str, Any]) -> list[str]:
         for key in ("viewerFrictionRowCount", "p0ViewerFrictionRowCount", "p1ViewerFrictionRowCount"):
             if as_int(summary.get(key)) != 0:
                 issues.append(f"{key} is {summary.get(key)}")
+    if report_id == "editorial_watchdown_repair_plan":
+        watch_rows = as_int(summary.get("watchRowCount"))
+        if watch_rows <= 0:
+            issues.append("watchRowCount is 0")
+        if as_int(summary.get("closedWatchRowCount")) != watch_rows:
+            issues.append("closedWatchRowCount does not match watchRowCount")
+        if as_int(summary.get("repairRowCount")) != 0:
+            issues.append(f"repairRowCount is {summary.get('repairRowCount')}")
+        if as_int(summary.get("supportingReportIssueCount")) != 0:
+            issues.append(f"supportingReportIssueCount is {summary.get('supportingReportIssueCount')}")
+        if summary.get("finalOutputExists") is not True:
+            issues.append("finalOutputExists is not true")
     if report_id == "first_draft_satisfaction_contract_audit":
         if as_int(summary.get("requiredReportCount")) < 40:
             issues.append(f"requiredReportCount is {summary.get('requiredReportCount')}; expected at least 40")
