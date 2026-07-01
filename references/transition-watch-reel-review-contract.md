@@ -1,6 +1,6 @@
 # Transition Watch Reel Review Contract
 
-Use this contract after `prepare_transition_watch_reel.py --build-reel`. It audits the ordered reel as one sequence, not as scattered per-row clips.
+Use this contract after `prepare_transition_watch_reel.py --build-reel --require-muted`. It audits the ordered reel as one sequence, not as scattered per-row clips.
 
 Run:
 
@@ -16,6 +16,7 @@ Accepted statuses:
 Blocking conditions:
 
 - `transition_watch_reel/transition_watch_reel.json` is missing or not ready.
+- The watch reel report was not generated with muted-review policy enabled: `summary.requireMuted`, `inputs.requireMuted`, and `policy.watchReelMuteRequired` must all be `true`.
 - `transition_watch_reel/transition_watch_reel.mp4` is missing, not probeable, or contains audio.
 - Reel row timing is invalid or out of order.
 - Any review row lacks a storyboard purpose plus bridge, motion, or sensory reason.

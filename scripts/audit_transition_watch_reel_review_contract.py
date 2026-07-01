@@ -234,10 +234,15 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     watch_path = package_dir / "transition_watch_reel" / "transition_watch_reel.json"
     watch = load_json(watch_path) or {}
     watch_summary = watch.get("summary") if isinstance(watch.get("summary"), dict) else {}
+    watch_inputs = watch.get("inputs") if isinstance(watch.get("inputs"), dict) else {}
+    watch_policy = watch.get("policy") if isinstance(watch.get("policy"), dict) else {}
     watch_rows = watch.get("reelRows") if isinstance(watch.get("reelRows"), list) else []
     watch_rows = [row for row in watch_rows if isinstance(row, dict)]
     blockers: list[str] = []
     warnings: list[str] = []
+    summary_require_muted = watch_summary.get("requireMuted")
+    input_require_muted = watch_inputs.get("requireMuted")
+    policy_watch_reel_mute_required = watch_policy.get("watchReelMuteRequired")
 
     if not watch_path.exists():
         blockers.append("missing transition_watch_reel/transition_watch_reel.json")
@@ -245,6 +250,12 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         blockers.append(f"transition watch reel status is {watch.get('status')}")
     if watch.get("blockers"):
         blockers.extend(f"transition_watch_reel blocker: {item}" for item in watch.get("blockers") or [])
+    if summary_require_muted is not True:
+        blockers.append("transition watch reel summary.requireMuted is not true; rerun prepare_transition_watch_reel.py with --require-muted")
+    if input_require_muted is not True:
+        blockers.append("transition watch reel inputs.requireMuted is not true; rerun prepare_transition_watch_reel.py with --require-muted")
+    if policy_watch_reel_mute_required is not True:
+        blockers.append("transition watch reel policy.watchReelMuteRequired is not true; rerun prepare_transition_watch_reel.py with --require-muted")
 
     if watch.get("status") == "ready_no_important_transitions":
         status = PASSED_NO_IMPORTANT if not blockers and not watch_rows else BLOCKED
@@ -254,8 +265,16 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "createdAt": datetime.now().isoformat(timespec="seconds"),
             "status": status,
             "packageDir": str(package_dir),
-            "inputs": {"transitionWatchReel": str(watch_path), "transitionWatchReelStatus": watch.get("status")},
+            "inputs": {
+                "transitionWatchReel": str(watch_path),
+                "transitionWatchReelStatus": watch.get("status"),
+                "watchReelInputRequireMuted": input_require_muted,
+            },
             "summary": {
+                "transitionWatchReelStatus": watch.get("status"),
+                "watchReelRequireMuted": summary_require_muted,
+                "watchReelInputRequireMuted": input_require_muted,
+                "watchReelPolicyMuteRequired": policy_watch_reel_mute_required,
                 "reelRowCount": len(watch_rows),
                 "importantReelRowCount": as_int(watch_summary.get("importantReelRowCount")),
                 "passedReviewRowCount": 0,
@@ -327,6 +346,9 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
 
     summary = {
         "transitionWatchReelStatus": watch.get("status"),
+        "watchReelRequireMuted": summary_require_muted,
+        "watchReelInputRequireMuted": input_require_muted,
+        "watchReelPolicyMuteRequired": policy_watch_reel_mute_required,
         "reelRowCount": row_count,
         "importantReelRowCount": as_int(watch_summary.get("importantReelRowCount")),
         "passedReviewRowCount": sum(1 for row in review_rows if row.get("status") == "passed"),
@@ -357,6 +379,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "transitionWatchReel": str(watch_path),
             "transitionWatchReelStatus": watch.get("status"),
             "watchReelOutput": str(reel_output) if reel_output else None,
+            "watchReelInputRequireMuted": input_require_muted,
         },
         "summary": summary,
         "reelProbe": reel_probe,
