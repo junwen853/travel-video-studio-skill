@@ -15,10 +15,13 @@ This queue turns a large set of blockers into ordered, machine-readable repair w
 
 - priority: `P0` before `P1`
 - phase: intake/route, source selection, story spine, caption/audio, title/establishing, creator cut, transition flow, reference style, or Resolve preflight
+- execution order and stable repair key
 - source report and blocker
 - owner script
 - required artifact
-- command
+- command template and resolved command
+- unresolved placeholder list
+- post-repair rerun commands
 - acceptance evidence
 - forbidden workaround
 - no-write safety flags
@@ -26,8 +29,10 @@ This queue turns a large set of blockers into ordered, machine-readable repair w
 ## Status Meanings
 
 - `ready_no_unattended_repairs_needed`: all required reports are present and accepted; the queue is empty.
-- `ready_with_unattended_repair_queue`: blockers or missing reports exist, but every row has an executable repair route.
+- `ready_with_unattended_repair_queue`: blockers or missing reports exist, but every row has an executable repair route, resolved command, post-repair commands, and no unresolved placeholders.
 - `blocked_unactionable_repair_queue`: at least one row is missing an owner script, command, artifact, acceptance evidence, forbidden workaround, or no-write safety proof.
+
+Rows with unresolved placeholders such as `<project-dir>`, `<final-mp4>`, `<package>`, `<skill-dir>`, or `<new-package>` are not automatic. They must block as `blocked_unactionable_repair_queue` until the queue can infer or receive the missing context.
 
 `ready_with_unattended_repair_queue` is not a delivery pass. It only means the next agent has a usable repair route. The package remains blocked until the source audits, transition sequence satisfaction audit, first-draft satisfaction audit, whole-film satisfaction audit, unattended first-draft audit, V14 baseline, and final QA pass.
 
@@ -41,6 +46,7 @@ This queue turns a large set of blockers into ordered, machine-readable repair w
 - Fix bridge, match, breathing-room, choreography, storyboard, final-cut smoothness, and transition sequence satisfaction before adding whip, rotation, speed-ramp, flash, or zoom effects.
 - Fix Resolve transition apply blockers before handoff: pending manual visible effects must become API-supported cuts, materialized bridge clips, or completed Resolve readback plus frame-sample evidence. `--allow-planned-manual-visible-effects` is never an unattended repair.
 - Fix final QA blocked stages through their owner preparation scripts, not by rerunning final QA repeatedly. BGM, caption, title, reference style, source selection, transition preview/audition/choreography, Resolve apply, render, and package-integrity stages each need concrete repair artifacts before the next final QA run.
+- Run repair rows by `executionOrder`. Use `commandResolved`, then run every `postRepairCommands` entry before attempting final QA, V14 baseline, or handoff.
 - Fix reference-style rows with artifacts and closure evidence instead of repeating "make it closer to the reference."
 - Never use an effect, stock insert, black card, generic title, or stale QA report to hide a blocker from a lower phase.
 

@@ -2683,6 +2683,9 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(unattended_repair_queue_summary.get("missingRequiredReportCount") or 0) == 0
         and int(unattended_repair_queue_summary.get("blockedReportCount") or 0) == 0
         and int(unattended_repair_queue_summary.get("unactionableRepairRowCount") or 0) == 0
+        and int(unattended_repair_queue_summary.get("notAutoExecutableRepairRowCount") or 0) == 0
+        and int(unattended_repair_queue_summary.get("unresolvedPlaceholderRepairRowCount") or 0) == 0
+        and int(unattended_repair_queue_summary.get("unresolvedPlaceholderCount") or 0) == 0
         and not unattended_repair_queue.get("blockers"),
         {
             "unattendedRepairQueueStatus": unattended_repair_queue.get("status"),

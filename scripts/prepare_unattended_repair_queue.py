@@ -6,12 +6,28 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shlex
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 
 ACCEPTED_COMMON = {"passed", "passed_with_warnings", "passed_with_caveats", "ready", "ready_with_warnings"}
+PHASE_ORDER = {
+    "intake_route": 10,
+    "source_selection": 20,
+    "story_spine": 30,
+    "caption_audio": 40,
+    "title_establishing": 50,
+    "creator_cut": 60,
+    "transition_flow": 70,
+    "reference_style": 80,
+    "resolve_preflight": 90,
+    "final_watchdown": 100,
+    "final_qa": 110,
+}
+PRIORITY_ORDER = {"P0": 0, "P1": 1, "P2": 2, "P3": 3}
+PLACEHOLDER_RE = re.compile(r"<[^>]+>")
 
 REPORT_SPECS: dict[str, dict[str, Any]] = {
     "raw_intake_completeness_audit": {
@@ -1022,6 +1038,83 @@ def summary_of(data: Any) -> dict[str, Any]:
     return {}
 
 
+def iter_dict_values(value: Any) -> Any:
+    if isinstance(value, dict):
+        yield value
+        for child in value.values():
+            yield from iter_dict_values(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from iter_dict_values(child)
+
+
+def resolve_package_path(package_dir: Path, value: Any) -> Path | None:
+    if not value:
+        return None
+    path = Path(str(value)).expanduser()
+    if not path.is_absolute():
+        path = (package_dir / path).resolve()
+    return path
+
+
+def first_existing_path(package_dir: Path, values: list[Any]) -> Path | None:
+    for value in values:
+        path = resolve_package_path(package_dir, value)
+        if path and path.exists():
+            return path
+    for value in values:
+        path = resolve_package_path(package_dir, value)
+        if path:
+            return path
+    return None
+
+
+def infer_context(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
+    payloads: list[dict[str, Any]] = []
+    for rel in (
+        "workflow_run_report.json",
+        "delivery_plan.json",
+        "delivery_audit.json",
+        "raw_intake_completeness_audit.json",
+        "large_source_unattended_readiness_contract_audit.json",
+        "location_truth_contract_audit.json",
+        "client_delivery_rules_audit.json",
+        "longform_delivery_audit.json",
+        "render_plan.json",
+        "final_qa_suite_report.json",
+        "story_style_contract_audit.json",
+        "bgm_audio_contract_audit.json",
+        "rendered_transition_proof_contract_audit.json",
+    ):
+        data = load_json(package_dir / rel)
+        if isinstance(data, dict):
+            payloads.append(data)
+
+    project_values: list[Any] = []
+    final_values: list[Any] = []
+    for payload in payloads:
+        for item in iter_dict_values(payload):
+            if not isinstance(item, dict):
+                continue
+            project_values.append(item.get("projectDir"))
+            final_values.extend([item.get("finalOutput"), item.get("output"), item.get("outputPath"), item.get("finalMp4")])
+
+    project_dir = first_existing_path(package_dir, project_values)
+    project_inference = "report_projectDir" if project_dir else "unresolved"
+    final_output = first_existing_path(package_dir, final_values)
+    final_inference = "report_final_output" if final_output else "unresolved"
+    new_package = package_dir.parent / f"{package_dir.name}_repair_candidate"
+    return {
+        "skillDir": str(skill_dir),
+        "packageDir": str(package_dir),
+        "projectDir": str(project_dir) if project_dir else "",
+        "projectDirInference": project_inference,
+        "finalMp4": str(final_output) if final_output else "",
+        "finalMp4Inference": final_inference,
+        "newPackage": str(new_package),
+    }
+
+
 def accepted_status(report_id: str, spec: dict[str, Any], data: dict[str, Any]) -> bool:
     accepted = set(spec.get("accepted") or ACCEPTED_COMMON)
     return data.get("status") in accepted and not data.get("blockers")
@@ -1260,11 +1353,87 @@ def row_actionable(row: dict[str, Any]) -> bool:
     )
 
 
+def unresolved_placeholders(command: str) -> list[str]:
+    return sorted(set(PLACEHOLDER_RE.findall(command or "")))
+
+
+def resolve_command(command: str, context: dict[str, Any]) -> tuple[str, list[str]]:
+    replacements = {
+        "<skill-dir>": context.get("skillDir") or "",
+        "<package>": context.get("packageDir") or "",
+        "<project-dir>": context.get("projectDir") or "",
+        "<project>": context.get("projectDir") or "",
+        "<final-mp4>": context.get("finalMp4") or "",
+        "<new-package>": context.get("newPackage") or "",
+    }
+    resolved = command
+    for token, value in replacements.items():
+        if value:
+            resolved = resolved.replace(token, shlex.quote(str(value)))
+    return resolved, unresolved_placeholders(resolved)
+
+
+def repair_key(row: dict[str, Any]) -> str:
+    source = clean_text(row.get("sourceReport"), 160)
+    owner = clean_text(row.get("ownerScript"), 120)
+    artifact = clean_text(row.get("requiredArtifact"), 180)
+    blocker = re.sub(r"[^a-z0-9]+", "-", clean_text(row.get("blocker"), 220).lower()).strip("-")
+    return "|".join([source, owner, artifact, blocker[:120]])
+
+
+def rerun_commands(row: dict[str, Any], context: dict[str, Any]) -> list[str]:
+    source_report = str(row.get("sourceReport") or "")
+    base = [
+        "python3 <skill-dir>/scripts/prepare_unattended_repair_queue.py --package-dir <package> --json",
+        "python3 <skill-dir>/scripts/audit_unattended_first_draft_contract.py --package-dir <package> --json",
+        "python3 <skill-dir>/scripts/audit_whole_film_satisfaction_contract.py --package-dir <package> --json",
+        "python3 <skill-dir>/scripts/audit_one_shot_autonomy_contract.py --package-dir <package> --json",
+        "python3 <skill-dir>/scripts/run_final_qa_suite.py --package-dir <package>",
+    ]
+    if source_report.startswith("final_qa:"):
+        base.insert(0, "python3 <skill-dir>/scripts/run_final_qa_suite.py --package-dir <package>")
+    return [resolve_command(command, context)[0] for command in base]
+
+
+def enrich_rows_for_execution(rows: list[dict[str, Any]], context: dict[str, Any]) -> list[dict[str, Any]]:
+    sorted_rows = sorted(
+        rows,
+        key=lambda row: (
+            PRIORITY_ORDER.get(str(row.get("priority")), 99),
+            PHASE_ORDER.get(str(row.get("phase")), 999),
+            str(row.get("sourceReport") or ""),
+            int(row.get("rowIndex") or 0),
+        ),
+    )
+    for execution_order, row in enumerate(sorted_rows, 1):
+        row["originalRowIndex"] = row.get("rowIndex")
+        row["rowIndex"] = execution_order
+        row["executionOrder"] = execution_order
+        row["phaseOrder"] = PHASE_ORDER.get(str(row.get("phase")), 999)
+        row["priorityOrder"] = PRIORITY_ORDER.get(str(row.get("priority")), 99)
+        row["repairKey"] = repair_key(row)
+        row["commandTemplate"] = row.get("command")
+        resolved, unresolved = resolve_command(str(row.get("command") or ""), context)
+        row["commandResolved"] = resolved
+        row["unresolvedPlaceholders"] = unresolved
+        row["unresolvedPlaceholderCount"] = len(unresolved)
+        row["context"] = {
+            "projectDirInference": context.get("projectDirInference"),
+            "finalMp4Inference": context.get("finalMp4Inference"),
+            "newPackage": context.get("newPackage"),
+        }
+        row["postRepairCommands"] = rerun_commands(row, context)
+        row["autoExecutable"] = row_actionable(row) and not unresolved
+        row["actionable"] = row_actionable(row)
+    return sorted_rows
+
+
 def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     package_dir = package_dir.expanduser().resolve()
     skill_dir = skill_dir.expanduser().resolve()
     rows: list[dict[str, Any]] = []
     report_rows: list[dict[str, Any]] = []
+    context = infer_context(package_dir, skill_dir)
 
     for report_id, spec in REPORT_SPECS.items():
         rel_path = Path(spec["path"])
@@ -1346,6 +1515,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         tracked_report_ids=set(REPORT_SPECS),
     )
     rows.extend(final_qa_rows)
+    rows = enrich_rows_for_execution(rows, context)
 
     phase_counts: dict[str, int] = {}
     priority_counts: dict[str, int] = {}
@@ -1354,8 +1524,11 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         priority_counts[str(row.get("priority"))] = priority_counts.get(str(row.get("priority")), 0) + 1
 
     actionable_count = len([row for row in rows if row.get("actionable") is True])
+    auto_executable_count = len([row for row in rows if row.get("autoExecutable") is True])
     p0_count = len([row for row in rows if row.get("priority") == "P0"])
     unactionable = [row for row in rows if row.get("actionable") is not True]
+    unresolved_rows = [row for row in rows if int(row.get("unresolvedPlaceholderCount") or 0) > 0]
+    not_auto_executable = [row for row in rows if row.get("autoExecutable") is not True]
     missing_reports = [row for row in report_rows if not row["exists"] and not row.get("optionalIfMissing")]
     blocked_reports = [row for row in report_rows if row["exists"] and not row["accepted"]]
     resolve_apply_rows = [row for row in rows if row.get("sourceReport") == "resolve_transition_apply_contract_audit"]
@@ -1367,7 +1540,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     ]
     if not rows:
         status = "ready_no_unattended_repairs_needed"
-    elif not unactionable:
+    elif not unactionable and not unresolved_rows:
         status = "ready_with_unattended_repair_queue"
     else:
         status = "blocked_unactionable_repair_queue"
@@ -1378,11 +1551,15 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         "contract": "unattended_repair_queue",
         "packageDir": str(package_dir),
         "skillDir": str(skill_dir),
+        "executionContext": context,
         "reports": report_rows,
         "repairRows": rows,
         "blockers": [
             f"Repair row {row.get('rowIndex')} is not actionable: {row.get('sourceReport')}"
             for row in unactionable
+        ] + [
+            f"Repair row {row.get('rowIndex')} has unresolved placeholders {row.get('unresolvedPlaceholders')}: {row.get('sourceReport')}"
+            for row in unresolved_rows
         ],
         "warnings": final_qa_warnings,
         "summary": {
@@ -1395,10 +1572,18 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "p0RepairRowCount": p0_count,
             "p1RepairRowCount": len([row for row in rows if row.get("priority") == "P1"]),
             "actionableRepairRowCount": actionable_count,
+            "autoExecutableRepairRowCount": auto_executable_count,
             "unactionableRepairRowCount": len(unactionable),
+            "notAutoExecutableRepairRowCount": len(not_auto_executable),
+            "unresolvedPlaceholderRepairRowCount": len(unresolved_rows),
+            "unresolvedPlaceholderCount": sum(int(row.get("unresolvedPlaceholderCount") or 0) for row in rows),
             "rowsWithOwnerScript": len([row for row in rows if row.get("ownerScript")]),
             "rowsWithRequiredArtifact": len([row for row in rows if row.get("requiredArtifact")]),
             "rowsWithCommand": len([row for row in rows if row.get("command")]),
+            "rowsWithResolvedCommand": len([row for row in rows if row.get("commandResolved")]),
+            "rowsWithPostRepairCommands": len([row for row in rows if row.get("postRepairCommands")]),
+            "rowsWithRepairKey": len([row for row in rows if row.get("repairKey")]),
+            "rowsWithExecutionOrder": len([row for row in rows if row.get("executionOrder")]),
             "rowsWithAcceptanceEvidence": len([row for row in rows if row.get("acceptanceEvidence")]),
             "rowsWithForbiddenWorkaround": len([row for row in rows if row.get("forbiddenWorkaround")]),
             "resolveTransitionApplyRepairRowCount": len(resolve_apply_rows),
@@ -1411,11 +1596,13 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         "selectionRubric": {
             "pass": [
                 "If repairRowCount is zero, continue with unattended/Resolve handoff gates.",
-                "If repair rows exist, complete P0 rows in phase order before another Resolve apply or render claim.",
-                "After each repair, rerun the owner script, its acceptance audit, this repair queue, unattended first-draft, V14 baseline, and final QA as applicable.",
+                "If repair rows exist, complete rows by executionOrder before another Resolve apply or render claim.",
+                "Every repair row must have commandResolved, no unresolved placeholders, postRepairCommands, repairKey, and no-write safety flags.",
+                "After each repair, run commandResolved, then postRepairCommands until this queue, whole-film satisfaction, one-shot autonomy, V14 baseline, and final QA pass.",
             ],
             "reject": [
                 "Reject any queue row missing ownerScript, command, requiredArtifact, acceptanceEvidence, or forbiddenWorkaround.",
+                "Reject any queue row whose commandResolved still contains <project-dir>, <final-mp4>, <package>, <skill-dir>, or <new-package>.",
                 "Reject any attempt to bypass source/story/audio/transition blockers with stock, titles, effects, or stale QA evidence.",
             ],
         },
@@ -1437,6 +1624,12 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"Package: `{report['packageDir']}`",
         f"Skill: `{report['skillDir']}`",
         "",
+        "## Execution Context",
+        "",
+        "```json",
+        json.dumps(report.get("executionContext") or {}, ensure_ascii=False, indent=2),
+        "```",
+        "",
         "## Summary",
         "",
         "```json",
@@ -1451,15 +1644,22 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 "",
                 f"### {row['rowIndex']}. {row['priority']} {row['phase']} - {row['sourceReport']}",
                 f"- Actionable: `{row['actionable']}`",
+                f"- Auto executable: `{row.get('autoExecutable')}`",
+                f"- Repair key: `{row.get('repairKey')}`",
                 f"- Issue: `{row['issueType']}`",
                 f"- Blocker: {row['blocker']}",
                 f"- Owner script: `{row['ownerScript']}`",
                 f"- Required artifact: `{row['requiredArtifact']}`",
-                f"- Command: `{row['command']}`",
+                f"- Command template: `{row['commandTemplate']}`",
+                f"- Command resolved: `{row.get('commandResolved')}`",
+                f"- Unresolved placeholders: `{', '.join(row.get('unresolvedPlaceholders') or []) or 'none'}`",
                 f"- Acceptance: {row['acceptanceEvidence']}",
                 f"- Forbidden workaround: {row['forbiddenWorkaround']}",
+                "- Post-repair commands:",
             ]
         )
+        for command in row.get("postRepairCommands") or []:
+            lines.append(f"  - `{command}`")
     if not report["repairRows"]:
         lines.append("")
         lines.append("No unattended repairs are needed.")

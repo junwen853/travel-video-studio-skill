@@ -124,6 +124,13 @@ REQUIRED_CONTRACT_TOKENS = {
         "rowsWithBgmPhraseCue",
         "motionEffectRowsWithBridgeEvidence",
     ],
+    "prepare_unattended_repair_queue.py": [
+        "commandResolved",
+        "unresolvedPlaceholders",
+        "postRepairCommands",
+        "executionOrder",
+        "autoExecutableRepairRowCount",
+    ],
     "audit_skill_maturity_contract.py": [
         "rowsReviewedAfterFinalOutputMtime",
         "rowsWithTimecodedOrFullRange",
@@ -134,6 +141,8 @@ REQUIRED_CONTRACT_TOKENS = {
         "rowsWithClosureDecision",
         "rowsWithPreResolveDecision",
         "motionEffectRowsWithBridgeEvidence",
+        "unresolvedPlaceholderRepairRowCount",
+        "autoExecutableRepairRowCount",
     ],
     "audit_v14_baseline_contract.py": [
         "rowsReviewedAfterFinalOutputMtime",
@@ -146,6 +155,8 @@ REQUIRED_CONTRACT_TOKENS = {
         "openRepairRowCount",
         "rowsWithPreResolveDecision",
         "motionEffectRowsWithBridgeEvidence",
+        "unresolvedPlaceholderRepairRowCount",
+        "notAutoExecutableRepairRowCount",
     ],
 }
 

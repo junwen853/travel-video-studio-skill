@@ -8396,7 +8396,13 @@ def unattended_repair_queue_evidence(package_dir: Path) -> dict[str, Any]:
     rows = data.get("repairRows") if isinstance(data.get("repairRows"), list) else []
     row_count = len([row for row in rows if isinstance(row, dict)])
     actionable_rows = len([row for row in rows if isinstance(row, dict) and row.get("actionable") is True])
+    auto_executable_rows = len([row for row in rows if isinstance(row, dict) and row.get("autoExecutable") is True])
     rows_with_forbidden = len([row for row in rows if isinstance(row, dict) and row.get("forbiddenWorkaround")])
+    rows_with_resolved_command = len([row for row in rows if isinstance(row, dict) and row.get("commandResolved")])
+    rows_with_post_repair_commands = len([row for row in rows if isinstance(row, dict) and row.get("postRepairCommands")])
+    rows_with_repair_key = len([row for row in rows if isinstance(row, dict) and row.get("repairKey")])
+    rows_with_execution_order = len([row for row in rows if isinstance(row, dict) and row.get("executionOrder")])
+    unresolved_rows = len([row for row in rows if isinstance(row, dict) and int(row.get("unresolvedPlaceholderCount") or 0) > 0])
     return {
         "path": str(path),
         "exists": path.exists(),
@@ -8407,14 +8413,28 @@ def unattended_repair_queue_evidence(package_dir: Path) -> dict[str, Any]:
         "repairRowCount": summary.get("repairRowCount"),
         "p0RepairRowCount": summary.get("p0RepairRowCount"),
         "actionableRepairRowCount": summary.get("actionableRepairRowCount"),
+        "autoExecutableRepairRowCount": summary.get("autoExecutableRepairRowCount"),
         "unactionableRepairRowCount": summary.get("unactionableRepairRowCount"),
+        "notAutoExecutableRepairRowCount": summary.get("notAutoExecutableRepairRowCount"),
+        "unresolvedPlaceholderRepairRowCount": summary.get("unresolvedPlaceholderRepairRowCount"),
+        "unresolvedPlaceholderCount": summary.get("unresolvedPlaceholderCount"),
         "rowsWithOwnerScript": summary.get("rowsWithOwnerScript"),
         "rowsWithCommand": summary.get("rowsWithCommand"),
+        "rowsWithResolvedCommand": summary.get("rowsWithResolvedCommand"),
+        "rowsWithPostRepairCommands": summary.get("rowsWithPostRepairCommands"),
+        "rowsWithRepairKey": summary.get("rowsWithRepairKey"),
+        "rowsWithExecutionOrder": summary.get("rowsWithExecutionOrder"),
         "rowsWithAcceptanceEvidence": summary.get("rowsWithAcceptanceEvidence"),
         "rowsWithForbiddenWorkaround": summary.get("rowsWithForbiddenWorkaround"),
         "rowCountByRows": row_count,
         "actionableRowsByRows": actionable_rows,
+        "autoExecutableRowsByRows": auto_executable_rows,
         "rowsWithForbiddenWorkaroundByRows": rows_with_forbidden,
+        "rowsWithResolvedCommandByRows": rows_with_resolved_command,
+        "rowsWithPostRepairCommandsByRows": rows_with_post_repair_commands,
+        "rowsWithRepairKeyByRows": rows_with_repair_key,
+        "rowsWithExecutionOrderByRows": rows_with_execution_order,
+        "unresolvedPlaceholderRowsByRows": unresolved_rows,
         "phaseCounts": summary.get("phaseCounts"),
         "blockerCount": len(data.get("blockers") or []),
         "warningCount": len(data.get("warnings") or []),
@@ -8436,7 +8456,11 @@ def unattended_repair_queue_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("repairRowCount") or 0) == 0
         and int(evidence.get("p0RepairRowCount") or 0) == 0
         and int(evidence.get("unactionableRepairRowCount") or 0) == 0
+        and int(evidence.get("notAutoExecutableRepairRowCount") or 0) == 0
+        and int(evidence.get("unresolvedPlaceholderRepairRowCount") or 0) == 0
+        and int(evidence.get("unresolvedPlaceholderCount") or 0) == 0
         and int(evidence.get("rowCountByRows") or 0) == 0
+        and int(evidence.get("unresolvedPlaceholderRowsByRows") or 0) == 0
         and int(evidence.get("blockerCount") or 0) == 0
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False

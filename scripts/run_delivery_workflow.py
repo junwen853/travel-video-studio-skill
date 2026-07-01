@@ -2579,7 +2579,13 @@ def summarize_unattended_repair_queue(report: dict[str, Any] | None) -> dict[str
         "repairRowCount": summary.get("repairRowCount"),
         "p0RepairRowCount": summary.get("p0RepairRowCount"),
         "actionableRepairRowCount": summary.get("actionableRepairRowCount"),
+        "autoExecutableRepairRowCount": summary.get("autoExecutableRepairRowCount"),
         "unactionableRepairRowCount": summary.get("unactionableRepairRowCount"),
+        "notAutoExecutableRepairRowCount": summary.get("notAutoExecutableRepairRowCount"),
+        "unresolvedPlaceholderRepairRowCount": summary.get("unresolvedPlaceholderRepairRowCount"),
+        "unresolvedPlaceholderCount": summary.get("unresolvedPlaceholderCount"),
+        "rowsWithResolvedCommand": summary.get("rowsWithResolvedCommand"),
+        "rowsWithPostRepairCommands": summary.get("rowsWithPostRepairCommands"),
         "phaseCounts": summary.get("phaseCounts"),
         "blockers": report.get("blockers") or [],
         "warnings": report.get("warnings") or [],
@@ -3580,6 +3586,21 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Visible effects/apply paths: {transition_apply.get('visibleEffectRowCount')} / {transition_apply.get('visibleEffectRowsWithApplyPath')}",
                 f"- Pending manual visible effects: {transition_apply.get('pendingManualVisibleEffectRowCount')}",
                 f"- Manual evidence/bridge evidence ready: {transition_apply.get('manualResolveEvidenceReadyRowCount')} / {transition_apply.get('fallbackBridgeEvidenceReadyRowCount')}",
+            ]
+        )
+    if report.get("unattendedRepairQueueSummary"):
+        queue = report["unattendedRepairQueueSummary"]
+        lines.extend(
+            [
+                "",
+                "## Unattended Repair Queue",
+                f"- Exists: `{queue.get('exists')}`",
+                f"- Status: `{queue.get('status')}`",
+                f"- Repair rows P0/P1: {queue.get('p0RepairRowCount')} / {queue.get('repairRowCount')}",
+                f"- Actionable/auto-executable rows: {queue.get('actionableRepairRowCount')} / {queue.get('autoExecutableRepairRowCount')}",
+                f"- Unactionable/not-auto rows: {queue.get('unactionableRepairRowCount')} / {queue.get('notAutoExecutableRepairRowCount')}",
+                f"- Unresolved placeholders rows/count: {queue.get('unresolvedPlaceholderRepairRowCount')} / {queue.get('unresolvedPlaceholderCount')}",
+                f"- Resolved commands/post-repair commands: {queue.get('rowsWithResolvedCommand')} / {queue.get('rowsWithPostRepairCommands')}",
             ]
         )
     if report.get("unattendedFirstDraftSummary"):
