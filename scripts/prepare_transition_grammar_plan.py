@@ -163,6 +163,37 @@ DECISION_FIELDS = {
     "approvedAt": "",
     "editorNotes": "",
 }
+GENERIC_DECISION_TEXT = {
+    "ok",
+    "okay",
+    "pass",
+    "passed",
+    "done",
+    "none",
+    "n/a",
+    "na",
+    "fixed",
+    "reviewed",
+    "complete",
+    "completed",
+    "无",
+    "无问题",
+    "没问题",
+    "通过",
+    "完成",
+    "已完成",
+}
+ALLOWED_TRANSITION_TYPES = {
+    "straight_cut",
+    "match_cut",
+    "short_dissolve",
+    "short_dissolve_after_bridge",
+    "whip_pan_match",
+    "rotation_match_cut",
+    "speed_ramp_bridge",
+    "insert_bridge_first",
+}
+MOTION_TRANSITION_TYPES = {"whip_pan_match", "rotation_match_cut", "speed_ramp_bridge"}
 
 
 def load_json(path: Path | None) -> Any | None:
@@ -182,6 +213,43 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 def clean_words(value: Any, limit: int = 280) -> str:
     text = re.sub(r"\s+", " ", str(value or "")).strip()
     return text[:limit]
+
+
+def is_meaningful_text(value: Any, *, min_len: int = 10) -> bool:
+    text = clean_words(value, 1000)
+    if len(text) < min_len:
+        return False
+    normalized = re.sub(r"[\s.。,_-]+", " ", text).strip().lower()
+    return normalized not in GENERIC_DECISION_TEXT
+
+
+def parse_iso_datetime(value: Any) -> datetime | None:
+    text = clean_words(value, 100)
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone().replace(tzinfo=None)
+    return parsed
+
+
+def meaningful_value(value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, bool):
+        return True
+    if isinstance(value, (int, float)):
+        return True
+    if isinstance(value, str):
+        return is_meaningful_text(value, min_len=2)
+    if isinstance(value, list):
+        return bool(value)
+    if isinstance(value, dict):
+        return bool(value)
+    return bool(value)
 
 
 def as_float(value: Any, default: float | None = None) -> float | None:
@@ -226,6 +294,29 @@ def timeline_end(clip: dict[str, Any]) -> float:
 def source_name(clip: dict[str, Any]) -> str:
     source = str(clip.get("sourcePath") or "")
     return Path(source).name if source else ""
+
+
+def existing_decisions(output_dir: Path) -> dict[int, dict[str, Any]]:
+    data = load_json(output_dir / "transition_grammar_plan.json") or {}
+    rows = data.get("transitionRows") if isinstance(data.get("transitionRows"), list) else []
+    out: dict[int, dict[str, Any]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        index = int(as_float(row.get("rowIndex"), 0) or 0)
+        decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+        if index and decision:
+            out[index] = dict(decision)
+    return out
+
+
+def merge_decision(default: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any]:
+    decision = dict(default)
+    if isinstance(previous, dict):
+        for key, value in previous.items():
+            if key in decision and meaningful_value(value):
+                decision[key] = value
+    return decision
 
 
 def video_clips(blueprint: dict[str, Any]) -> list[dict[str, Any]]:
@@ -375,7 +466,140 @@ def storyboard_purpose(category: str, recommendation: dict[str, Any]) -> str:
     return "same_scene_continuity"
 
 
-def build_rows(package_dir: Path, clips: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def motion_direction_label(signals: dict[str, list[str]], recommendation: dict[str, Any]) -> str:
+    from_terms = signals.get("fromMotionTerms") or []
+    to_terms = signals.get("toMotionTerms") or []
+    transition = str(recommendation.get("recommendedTransitionType") or "")
+    if transition in MOTION_TRANSITION_TYPES and from_terms and to_terms:
+        return f"matched_route_motion: from={','.join(from_terms[:4])}; to={','.join(to_terms[:4])}"
+    if transition == "match_cut":
+        matches = recommendation.get("sharedMatchTerms") or []
+        return f"visual_match: {','.join(matches[:5])}" if matches else "visual_match"
+    if "dissolve" in transition:
+        return "settled_scenic_or_time_shift"
+    if transition == "insert_bridge_first":
+        return "blocked_until_bridge_insert"
+    return "stable_continuity_cut"
+
+
+def bgm_phrase_cue(category: str, recommendation: dict[str, Any]) -> str:
+    transition = str(recommendation.get("recommendedTransitionType") or "")
+    if transition in MOTION_TRANSITION_TYPES:
+        return "hit on BGM downbeat; leave 2-4 frames before motion peak and land with 6-12 stable frames"
+    if transition == "match_cut":
+        return "cut on phrase subdivision; let matched object/motion carry the beat"
+    if "dissolve" in transition:
+        return "start dissolve on phrase tail; land before next subtitle or title read"
+    if transition == "insert_bridge_first":
+        return "no visible effect until bridge insert has its own BGM hit cue"
+    if category in {"title_boundary", "ending_transition"}:
+        return "hold title/ending breath across phrase tail with no camera voice"
+    return "clean cut on phrase boundary with no decorative hit"
+
+
+def resolve_implementation(category: str, recommendation: dict[str, Any]) -> str:
+    transition = str(recommendation.get("recommendedTransitionType") or "")
+    frames = recommendation.get("durationFrames")
+    if transition == "insert_bridge_first":
+        return "Block visible effect; insert local route/street/signage/weather/aerial bridge shot before choosing cut or dissolve."
+    if transition == "straight_cut":
+        return "Use a direct cut; preserve stable landing frames and do not add decorative Resolve effects."
+    if transition == "match_cut":
+        return f"Use {frames or 4}-frame match cut or direct cut aligned to shared visual term; avoid template motion."
+    if transition == "short_dissolve":
+        return f"Use restrained {frames or 12}-frame dissolve only across mood/time/title/ending shift; keep title/subtitle readable."
+    if transition == "whip_pan_match":
+        return f"Use motivated {frames or 10}-frame whip-pan match only if outgoing and landing motion directions agree."
+    if transition == "rotation_match_cut":
+        return f"Use rare {frames or 10}-frame rotation match cut only with real turning/route-motion evidence."
+    if transition == "speed_ramp_bridge":
+        return f"Use short {frames or 8}-frame speed ramp on real movement; no fake motion over static scenic shots."
+    if category == "title_boundary":
+        return "Use title-safe transition with subtitle suppression and BGM-only audio."
+    return "Use restrained transition selected by grammar row; no random spin, flash, glitch, shake, or template pack effect."
+
+
+def auto_decision(
+    *,
+    row_index: int,
+    category: str,
+    recommendation: dict[str, Any],
+    signals: dict[str, list[str]],
+    outgoing: str,
+    bridge_or_motion: str,
+    landing: str,
+    created_at: str,
+) -> dict[str, Any]:
+    transition = str(recommendation.get("recommendedTransitionType") or "")
+    return {
+        "approvedTransitionType": transition,
+        "fallbackTransitionType": recommendation.get("fallbackTransitionType") or "straight_cut",
+        "durationFrames": recommendation.get("durationFrames"),
+        "requiresBridgeInsert": transition == "insert_bridge_first",
+        "bridgeInsertSource": (
+            "required local route/street/signage/weather/aerial bridge before visible effect"
+            if transition == "insert_bridge_first"
+            else "not required for this grammar decision; use adjacent physical bridge, visual match, or mood/title evidence"
+        ),
+        "storyboardPurpose": storyboard_purpose(category, recommendation),
+        "outgoingShotEvidence": outgoing,
+        "bridgeOrMotionBeatEvidence": bridge_or_motion,
+        "landingShotEvidence": landing,
+        "previewStripEvidence": f"transition_preview_packet required for row {row_index} before final Resolve apply",
+        "frameSampleEvidence": f"adjacent blueprint pair row {row_index}; bridgeTerms={','.join(signals.get('bridgeTerms') or []) or 'none'}; moodTerms={','.join(signals.get('moodTerms') or []) or 'none'}",
+        "motionDirection": motion_direction_label(signals, recommendation),
+        "bgmPhraseCue": bgm_phrase_cue(category, recommendation),
+        "captionSuppressionNeeded": category == "title_boundary",
+        "resolveImplementation": resolve_implementation(category, recommendation),
+        "readbackEvidence": "pre-resolve grammar decision; final readback enforced by transition apply/materialization audits",
+        "approvedBy": "auto_transition_grammar_plan",
+        "approvedAt": created_at,
+        "editorNotes": str(recommendation.get("reason") or ""),
+    }
+
+
+def decision_quality_issues(row: dict[str, Any]) -> list[str]:
+    decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+    recommendation = row.get("recommendation") if isinstance(row.get("recommendation"), dict) else {}
+    category = str(row.get("boundaryCategory") or "")
+    transition = str(decision.get("approvedTransitionType") or "")
+    fallback = str(decision.get("fallbackTransitionType") or "")
+    issues: list[str] = []
+    if transition not in ALLOWED_TRANSITION_TYPES:
+        issues.append("approvedTransitionType must be an allowed concrete transition type")
+    if fallback not in ALLOWED_TRANSITION_TYPES:
+        issues.append("fallbackTransitionType must be an allowed concrete transition type")
+    if transition != "insert_bridge_first" and not isinstance(decision.get("durationFrames"), int):
+        issues.append("durationFrames must be an integer for visible transition decisions")
+    for key in (
+        "storyboardPurpose",
+        "outgoingShotEvidence",
+        "bridgeOrMotionBeatEvidence",
+        "landingShotEvidence",
+        "previewStripEvidence",
+        "frameSampleEvidence",
+        "motionDirection",
+        "bgmPhraseCue",
+        "resolveImplementation",
+        "readbackEvidence",
+        "approvedBy",
+    ):
+        if not is_meaningful_text(decision.get(key)):
+            issues.append(f"{key} is missing, too short, or generic")
+    if not parse_iso_datetime(decision.get("approvedAt")):
+        issues.append("approvedAt must be an ISO timestamp")
+    if transition in MOTION_TRANSITION_TYPES and recommendation.get("motionEffectAllowed") is not True:
+        issues.append("motion transition selected without motionEffectAllowed=true")
+    if transition in MOTION_TRANSITION_TYPES and recommendation.get("physicalBridgeEvidence") is not True:
+        issues.append("motion transition must cite physical bridge or route-motion evidence")
+    if category == "title_boundary" and decision.get("captionSuppressionNeeded") is not True:
+        issues.append("title boundary transitions must suppress captions/title-zone collisions")
+    if category in {"chapter_boundary", "timeline_gap"} and recommendation.get("physicalBridgeEvidence") is not True and transition != "insert_bridge_first":
+        issues.append("chapter/timeline boundary without bridge evidence must use insert_bridge_first")
+    return issues
+
+
+def build_rows(package_dir: Path, clips: list[dict[str, Any]], previous_decisions: dict[int, dict[str, Any]], created_at: str) -> list[dict[str, Any]]:
     lookup = creator_lookup(package_dir)
     rows: list[dict[str, Any]] = []
     for index, (left, right) in enumerate(zip(clips, clips[1:]), start=1):
@@ -385,6 +609,44 @@ def build_rows(package_dir: Path, clips: list[dict[str, Any]]) -> list[dict[str,
         recommendation = recommend_transition(category, left_text, right_text)
         left_creator = lookup.get(str(left.get("sourcePath") or "")) or lookup.get(source_name(left)) or {}
         right_creator = lookup.get(str(right.get("sourcePath") or "")) or lookup.get(source_name(right)) or {}
+        signals = {
+            "fromMotionTerms": matched_terms(left_text, MOTION_TERMS),
+            "toMotionTerms": matched_terms(right_text, MOTION_TERMS),
+            "bridgeTerms": matched_terms(f"{left_text} {right_text}", BRIDGE_TERMS),
+            "moodTerms": matched_terms(f"{left_text} {right_text}", MOOD_TERMS),
+        }
+        outgoing = " | ".join(
+            item
+            for item in (
+                source_name(left),
+                clean_words(left.get("role")),
+                clean_words(left_creator.get("creatorFunction")),
+            )
+            if item
+        )
+        bridge_or_motion = ", ".join(signals["bridgeTerms"]) or recommendation.get("reason") or ""
+        landing = " | ".join(
+            item
+            for item in (
+                source_name(right),
+                clean_words(right.get("role")),
+                clean_words(right_creator.get("creatorFunction")),
+            )
+            if item
+        )
+        decision = merge_decision(
+            auto_decision(
+                row_index=index,
+                category=category,
+                recommendation=recommendation,
+                signals=signals,
+                outgoing=outgoing,
+                bridge_or_motion=bridge_or_motion,
+                landing=landing,
+                created_at=created_at,
+            ),
+            previous_decisions.get(index),
+        )
         row = {
             "rowIndex": index,
             "boundaryCategory": category,
@@ -406,53 +668,39 @@ def build_rows(package_dir: Path, clips: list[dict[str, Any]]) -> list[dict[str,
                 "creatorFunction": right_creator.get("creatorFunction"),
                 "editorialTier": right_creator.get("editorialTier"),
             },
-            "signals": {
-                "fromMotionTerms": matched_terms(left_text, MOTION_TERMS),
-                "toMotionTerms": matched_terms(right_text, MOTION_TERMS),
-                "bridgeTerms": matched_terms(f"{left_text} {right_text}", BRIDGE_TERMS),
-                "moodTerms": matched_terms(f"{left_text} {right_text}", MOOD_TERMS),
-            },
+            "signals": signals,
             "recommendation": recommendation,
             "status": transition_status(category, recommendation),
-            "decision": dict(DECISION_FIELDS),
+            "decision": decision,
         }
-        row["decision"]["storyboardPurpose"] = storyboard_purpose(category, recommendation)
-        row["decision"]["outgoingShotEvidence"] = " | ".join(
-            item
-            for item in (
-                source_name(left),
-                clean_words(left.get("role")),
-                clean_words(left_creator.get("creatorFunction")),
-            )
-            if item
-        )
-        row["decision"]["bridgeOrMotionBeatEvidence"] = ", ".join(row["signals"]["bridgeTerms"]) or recommendation.get("reason") or ""
-        row["decision"]["landingShotEvidence"] = " | ".join(
-            item
-            for item in (
-                source_name(right),
-                clean_words(right.get("role")),
-                clean_words(right_creator.get("creatorFunction")),
-            )
-            if item
-        )
-        if recommendation.get("recommendedTransitionType") == "insert_bridge_first":
-            row["decision"]["requiresBridgeInsert"] = True
+        row["decisionIssues"] = decision_quality_issues(row)
         rows.append(row)
     return rows
 
 
-def build_plan(package_dir: Path) -> dict[str, Any]:
+def build_plan(package_dir: Path, output_dir: Path) -> dict[str, Any]:
     package_dir = package_dir.expanduser().resolve()
+    output_dir = output_dir.expanduser().resolve()
+    created_at = datetime.now().isoformat(timespec="seconds")
     blueprint_path = package_dir / "resolve_timeline_blueprint.json"
     blueprint = load_json(blueprint_path) or {}
     clips = video_clips(blueprint)
-    rows = build_rows(package_dir, clips)
+    rows = build_rows(package_dir, clips, existing_decisions(output_dir), created_at)
     decision_keys = set(DECISION_FIELDS)
     rows_with_decisions = sum(1 for row in rows if isinstance(row.get("decision"), dict) and decision_keys.issubset(set(row["decision"])))
     rows_needing_bridge = sum(1 for row in rows if row.get("status") == "needs_bridge_insert")
     motion_candidates = sum(1 for row in rows if (row.get("recommendation") or {}).get("motionEffectAllowed") is True)
     bridge_evidence_count = sum(1 for row in rows if (row.get("recommendation") or {}).get("physicalBridgeEvidence") is True)
+    decision_issue_count = sum(len(row.get("decisionIssues") or []) for row in rows)
+    rows_with_decision_issues = sum(1 for row in rows if row.get("decisionIssues"))
+    rows_with_pre_resolve_decision = len(rows) - rows_with_decision_issues
+    rows_with_bgm_cue = sum(1 for row in rows if is_meaningful_text((row.get("decision") or {}).get("bgmPhraseCue")))
+    rows_with_preview_requirement = sum(1 for row in rows if is_meaningful_text((row.get("decision") or {}).get("previewStripEvidence")))
+    rows_with_frame_sample_evidence = sum(1 for row in rows if is_meaningful_text((row.get("decision") or {}).get("frameSampleEvidence")))
+    title_boundary_rows = [row for row in rows if row.get("boundaryCategory") == "title_boundary"]
+    title_boundary_caption_safe = sum(1 for row in title_boundary_rows if (row.get("decision") or {}).get("captionSuppressionNeeded") is True)
+    motion_rows = [row for row in rows if (row.get("decision") or {}).get("approvedTransitionType") in MOTION_TRANSITION_TYPES]
+    motion_rows_with_evidence = sum(1 for row in motion_rows if (row.get("recommendation") or {}).get("physicalBridgeEvidence") is True)
     style_counts: dict[str, int] = {}
     category_counts: dict[str, int] = {}
     for row in rows:
@@ -462,11 +710,11 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
         category_counts[category] = category_counts.get(category, 0) + 1
     status = (
         "ready_with_transition_grammar_plan"
-        if blueprint_path.exists() and rows and rows_with_decisions == len(rows) and rows_needing_bridge == 0
+        if blueprint_path.exists() and rows and rows_with_decisions == len(rows) and rows_needing_bridge == 0 and decision_issue_count == 0
         else ("needs_bridge_insert_decisions" if blueprint_path.exists() and rows else "blocked_missing_resolve_blueprint")
     )
     return {
-        "createdAt": datetime.now().isoformat(timespec="seconds"),
+        "createdAt": created_at,
         "status": status,
         "packageDir": str(package_dir),
         "inputs": {
@@ -483,6 +731,15 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "timelineGapCount": category_counts.get("timeline_gap", 0),
             "rowsWithDecisionFields": rows_with_decisions,
             "rowsNeedingBridgeInsert": rows_needing_bridge,
+            "rowsWithPreResolveDecision": rows_with_pre_resolve_decision,
+            "decisionIssueCount": decision_issue_count,
+            "rowsWithDecisionIssues": rows_with_decision_issues,
+            "rowsWithBgmPhraseCue": rows_with_bgm_cue,
+            "rowsWithPreviewRequirement": rows_with_preview_requirement,
+            "rowsWithFrameSampleEvidence": rows_with_frame_sample_evidence,
+            "titleBoundaryCaptionSafeCount": title_boundary_caption_safe,
+            "motionEffectRowCount": len(motion_rows),
+            "motionEffectRowsWithBridgeEvidence": motion_rows_with_evidence,
             "physicalBridgeEvidenceCount": bridge_evidence_count,
             "motivatedMotionEffectCandidateCount": motion_candidates,
             "recommendedStyleCounts": style_counts,
@@ -557,6 +814,9 @@ def write_markdown(path: Path, plan: dict[str, Any]) -> None:
                 f"- Recommended: `{rec.get('recommendedTransitionType')}`",
                 f"- Fallback: `{rec.get('fallbackTransitionType')}`",
                 f"- Reason: {rec.get('reason')}",
+                f"- Decision issues: `{', '.join(row.get('decisionIssues') or []) or 'none'}`",
+                f"- Approved: `{(row.get('decision') or {}).get('approvedTransitionType')}`",
+                f"- BGM cue: `{(row.get('decision') or {}).get('bgmPhraseCue')}`",
                 "- Decision fields to fill:",
             ]
         )
@@ -581,7 +841,7 @@ def main() -> int:
 
     package_dir = Path(args.package_dir).expanduser().resolve()
     output_dir = Path(args.output_dir).expanduser().resolve() if args.output_dir else package_dir / "transition_grammar_plan"
-    plan = build_plan(package_dir)
+    plan = build_plan(package_dir, output_dir)
     write_json(output_dir / "transition_grammar_plan.json", plan)
     write_markdown(output_dir / "transition_grammar_plan.md", plan)
     if args.json:

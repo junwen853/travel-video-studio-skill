@@ -3334,6 +3334,12 @@ def transition_grammar_plan_evidence(package_dir: Path) -> dict[str, Any]:
         "durationFrames",
         "requiresBridgeInsert",
         "bridgeInsertSource",
+        "storyboardPurpose",
+        "outgoingShotEvidence",
+        "bridgeOrMotionBeatEvidence",
+        "landingShotEvidence",
+        "previewStripEvidence",
+        "frameSampleEvidence",
         "motionDirection",
         "bgmPhraseCue",
         "captionSuppressionNeeded",
@@ -3346,10 +3352,19 @@ def transition_grammar_plan_evidence(package_dir: Path) -> dict[str, Any]:
     rows_with_recommendation = 0
     rows_ready = 0
     rows_needing_bridge = 0
+    rows_with_decision_issues_by_row = 0
+    decision_issue_count_by_row = 0
+    rows_with_bgm_cue_by_row = 0
+    rows_with_preview_requirement_by_row = 0
+    rows_with_frame_sample_evidence_by_row = 0
+    title_boundary_caption_safe_by_row = 0
+    motion_effect_rows_by_row = 0
+    motion_effect_rows_with_bridge_evidence_by_row = 0
     motion_allowed_rows = 0
     bridge_evidence_rows = 0
     style_counts: dict[str, int] = {}
     category_counts: dict[str, int] = {}
+    motion_transition_types = {"whip_pan_match", "rotation_match_cut", "speed_ramp_bridge"}
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -3362,6 +3377,22 @@ def transition_grammar_plan_evidence(package_dir: Path) -> dict[str, Any]:
         decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
         if decision_fields.issubset(set(decision)):
             rows_with_decision_fields += 1
+        decision_issues = row.get("decisionIssues") if isinstance(row.get("decisionIssues"), list) else []
+        if decision_issues:
+            rows_with_decision_issues_by_row += 1
+            decision_issue_count_by_row += len(decision_issues)
+        if decision.get("bgmPhraseCue"):
+            rows_with_bgm_cue_by_row += 1
+        if decision.get("previewStripEvidence"):
+            rows_with_preview_requirement_by_row += 1
+        if decision.get("frameSampleEvidence"):
+            rows_with_frame_sample_evidence_by_row += 1
+        if category == "title_boundary" and decision.get("captionSuppressionNeeded") is True:
+            title_boundary_caption_safe_by_row += 1
+        if decision.get("approvedTransitionType") in motion_transition_types:
+            motion_effect_rows_by_row += 1
+            if (row.get("recommendation") or {}).get("physicalBridgeEvidence") is True:
+                motion_effect_rows_with_bridge_evidence_by_row += 1
         recommendation = row.get("recommendation") if isinstance(row.get("recommendation"), dict) else {}
         style = str(recommendation.get("recommendedTransitionType") or "")
         if style:
@@ -3382,12 +3413,29 @@ def transition_grammar_plan_evidence(package_dir: Path) -> dict[str, Any]:
         "timelineGapCount": summary.get("timelineGapCount"),
         "rowsWithDecisionFields": summary.get("rowsWithDecisionFields"),
         "rowsNeedingBridgeInsert": summary.get("rowsNeedingBridgeInsert"),
+        "rowsWithPreResolveDecision": summary.get("rowsWithPreResolveDecision"),
+        "decisionIssueCount": summary.get("decisionIssueCount"),
+        "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
+        "rowsWithBgmPhraseCue": summary.get("rowsWithBgmPhraseCue"),
+        "rowsWithPreviewRequirement": summary.get("rowsWithPreviewRequirement"),
+        "rowsWithFrameSampleEvidence": summary.get("rowsWithFrameSampleEvidence"),
+        "titleBoundaryCaptionSafeCount": summary.get("titleBoundaryCaptionSafeCount"),
+        "motionEffectRowCount": summary.get("motionEffectRowCount"),
+        "motionEffectRowsWithBridgeEvidence": summary.get("motionEffectRowsWithBridgeEvidence"),
         "physicalBridgeEvidenceCount": summary.get("physicalBridgeEvidenceCount"),
         "motivatedMotionEffectCandidateCount": summary.get("motivatedMotionEffectCandidateCount"),
         "recommendedStyleCounts": summary.get("recommendedStyleCounts") or style_counts,
         "boundaryCategoryCounts": summary.get("boundaryCategoryCounts") or category_counts,
         "rowCount": len(rows),
         "rowsWithDecisionFieldsByRow": rows_with_decision_fields,
+        "rowsWithDecisionIssuesByRow": rows_with_decision_issues_by_row,
+        "decisionIssueCountByRow": decision_issue_count_by_row,
+        "rowsWithBgmPhraseCueByRow": rows_with_bgm_cue_by_row,
+        "rowsWithPreviewRequirementByRow": rows_with_preview_requirement_by_row,
+        "rowsWithFrameSampleEvidenceByRow": rows_with_frame_sample_evidence_by_row,
+        "titleBoundaryCaptionSafeByRow": title_boundary_caption_safe_by_row,
+        "motionEffectRowsByRow": motion_effect_rows_by_row,
+        "motionEffectRowsWithBridgeEvidenceByRow": motion_effect_rows_with_bridge_evidence_by_row,
         "rowsWithRecommendation": rows_with_recommendation,
         "rowsReadyByRow": rows_ready,
         "rowsNeedingBridgeByRow": rows_needing_bridge,
@@ -3416,6 +3464,21 @@ def transition_grammar_plan_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("rowCount") or 0) == row_count
         and int(evidence.get("rowsWithDecisionFields") or 0) == row_count
         and int(evidence.get("rowsWithDecisionFieldsByRow") or 0) == row_count
+        and int(evidence.get("rowsWithPreResolveDecision") or 0) == row_count
+        and int(evidence.get("decisionIssueCount") or 0) == 0
+        and int(evidence.get("rowsWithDecisionIssues") or 0) == 0
+        and int(evidence.get("decisionIssueCountByRow") or 0) == 0
+        and int(evidence.get("rowsWithDecisionIssuesByRow") or 0) == 0
+        and int(evidence.get("rowsWithBgmPhraseCue") or 0) == row_count
+        and int(evidence.get("rowsWithBgmPhraseCueByRow") or 0) == row_count
+        and int(evidence.get("rowsWithPreviewRequirement") or 0) == row_count
+        and int(evidence.get("rowsWithPreviewRequirementByRow") or 0) == row_count
+        and int(evidence.get("rowsWithFrameSampleEvidence") or 0) == row_count
+        and int(evidence.get("rowsWithFrameSampleEvidenceByRow") or 0) == row_count
+        and int(evidence.get("titleBoundaryCaptionSafeCount") or 0) == int(evidence.get("titleBoundaryCount") or 0)
+        and int(evidence.get("titleBoundaryCaptionSafeByRow") or 0) == int(evidence.get("titleBoundaryCount") or 0)
+        and int(evidence.get("motionEffectRowsWithBridgeEvidence") or 0) == int(evidence.get("motionEffectRowCount") or 0)
+        and int(evidence.get("motionEffectRowsWithBridgeEvidenceByRow") or 0) == int(evidence.get("motionEffectRowsByRow") or 0)
         and int(evidence.get("rowsWithRecommendation") or 0) == row_count
         and int(evidence.get("rowsReadyByRow") or 0) == row_count
         and int(evidence.get("rowsNeedingBridgeInsert") or 0) == 0

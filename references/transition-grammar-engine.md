@@ -48,8 +48,9 @@ Before Resolve apply:
 
 - every chapter/day/place boundary has a transition grammar row
 - every row has one recommended transition and one fallback
-- every row has storyboard decision fields: `storyboardPurpose`, `outgoingShotEvidence`, `bridgeOrMotionBeatEvidence`, `landingShotEvidence`, `previewStripEvidence`, and `frameSampleEvidence`
+- every row has concrete non-generic pre-Resolve decision fields: `approvedTransitionType`, `fallbackTransitionType`, `storyboardPurpose`, `outgoingShotEvidence`, `bridgeOrMotionBeatEvidence`, `landingShotEvidence`, `motionDirection`, `bgmPhraseCue`, `resolveImplementation`, `previewStripEvidence`, and `frameSampleEvidence`
 - whip/rotation rows cite route-motion evidence
 - rows lacking physical bridge evidence are marked `insert_bridge_first`, not effect-ready
+- blank or generic decisions such as `done`, missing BGM cue, missing preview/frame evidence, or motion effects without bridge evidence block V14/Skill maturity
 - important day/place/title/timeline-gap/ending transitions include a ready `transition_preview_packet` and passed transition preview quality contract before approval
 - transition decisions align with creator cut tiers and route texture goals

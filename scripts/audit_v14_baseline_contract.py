@@ -2775,6 +2775,14 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and creator_cut_application.get("status") == "passed"
         and final_source_usage.get("status") == "passed"
         and transition_grammar.get("status") == "ready_with_transition_grammar_plan"
+        and int(transition_grammar_summary.get("decisionIssueCount") or 0) == 0
+        and int(transition_grammar_summary.get("rowsWithDecisionIssues") or 0) == 0
+        and int(transition_grammar_summary.get("rowsWithPreResolveDecision") or 0) == int(transition_grammar_summary.get("transitionRowCount") or 0)
+        and int(transition_grammar_summary.get("rowsWithBgmPhraseCue") or 0) == int(transition_grammar_summary.get("transitionRowCount") or 0)
+        and int(transition_grammar_summary.get("rowsWithPreviewRequirement") or 0) == int(transition_grammar_summary.get("transitionRowCount") or 0)
+        and int(transition_grammar_summary.get("rowsWithFrameSampleEvidence") or 0) == int(transition_grammar_summary.get("transitionRowCount") or 0)
+        and int(transition_grammar_summary.get("titleBoundaryCaptionSafeCount") or 0) == int(transition_grammar_summary.get("titleBoundaryCount") or 0)
+        and int(transition_grammar_summary.get("motionEffectRowsWithBridgeEvidence") or 0) == int(transition_grammar_summary.get("motionEffectRowCount") or 0)
         and transition_source_coverage.get("status") == "passed"
         and int(transition_source_coverage_summary.get("transitionRowCount") or 0) >= 1
         and int(transition_source_coverage_summary.get("blockedSourceCoverageRowCount") or 0) == 0
