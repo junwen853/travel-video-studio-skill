@@ -37,6 +37,14 @@ def unique(items: list[str]) -> list[str]:
     return list(dict.fromkeys(item for item in items if item))
 
 
+def status_is_blocked(status: Any) -> bool:
+    return str(status or "").startswith("blocked")
+
+
+def report_is_blocked(report: dict[str, Any] | None) -> bool:
+    return bool(report and status_is_blocked(report.get("status")))
+
+
 def parse_step_json(step: dict[str, Any]) -> dict[str, Any] | None:
     stdout = step.get("stdout", "").strip()
     if not stdout.startswith("{"):
@@ -4624,7 +4632,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             footage_select_summary = summarize_footage_select_plan(payload)
         if step["id"] == "audit_raw_intake_completeness":
             raw_intake_completeness_summary = summarize_raw_intake_completeness(payload)
-            if raw_intake_completeness_summary and raw_intake_completeness_summary.get("status") == "blocked":
+            if raw_intake_completeness_summary and report_is_blocked(raw_intake_completeness_summary):
                 blockers.extend(
                     f"Raw intake completeness blocker: {item}"
                     for item in raw_intake_completeness_summary.get("blockers") or []
@@ -4646,7 +4654,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 )
         if step["id"] == "audit_source_selection_coverage_contract":
             source_selection_coverage_summary = summarize_source_selection_coverage_contract(payload)
-            if source_selection_coverage_summary and source_selection_coverage_summary.get("status") == "blocked":
+            if source_selection_coverage_summary and report_is_blocked(source_selection_coverage_summary):
                 blockers.extend(
                     f"Source selection coverage audit blocker: {item}"
                     for item in source_selection_coverage_summary.get("blockers") or []
@@ -4658,7 +4666,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 )
         if step["id"] == "audit_first_assembly_source_order_contract":
             first_assembly_source_order_summary = summarize_first_assembly_source_order_contract(payload)
-            if first_assembly_source_order_summary and first_assembly_source_order_summary.get("status") == "blocked":
+            if first_assembly_source_order_summary and report_is_blocked(first_assembly_source_order_summary):
                 blockers.extend(
                     f"First assembly source order blocker: {item}"
                     for item in first_assembly_source_order_summary.get("blockers") or []
@@ -4670,7 +4678,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 )
         if step["id"] == "audit_large_source_unattended_readiness_contract":
             large_source_unattended_readiness_summary = summarize_large_source_unattended_readiness_contract(payload)
-            if large_source_unattended_readiness_summary and large_source_unattended_readiness_summary.get("status") == "blocked":
+            if large_source_unattended_readiness_summary and report_is_blocked(large_source_unattended_readiness_summary):
                 blockers.extend(
                     f"Large source unattended readiness blocker: {item}"
                     for item in large_source_unattended_readiness_summary.get("blockers") or []
@@ -4696,7 +4704,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             caption_story_summary = summarize_caption_story_plan(payload)
         if step["id"] == "audit_audience_caption_contract":
             audience_caption_summary = summarize_audience_caption_contract(payload)
-            if audience_caption_summary and audience_caption_summary.get("status") == "blocked":
+            if audience_caption_summary and report_is_blocked(audience_caption_summary):
                 blockers.append(
                     f"Audience caption blocker: {audience_caption_summary.get('violationCount')} editor-facing caption/TXT violations"
                 )
@@ -4704,11 +4712,11 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             title_typography_summary = summarize_title_typography_plan(payload)
         if step["id"] == "audit_cover_title_contract":
             cover_title_summary = summarize_cover_title_contract(payload)
-            if cover_title_summary and cover_title_summary.get("status") == "blocked":
+            if cover_title_summary and report_is_blocked(cover_title_summary):
                 blockers.extend(f"Cover title blocker: {item}" for item in cover_title_summary.get("blockers") or [])
         if step["id"] == "audit_title_visual_proof_contract":
             title_visual_proof_summary = summarize_title_visual_proof_contract(payload)
-            if title_visual_proof_summary and title_visual_proof_summary.get("status") == "blocked":
+            if title_visual_proof_summary and report_is_blocked(title_visual_proof_summary):
                 blockers.extend(f"Title visual proof blocker: {item}" for item in title_visual_proof_summary.get("blockers") or [])
         if step["id"] == "prepare_title_typography_repair_plan":
             title_typography_repair_summary = summarize_title_typography_repair_plan(payload)
@@ -4730,7 +4738,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             bgm_phrase_blueprint_summary = summarize_bgm_phrase_blueprint(payload)
         if step["id"] == "audit_bgm_musicality_contract":
             bgm_musicality_summary = summarize_bgm_musicality_contract(payload)
-            if bgm_musicality_summary and bgm_musicality_summary.get("status") == "blocked":
+            if bgm_musicality_summary and report_is_blocked(bgm_musicality_summary):
                 blockers.extend(f"BGM musicality blocker: {item}" for item in bgm_musicality_summary.get("blockers") or [])
             if bgm_musicality_summary and bgm_musicality_summary.get("warnings"):
                 warnings.extend(f"BGM musicality warning: {item}" for item in bgm_musicality_summary.get("warnings") or [])
@@ -4775,7 +4783,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                     )
         if step["id"] == "audit_director_intent_contract":
             director_intent_summary = summarize_style_gate_report(payload)
-            if director_intent_summary and director_intent_summary.get("status") == "blocked":
+            if director_intent_summary and report_is_blocked(director_intent_summary):
                 blockers.extend(f"Director intent blocker: {item}" for item in director_intent_summary.get("blockers") or [])
                 if not director_intent_summary.get("blockers"):
                     blockers.append("Director intent blocker: status is blocked")
@@ -4783,7 +4791,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(f"Director intent warning: {item}" for item in director_intent_summary.get("warningsList") or [])
         if step["id"] == "audit_route_texture_contract":
             route_texture_summary = summarize_style_gate_report(payload)
-            if route_texture_summary and route_texture_summary.get("status") == "blocked":
+            if route_texture_summary and report_is_blocked(route_texture_summary):
                 blockers.extend(f"Route texture blocker: {item}" for item in route_texture_summary.get("blockers") or [])
                 if not route_texture_summary.get("blockers"):
                     blockers.append("Route texture blocker: status is blocked")
@@ -4791,7 +4799,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(f"Route texture warning: {item}" for item in route_texture_summary.get("warningsList") or [])
         if step["id"] == "audit_stock_aerial_closure":
             stock_aerial_closure_summary = summarize_style_gate_report(payload)
-            if stock_aerial_closure_summary and stock_aerial_closure_summary.get("status") == "blocked":
+            if stock_aerial_closure_summary and report_is_blocked(stock_aerial_closure_summary):
                 blockers.extend(f"Stock/aerial closure blocker: {item}" for item in stock_aerial_closure_summary.get("blockers") or [])
                 if not stock_aerial_closure_summary.get("blockers"):
                     blockers.append("Stock/aerial closure blocker: status is blocked")
@@ -4802,7 +4810,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 )
         if step["id"] == "audit_director_polish_contract":
             director_polish_summary = summarize_style_gate_report(payload)
-            if director_polish_summary and director_polish_summary.get("status") == "blocked":
+            if director_polish_summary and report_is_blocked(director_polish_summary):
                 blockers.extend(f"Director polish blocker: {item}" for item in director_polish_summary.get("blockers") or [])
                 if not director_polish_summary.get("blockers"):
                     blockers.append("Director polish blocker: status is blocked")
@@ -4824,19 +4832,19 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             transition_execution_blueprint_summary = summarize_transition_execution_blueprint(payload)
         if step["id"] == "audit_transition_cutpoint_contract":
             transition_cutpoint_summary = summarize_transition_cutpoint_contract(payload)
-            if transition_cutpoint_summary and transition_cutpoint_summary.get("status") == "blocked":
+            if transition_cutpoint_summary and report_is_blocked(transition_cutpoint_summary):
                 blockers.extend(f"Transition cutpoint blocker: {item}" for item in transition_cutpoint_summary.get("blockers") or [])
             if transition_cutpoint_summary and transition_cutpoint_summary.get("warnings"):
                 warnings.extend(f"Transition cutpoint warning: {item}" for item in transition_cutpoint_summary.get("warnings") or [])
         if step["id"] == "audit_transition_action_anchor_contract":
             transition_action_anchor_summary = summarize_transition_action_anchor_contract(payload)
-            if transition_action_anchor_summary and transition_action_anchor_summary.get("status") == "blocked":
+            if transition_action_anchor_summary and report_is_blocked(transition_action_anchor_summary):
                 blockers.extend(f"Transition action-anchor blocker: {item}" for item in transition_action_anchor_summary.get("blockers") or [])
             if transition_action_anchor_summary and transition_action_anchor_summary.get("warnings"):
                 warnings.extend(f"Transition action-anchor warning: {item}" for item in transition_action_anchor_summary.get("warnings") or [])
         if step["id"] == "audit_transition_sensory_continuity_contract":
             transition_sensory_continuity_summary = summarize_transition_sensory_continuity_contract(payload)
-            if transition_sensory_continuity_summary and transition_sensory_continuity_summary.get("status") == "blocked":
+            if transition_sensory_continuity_summary and report_is_blocked(transition_sensory_continuity_summary):
                 blockers.extend(f"Transition sensory-continuity blocker: {item}" for item in transition_sensory_continuity_summary.get("blockers") or [])
             if transition_sensory_continuity_summary and transition_sensory_continuity_summary.get("warnings"):
                 warnings.extend(f"Transition sensory-continuity warning: {item}" for item in transition_sensory_continuity_summary.get("warnings") or [])
@@ -4852,43 +4860,43 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             transition_polish_summary = summarize_transition_polish_blueprint(payload)
         if step["id"] == "audit_transition_quality_contract":
             transition_quality_summary = summarize_transition_quality_contract(payload)
-            if transition_quality_summary and transition_quality_summary.get("status") == "blocked":
+            if transition_quality_summary and report_is_blocked(transition_quality_summary):
                 blockers.extend(f"Transition quality blocker: {item}" for item in transition_quality_summary.get("blockers") or [])
             if transition_quality_summary and transition_quality_summary.get("warnings"):
                 warnings.extend(f"Transition quality warning: {item}" for item in transition_quality_summary.get("warnings") or [])
         if step["id"] == "audit_shot_transition_boundary_contract":
             shot_transition_boundary_summary = summarize_shot_transition_boundary_contract(payload)
-            if shot_transition_boundary_summary and shot_transition_boundary_summary.get("status") == "blocked":
+            if shot_transition_boundary_summary and report_is_blocked(shot_transition_boundary_summary):
                 blockers.extend(f"Shot transition boundary blocker: {item}" for item in shot_transition_boundary_summary.get("blockers") or [])
             if shot_transition_boundary_summary and shot_transition_boundary_summary.get("warnings"):
                 warnings.extend(f"Shot transition boundary warning: {item}" for item in shot_transition_boundary_summary.get("warnings") or [])
         if step["id"] == "audit_transition_motivation_contract":
             transition_motivation_summary = summarize_transition_motivation_contract(payload)
-            if transition_motivation_summary and transition_motivation_summary.get("status") == "blocked":
+            if transition_motivation_summary and report_is_blocked(transition_motivation_summary):
                 blockers.extend(f"Transition motivation blocker: {item}" for item in transition_motivation_summary.get("blockers") or [])
             if transition_motivation_summary and transition_motivation_summary.get("warnings"):
                 warnings.extend(f"Transition motivation warning: {item}" for item in transition_motivation_summary.get("warnings") or [])
         if step["id"] == "audit_transition_pair_continuity_contract":
             transition_pair_continuity_summary = summarize_transition_pair_continuity_contract(payload)
-            if transition_pair_continuity_summary and transition_pair_continuity_summary.get("status") == "blocked":
+            if transition_pair_continuity_summary and report_is_blocked(transition_pair_continuity_summary):
                 blockers.extend(f"Transition pair continuity blocker: {item}" for item in transition_pair_continuity_summary.get("blockers") or [])
             if transition_pair_continuity_summary and transition_pair_continuity_summary.get("warnings"):
                 warnings.extend(f"Transition pair continuity warning: {item}" for item in transition_pair_continuity_summary.get("warnings") or [])
         if step["id"] == "audit_transition_execution_readiness_contract":
             transition_execution_readiness_summary = summarize_transition_execution_readiness_contract(payload)
-            if transition_execution_readiness_summary and transition_execution_readiness_summary.get("status") == "blocked":
+            if transition_execution_readiness_summary and report_is_blocked(transition_execution_readiness_summary):
                 blockers.extend(f"Transition execution readiness blocker: {item}" for item in transition_execution_readiness_summary.get("blockers") or [])
             if transition_execution_readiness_summary and transition_execution_readiness_summary.get("warnings"):
                 warnings.extend(f"Transition execution readiness warning: {item}" for item in transition_execution_readiness_summary.get("warnings") or [])
         if step["id"] == "audit_transition_polish_application_contract":
             transition_polish_application_summary = summarize_transition_polish_application_contract(payload)
-            if transition_polish_application_summary and transition_polish_application_summary.get("status") == "blocked":
+            if transition_polish_application_summary and report_is_blocked(transition_polish_application_summary):
                 blockers.extend(f"Transition polish application blocker: {item}" for item in transition_polish_application_summary.get("blockers") or [])
             if transition_polish_application_summary and transition_polish_application_summary.get("warnings"):
                 warnings.extend(f"Transition polish application warning: {item}" for item in transition_polish_application_summary.get("warnings") or [])
         if step["id"] == "audit_resolve_transition_materialization_contract":
             resolve_transition_materialization_summary = summarize_resolve_transition_materialization_contract(payload)
-            if resolve_transition_materialization_summary and resolve_transition_materialization_summary.get("status") == "blocked":
+            if resolve_transition_materialization_summary and report_is_blocked(resolve_transition_materialization_summary):
                 blockers.extend(f"Resolve transition materialization blocker: {item}" for item in resolve_transition_materialization_summary.get("blockers") or [])
             if resolve_transition_materialization_summary and resolve_transition_materialization_summary.get("warnings"):
                 warnings.extend(f"Resolve transition materialization warning: {item}" for item in resolve_transition_materialization_summary.get("warnings") or [])
@@ -4900,103 +4908,103 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(f"Resolve transition apply warning: {item}" for item in resolve_transition_apply_summary.get("warnings") or [])
         if step["id"] == "audit_bridge_sequence_application_contract":
             bridge_sequence_application_summary = summarize_bridge_sequence_application_contract(payload)
-            if bridge_sequence_application_summary and bridge_sequence_application_summary.get("status") == "blocked":
+            if bridge_sequence_application_summary and report_is_blocked(bridge_sequence_application_summary):
                 blockers.extend(f"Bridge sequence application blocker: {item}" for item in bridge_sequence_application_summary.get("blockers") or [])
             if bridge_sequence_application_summary and bridge_sequence_application_summary.get("warnings"):
                 warnings.extend(f"Bridge sequence application warning: {item}" for item in bridge_sequence_application_summary.get("warnings") or [])
         if step["id"] == "audit_transition_bridge_visual_evidence_contract":
             transition_bridge_visual_evidence_summary = summarize_transition_bridge_visual_evidence_contract(payload)
-            if transition_bridge_visual_evidence_summary and transition_bridge_visual_evidence_summary.get("status") == "blocked":
+            if transition_bridge_visual_evidence_summary and report_is_blocked(transition_bridge_visual_evidence_summary):
                 blockers.extend(f"Transition bridge visual evidence blocker: {item}" for item in transition_bridge_visual_evidence_summary.get("blockers") or [])
             if transition_bridge_visual_evidence_summary and transition_bridge_visual_evidence_summary.get("warnings"):
                 warnings.extend(f"Transition bridge visual evidence warning: {item}" for item in transition_bridge_visual_evidence_summary.get("warnings") or [])
         if step["id"] == "audit_final_blueprint_lineage_contract":
             final_blueprint_lineage_summary = summarize_final_blueprint_lineage_contract(payload)
-            if final_blueprint_lineage_summary and final_blueprint_lineage_summary.get("status") == "blocked":
+            if final_blueprint_lineage_summary and report_is_blocked(final_blueprint_lineage_summary):
                 blockers.extend(f"Final blueprint lineage blocker: {item}" for item in final_blueprint_lineage_summary.get("blockers") or [])
             if final_blueprint_lineage_summary and final_blueprint_lineage_summary.get("warnings"):
                 warnings.extend(f"Final blueprint lineage warning: {item}" for item in final_blueprint_lineage_summary.get("warnings") or [])
         if step["id"] == "audit_effect_motion_application_contract":
             effect_motion_application_summary = summarize_effect_motion_application_contract(payload)
-            if effect_motion_application_summary and effect_motion_application_summary.get("status") == "blocked":
+            if effect_motion_application_summary and report_is_blocked(effect_motion_application_summary):
                 blockers.extend(f"Effect motion application blocker: {item}" for item in effect_motion_application_summary.get("blockers") or [])
             if effect_motion_application_summary and effect_motion_application_summary.get("warnings"):
                 warnings.extend(f"Effect motion application warning: {item}" for item in effect_motion_application_summary.get("warnings") or [])
         if step["id"] == "audit_transition_cadence_contract":
             transition_cadence_summary = summarize_transition_cadence_contract(payload)
-            if transition_cadence_summary and transition_cadence_summary.get("status") == "blocked":
+            if transition_cadence_summary and report_is_blocked(transition_cadence_summary):
                 blockers.extend(f"Transition cadence blocker: {item}" for item in transition_cadence_summary.get("blockers") or [])
             if transition_cadence_summary and transition_cadence_summary.get("warnings"):
                 warnings.extend(f"Transition cadence warning: {item}" for item in transition_cadence_summary.get("warnings") or [])
         if step["id"] == "audit_transition_microstructure_contract":
             transition_microstructure_summary = summarize_transition_microstructure_contract(payload)
-            if transition_microstructure_summary and transition_microstructure_summary.get("status") == "blocked":
+            if transition_microstructure_summary and report_is_blocked(transition_microstructure_summary):
                 blockers.extend(f"Transition microstructure blocker: {item}" for item in transition_microstructure_summary.get("blockers") or [])
             if transition_microstructure_summary and transition_microstructure_summary.get("warnings"):
                 warnings.extend(f"Transition microstructure warning: {item}" for item in transition_microstructure_summary.get("warnings") or [])
         if step["id"] == "audit_final_source_usage_contract":
             final_source_usage_summary = summarize_final_source_usage_contract(payload)
-            if final_source_usage_summary and final_source_usage_summary.get("status") == "blocked":
+            if final_source_usage_summary and report_is_blocked(final_source_usage_summary):
                 blockers.extend(f"Final source usage blocker: {item}" for item in final_source_usage_summary.get("blockers") or [])
             if final_source_usage_summary and final_source_usage_summary.get("warnings"):
                 warnings.extend(f"Final source usage warning: {item}" for item in final_source_usage_summary.get("warnings") or [])
         if step["id"] == "audit_creator_cut_application_contract":
             creator_cut_application_summary = summarize_creator_cut_application_contract(payload)
-            if creator_cut_application_summary and creator_cut_application_summary.get("status") == "blocked":
+            if creator_cut_application_summary and report_is_blocked(creator_cut_application_summary):
                 blockers.extend(f"Creator cut application blocker: {item}" for item in creator_cut_application_summary.get("blockers") or [])
             if creator_cut_application_summary and creator_cut_application_summary.get("warnings"):
                 warnings.extend(f"Creator cut application warning: {item}" for item in creator_cut_application_summary.get("warnings") or [])
         if step["id"] == "audit_rhythm_recut_application_contract":
             rhythm_recut_application_summary = summarize_rhythm_recut_application_contract(payload)
-            if rhythm_recut_application_summary and rhythm_recut_application_summary.get("status") == "blocked":
+            if rhythm_recut_application_summary and report_is_blocked(rhythm_recut_application_summary):
                 blockers.extend(f"Rhythm recut application blocker: {item}" for item in rhythm_recut_application_summary.get("blockers") or [])
             if rhythm_recut_application_summary and rhythm_recut_application_summary.get("warnings"):
                 warnings.extend(f"Rhythm recut application warning: {item}" for item in rhythm_recut_application_summary.get("warnings") or [])
         if step["id"] == "audit_reference_scene_grammar_contract":
             reference_scene_grammar_summary = summarize_reference_scene_grammar_contract(payload)
-            if reference_scene_grammar_summary and reference_scene_grammar_summary.get("status") == "blocked":
+            if reference_scene_grammar_summary and report_is_blocked(reference_scene_grammar_summary):
                 blockers.extend(f"Reference scene grammar blocker: {item}" for item in reference_scene_grammar_summary.get("blockers") or [])
             if reference_scene_grammar_summary and reference_scene_grammar_summary.get("warnings"):
                 warnings.extend(f"Reference scene grammar warning: {item}" for item in reference_scene_grammar_summary.get("warnings") or [])
         if step["id"] == "audit_reference_profile_application_contract":
             reference_profile_application_summary = summarize_reference_profile_application_contract(payload)
-            if reference_profile_application_summary and reference_profile_application_summary.get("status") == "blocked":
+            if reference_profile_application_summary and report_is_blocked(reference_profile_application_summary):
                 blockers.extend(f"Reference profile application blocker: {item}" for item in reference_profile_application_summary.get("blockers") or [])
             if reference_profile_application_summary and reference_profile_application_summary.get("warnings"):
                 warnings.extend(f"Reference profile application warning: {item}" for item in reference_profile_application_summary.get("warnings") or [])
         if step["id"] == "audit_timeline_variety_contract":
             timeline_variety_summary = summarize_timeline_variety_contract(payload)
-            if timeline_variety_summary and timeline_variety_summary.get("status") == "blocked":
+            if timeline_variety_summary and report_is_blocked(timeline_variety_summary):
                 blockers.extend(f"Timeline variety blocker: {item}" for item in timeline_variety_summary.get("blockers") or [])
             if timeline_variety_summary and timeline_variety_summary.get("warnings"):
                 warnings.extend(f"Timeline variety warning: {item}" for item in timeline_variety_summary.get("warnings") or [])
         if step["id"] == "audit_transition_scene_arc_contract":
             transition_scene_arc_summary = summarize_transition_scene_arc_contract(payload)
-            if transition_scene_arc_summary and transition_scene_arc_summary.get("status") == "blocked":
+            if transition_scene_arc_summary and report_is_blocked(transition_scene_arc_summary):
                 blockers.extend(f"Transition scene arc blocker: {item}" for item in transition_scene_arc_summary.get("blockers") or [])
             if transition_scene_arc_summary and transition_scene_arc_summary.get("warnings"):
                 warnings.extend(f"Transition scene arc warning: {item}" for item in transition_scene_arc_summary.get("warnings") or [])
         if step["id"] == "audit_transition_effect_palette_contract":
             transition_effect_palette_summary = summarize_transition_effect_palette_contract(payload)
-            if transition_effect_palette_summary and transition_effect_palette_summary.get("status") == "blocked":
+            if transition_effect_palette_summary and report_is_blocked(transition_effect_palette_summary):
                 blockers.extend(f"Transition effect palette blocker: {item}" for item in transition_effect_palette_summary.get("blockers") or [])
             if transition_effect_palette_summary and transition_effect_palette_summary.get("warnings"):
                 warnings.extend(f"Transition effect palette warning: {item}" for item in transition_effect_palette_summary.get("warnings") or [])
         if step["id"] == "audit_transition_motif_coherence_contract":
             transition_motif_coherence_summary = summarize_transition_motif_coherence_contract(payload)
-            if transition_motif_coherence_summary and transition_motif_coherence_summary.get("status") == "blocked":
+            if transition_motif_coherence_summary and report_is_blocked(transition_motif_coherence_summary):
                 blockers.extend(f"Transition motif coherence blocker: {item}" for item in transition_motif_coherence_summary.get("blockers") or [])
             if transition_motif_coherence_summary and transition_motif_coherence_summary.get("warnings"):
                 warnings.extend(f"Transition motif coherence warning: {item}" for item in transition_motif_coherence_summary.get("warnings") or [])
         if step["id"] == "audit_transition_visual_match_contract":
             transition_visual_match_summary = summarize_transition_visual_match_contract(payload)
-            if transition_visual_match_summary and transition_visual_match_summary.get("status") == "blocked":
+            if transition_visual_match_summary and report_is_blocked(transition_visual_match_summary):
                 blockers.extend(f"Transition visual match blocker: {item}" for item in transition_visual_match_summary.get("blockers") or [])
             if transition_visual_match_summary and transition_visual_match_summary.get("warnings"):
                 warnings.extend(f"Transition visual match warning: {item}" for item in transition_visual_match_summary.get("warnings") or [])
         if step["id"] == "audit_transition_source_coverage_contract":
             transition_source_coverage_summary = summarize_transition_source_coverage_contract(payload)
-            if transition_source_coverage_summary and transition_source_coverage_summary.get("status") == "blocked":
+            if transition_source_coverage_summary and report_is_blocked(transition_source_coverage_summary):
                 blockers.extend(
                     f"Transition source coverage blocker: {item}"
                     for item in transition_source_coverage_summary.get("blockers") or []
@@ -5014,13 +5022,13 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(f"Transition choreography plan warning: {item}" for item in transition_choreography_plan_summary.get("warnings") or [])
         if step["id"] == "audit_transition_choreography_contract":
             transition_choreography_contract_summary = summarize_transition_choreography_contract(payload)
-            if transition_choreography_contract_summary and transition_choreography_contract_summary.get("status") == "blocked":
+            if transition_choreography_contract_summary and report_is_blocked(transition_choreography_contract_summary):
                 blockers.extend(f"Transition choreography contract blocker: {item}" for item in transition_choreography_contract_summary.get("blockers") or [])
             if transition_choreography_contract_summary and transition_choreography_contract_summary.get("warnings"):
                 warnings.extend(f"Transition choreography contract warning: {item}" for item in transition_choreography_contract_summary.get("warnings") or [])
         if step["id"] == "audit_transition_motion_direction_contract":
             transition_motion_direction_summary = summarize_transition_motion_direction_contract(payload)
-            if transition_motion_direction_summary and transition_motion_direction_summary.get("status") == "blocked":
+            if transition_motion_direction_summary and report_is_blocked(transition_motion_direction_summary):
                 blockers.extend(f"Transition motion direction blocker: {item}" for item in transition_motion_direction_summary.get("blockers") or [])
             if transition_motion_direction_summary and transition_motion_direction_summary.get("warnings"):
                 warnings.extend(f"Transition motion direction warning: {item}" for item in transition_motion_direction_summary.get("warnings") or [])
@@ -5034,7 +5042,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(f"Transition preview packet warning: {item}" for item in transition_preview_packet_summary.get("warnings") or [])
         if step["id"] == "audit_transition_preview_quality_contract":
             transition_preview_quality_summary = summarize_transition_preview_quality_contract(payload)
-            if transition_preview_quality_summary and transition_preview_quality_summary.get("status") == "blocked":
+            if transition_preview_quality_summary and report_is_blocked(transition_preview_quality_summary):
                 blockers.extend(f"Transition preview quality blocker: {item}" for item in transition_preview_quality_summary.get("blockers") or [])
             if transition_preview_quality_summary and transition_preview_quality_summary.get("warnings"):
                 warnings.extend(f"Transition preview quality warning: {item}" for item in transition_preview_quality_summary.get("warnings") or [])
@@ -5048,7 +5056,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(f"Transition audition packet warning: {item}" for item in transition_audition_packet_summary.get("warnings") or [])
         if step["id"] == "audit_transition_audition_quality_contract":
             transition_audition_quality_summary = summarize_transition_audition_quality_contract(payload)
-            if transition_audition_quality_summary and transition_audition_quality_summary.get("status") == "blocked":
+            if transition_audition_quality_summary and report_is_blocked(transition_audition_quality_summary):
                 blockers.extend(f"Transition audition quality blocker: {item}" for item in transition_audition_quality_summary.get("blockers") or [])
             if transition_audition_quality_summary and transition_audition_quality_summary.get("warnings"):
                 warnings.extend(f"Transition audition quality warning: {item}" for item in transition_audition_quality_summary.get("warnings") or [])
@@ -5068,19 +5076,19 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 warnings.extend(f"Transition watch reel review warning: {item}" for item in transition_watch_reel_review_summary.get("warnings") or [])
         if step["id"] == "audit_transition_audition_visual_proof_contract":
             transition_audition_visual_proof_summary = summarize_transition_audition_visual_proof_contract(payload)
-            if transition_audition_visual_proof_summary and transition_audition_visual_proof_summary.get("status") == "blocked":
+            if transition_audition_visual_proof_summary and report_is_blocked(transition_audition_visual_proof_summary):
                 blockers.extend(f"Transition audition visual proof blocker: {item}" for item in transition_audition_visual_proof_summary.get("blockers") or [])
             if transition_audition_visual_proof_summary and transition_audition_visual_proof_summary.get("warnings"):
                 warnings.extend(f"Transition audition visual proof warning: {item}" for item in transition_audition_visual_proof_summary.get("warnings") or [])
         if step["id"] == "audit_transition_audition_role_integrity_contract":
             transition_audition_role_integrity_summary = summarize_transition_audition_role_integrity_contract(payload)
-            if transition_audition_role_integrity_summary and transition_audition_role_integrity_summary.get("status") == "blocked":
+            if transition_audition_role_integrity_summary and report_is_blocked(transition_audition_role_integrity_summary):
                 blockers.extend(f"Transition audition role integrity blocker: {item}" for item in transition_audition_role_integrity_summary.get("blockers") or [])
             if transition_audition_role_integrity_summary and transition_audition_role_integrity_summary.get("warnings"):
                 warnings.extend(f"Transition audition role integrity warning: {item}" for item in transition_audition_role_integrity_summary.get("warnings") or [])
         if step["id"] == "audit_transition_motion_accent_contract":
             transition_motion_accent_summary = summarize_transition_motion_accent_contract(payload)
-            if transition_motion_accent_summary and transition_motion_accent_summary.get("status") == "blocked":
+            if transition_motion_accent_summary and report_is_blocked(transition_motion_accent_summary):
                 blockers.extend(f"Transition motion accent blocker: {item}" for item in transition_motion_accent_summary.get("blockers") or [])
             if transition_motion_accent_summary and transition_motion_accent_summary.get("warnings"):
                 warnings.extend(f"Transition motion accent warning: {item}" for item in transition_motion_accent_summary.get("warnings") or [])
@@ -5103,79 +5111,79 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 )
         if step["id"] == "audit_transition_effect_recipe_contract":
             transition_effect_recipe_summary = summarize_transition_effect_recipe_contract(payload)
-            if transition_effect_recipe_summary and transition_effect_recipe_summary.get("status") == "blocked":
+            if transition_effect_recipe_summary and report_is_blocked(transition_effect_recipe_summary):
                 blockers.extend(f"Transition effect recipe blocker: {item}" for item in transition_effect_recipe_summary.get("blockers") or [])
             if transition_effect_recipe_summary and transition_effect_recipe_summary.get("warnings"):
                 warnings.extend(f"Transition effect recipe warning: {item}" for item in transition_effect_recipe_summary.get("warnings") or [])
         if step["id"] == "audit_transition_storyboard_contract":
             transition_storyboard_summary = summarize_transition_storyboard_contract(payload)
-            if transition_storyboard_summary and transition_storyboard_summary.get("status") == "blocked":
+            if transition_storyboard_summary and report_is_blocked(transition_storyboard_summary):
                 blockers.extend(f"Transition storyboard blocker: {item}" for item in transition_storyboard_summary.get("blockers") or [])
             if transition_storyboard_summary and transition_storyboard_summary.get("warnings"):
                 warnings.extend(f"Transition storyboard warning: {item}" for item in transition_storyboard_summary.get("warnings") or [])
         if step["id"] == "audit_reference_transition_profile_contract":
             reference_transition_profile_summary = summarize_reference_transition_profile_contract(payload)
-            if reference_transition_profile_summary and reference_transition_profile_summary.get("status") == "blocked":
+            if reference_transition_profile_summary and report_is_blocked(reference_transition_profile_summary):
                 blockers.extend(f"Reference transition profile blocker: {item}" for item in reference_transition_profile_summary.get("blockers") or [])
             if reference_transition_profile_summary and reference_transition_profile_summary.get("warnings"):
                 warnings.extend(f"Reference transition profile warning: {item}" for item in reference_transition_profile_summary.get("warnings") or [])
         if step["id"] == "audit_chapter_story_spine_contract":
             chapter_story_spine_summary = summarize_chapter_story_spine_contract(payload)
-            if chapter_story_spine_summary and chapter_story_spine_summary.get("status") == "blocked":
+            if chapter_story_spine_summary and report_is_blocked(chapter_story_spine_summary):
                 blockers.extend(f"Chapter story spine blocker: {item}" for item in chapter_story_spine_summary.get("blockers") or [])
             if chapter_story_spine_summary and chapter_story_spine_summary.get("warnings"):
                 warnings.extend(f"Chapter story spine warning: {item}" for item in chapter_story_spine_summary.get("warnings") or [])
         if step["id"] == "audit_shot_flow_continuity_contract":
             shot_flow_continuity_summary = summarize_shot_flow_continuity_contract(payload)
-            if shot_flow_continuity_summary and shot_flow_continuity_summary.get("status") == "blocked":
+            if shot_flow_continuity_summary and report_is_blocked(shot_flow_continuity_summary):
                 blockers.extend(f"Shot flow continuity blocker: {item}" for item in shot_flow_continuity_summary.get("blockers") or [])
             if shot_flow_continuity_summary and shot_flow_continuity_summary.get("warnings"):
                 warnings.extend(f"Shot flow continuity warning: {item}" for item in shot_flow_continuity_summary.get("warnings") or [])
         if step["id"] == "audit_transition_breathing_room_contract":
             transition_breathing_room_summary = summarize_transition_breathing_room_contract(payload)
-            if transition_breathing_room_summary and transition_breathing_room_summary.get("status") == "blocked":
+            if transition_breathing_room_summary and report_is_blocked(transition_breathing_room_summary):
                 blockers.extend(f"Transition breathing-room blocker: {item}" for item in transition_breathing_room_summary.get("blockers") or [])
             if transition_breathing_room_summary and transition_breathing_room_summary.get("warnings"):
                 warnings.extend(f"Transition breathing-room warning: {item}" for item in transition_breathing_room_summary.get("warnings") or [])
         if step["id"] == "audit_scene_flow_arc_contract":
             scene_flow_arc_summary = summarize_scene_flow_arc_contract(payload)
-            if scene_flow_arc_summary and scene_flow_arc_summary.get("status") == "blocked":
+            if scene_flow_arc_summary and report_is_blocked(scene_flow_arc_summary):
                 blockers.extend(f"Scene flow arc blocker: {item}" for item in scene_flow_arc_summary.get("blockers") or [])
             if scene_flow_arc_summary and scene_flow_arc_summary.get("warnings"):
                 warnings.extend(f"Scene flow arc warning: {item}" for item in scene_flow_arc_summary.get("warnings") or [])
         if step["id"] == "audit_final_cut_smoothness_contract":
             final_cut_smoothness_summary = summarize_final_cut_smoothness_contract(payload)
-            if final_cut_smoothness_summary and final_cut_smoothness_summary.get("status") == "blocked":
+            if final_cut_smoothness_summary and report_is_blocked(final_cut_smoothness_summary):
                 blockers.extend(f"Final cut smoothness blocker: {item}" for item in final_cut_smoothness_summary.get("blockers") or [])
             if final_cut_smoothness_summary and final_cut_smoothness_summary.get("warnings"):
                 warnings.extend(f"Final cut smoothness warning: {item}" for item in final_cut_smoothness_summary.get("warnings") or [])
         if step["id"] == "audit_transition_continuity_rehearsal_contract":
             transition_continuity_rehearsal_summary = summarize_transition_continuity_rehearsal_contract(payload)
-            if transition_continuity_rehearsal_summary and transition_continuity_rehearsal_summary.get("status") == "blocked":
+            if transition_continuity_rehearsal_summary and report_is_blocked(transition_continuity_rehearsal_summary):
                 blockers.extend(f"Transition continuity rehearsal blocker: {item}" for item in transition_continuity_rehearsal_summary.get("blockers") or [])
             if transition_continuity_rehearsal_summary and transition_continuity_rehearsal_summary.get("warnings"):
                 warnings.extend(f"Transition continuity rehearsal warning: {item}" for item in transition_continuity_rehearsal_summary.get("warnings") or [])
         if step["id"] == "audit_pacing_watchability_contract":
             pacing_watchability_summary = summarize_pacing_watchability_contract(payload)
-            if pacing_watchability_summary and pacing_watchability_summary.get("status") == "blocked":
+            if pacing_watchability_summary and report_is_blocked(pacing_watchability_summary):
                 blockers.extend(f"Pacing watchability blocker: {item}" for item in pacing_watchability_summary.get("blockers") or [])
             if pacing_watchability_summary and pacing_watchability_summary.get("warnings"):
                 warnings.extend(f"Pacing watchability warning: {item}" for item in pacing_watchability_summary.get("warnings") or [])
         if step["id"] == "audit_narrative_adjacency_contract":
             narrative_adjacency_summary = summarize_narrative_adjacency_contract(payload)
-            if narrative_adjacency_summary and narrative_adjacency_summary.get("status") == "blocked":
+            if narrative_adjacency_summary and report_is_blocked(narrative_adjacency_summary):
                 blockers.extend(f"Narrative adjacency blocker: {item}" for item in narrative_adjacency_summary.get("blockers") or [])
             if narrative_adjacency_summary and narrative_adjacency_summary.get("warnings"):
                 warnings.extend(f"Narrative adjacency warning: {item}" for item in narrative_adjacency_summary.get("warnings") or [])
         if step["id"] == "audit_transition_viewer_orientation_contract":
             transition_viewer_orientation_summary = summarize_transition_viewer_orientation_contract(payload)
-            if transition_viewer_orientation_summary and transition_viewer_orientation_summary.get("status") == "blocked":
+            if transition_viewer_orientation_summary and report_is_blocked(transition_viewer_orientation_summary):
                 blockers.extend(f"Transition viewer orientation blocker: {item}" for item in transition_viewer_orientation_summary.get("blockers") or [])
             if transition_viewer_orientation_summary and transition_viewer_orientation_summary.get("warnings"):
                 warnings.extend(f"Transition viewer orientation warning: {item}" for item in transition_viewer_orientation_summary.get("warnings") or [])
         if step["id"] == "audit_transition_scene_settlement_contract":
             transition_scene_settlement_summary = summarize_transition_scene_settlement_contract(payload)
-            if transition_scene_settlement_summary and transition_scene_settlement_summary.get("status") == "blocked":
+            if transition_scene_settlement_summary and report_is_blocked(transition_scene_settlement_summary):
                 blockers.extend(f"Transition scene settlement blocker: {item}" for item in transition_scene_settlement_summary.get("blockers") or [])
             if transition_scene_settlement_summary and transition_scene_settlement_summary.get("warnings"):
                 warnings.extend(f"Transition scene settlement warning: {item}" for item in transition_scene_settlement_summary.get("warnings") or [])
@@ -5219,7 +5227,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             reference_style_repair_summary = summarize_reference_style_repair_plan(payload)
         if step["id"] == "audit_reference_repair_closure":
             reference_repair_closure_summary = summarize_reference_repair_closure(payload)
-            if reference_repair_closure_summary and reference_repair_closure_summary.get("status") == "blocked":
+            if reference_repair_closure_summary and report_is_blocked(reference_repair_closure_summary):
                 blockers.extend(f"Reference repair closure blocker: {item}" for item in reference_repair_closure_summary.get("blockers") or [])
             if reference_repair_closure_summary and reference_repair_closure_summary.get("warnings"):
                 warnings.extend(f"Reference repair closure warning: {item}" for item in reference_repair_closure_summary.get("warnings") or [])
@@ -5256,13 +5264,13 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             resolve_apply_contract_summary = summarize_resolve_apply_contract(payload)
         if step["id"] == "resolve_blueprint_preflight":
             resolve_blueprint_preflight_summary = summarize_blueprint_preflight(payload)
-            if payload and payload.get("status") == "blocked":
+            if payload and report_is_blocked(payload):
                 blockers.extend(f"Resolve blueprint preflight blocker: {item}" for item in payload.get("blockers") or [])
             elif payload and payload.get("warnings"):
                 warnings.extend(f"Resolve blueprint preflight warning: {item}" for item in payload.get("warnings") or [])
         if step["id"] == "audit_unattended_first_draft_contract":
             unattended_first_draft_summary = summarize_unattended_first_draft_contract(payload)
-            if unattended_first_draft_summary and unattended_first_draft_summary.get("status") == "blocked":
+            if unattended_first_draft_summary and report_is_blocked(unattended_first_draft_summary):
                 blockers.extend(
                     f"Unattended first draft blocker: {item}"
                     for item in unattended_first_draft_summary.get("blockers") or []
@@ -5285,7 +5293,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 )
         if step["id"] == "audit_skill_maturity_contract":
             skill_maturity_summary = summarize_skill_maturity_contract(payload)
-            if skill_maturity_summary and skill_maturity_summary.get("status") == "blocked":
+            if skill_maturity_summary and report_is_blocked(skill_maturity_summary):
                 blockers.extend(
                     f"Skill maturity blocker: {item}" for item in skill_maturity_summary.get("blockers") or []
                 )
@@ -5295,7 +5303,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 )
         if step["id"] == "audit_v14_baseline_contract":
             v14_baseline_summary = summarize_v14_baseline_contract(payload)
-            if v14_baseline_summary and v14_baseline_summary.get("status") == "blocked":
+            if v14_baseline_summary and report_is_blocked(v14_baseline_summary):
                 blockers.extend(f"V14 baseline blocker: {item}" for item in v14_baseline_summary.get("blockers") or [])
             if v14_baseline_summary and v14_baseline_summary.get("warnings"):
                 warnings.extend(f"V14 baseline warning: {item}" for item in v14_baseline_summary.get("warnings") or [])
@@ -5771,7 +5779,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
 
     final_status = status
     if not final_status:
-        if audit_summary and audit_summary.get("status") == "blocked":
+        if audit_summary and report_is_blocked(audit_summary):
             final_status = "blocked"
         elif any(not step["ok"] for step in steps):
             final_status = "failed"
