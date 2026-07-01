@@ -2563,6 +2563,13 @@ def source_selection_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
         "destinationPayoffCandidateCount": summary.get("destinationPayoffCandidateCount"),
         "blockingRepairRowCount": summary.get("blockingRepairRowCount"),
         "warningRepairRowCount": summary.get("warningRepairRowCount"),
+        "openRepairRowCount": summary.get("openRepairRowCount"),
+        "closedRepairRowCount": summary.get("closedRepairRowCount"),
+        "totalRepairRowCount": summary.get("totalRepairRowCount"),
+        "decisionArchiveCount": summary.get("decisionArchiveCount"),
+        "decisionIssueCount": summary.get("decisionIssueCount"),
+        "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
+        "rowsWithClosureDecision": summary.get("rowsWithClosureDecision"),
         "repairRowCount": len(repair_rows),
         "chapterCoverageRowCount": len(chapter_rows),
         "readyChapterCoverageRowCount": len(ready_chapter_rows),
@@ -2600,6 +2607,12 @@ def source_selection_repair_plan_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("livedInTextureCandidateCount") or 0) >= 1
         and int(evidence.get("destinationPayoffCandidateCount") or 0) >= 1
         and int(evidence.get("blockingRepairRowCount") or 0) == 0
+        and int(evidence.get("warningRepairRowCount") or 0) == 0
+        and int(evidence.get("openRepairRowCount") or 0) == 0
+        and int(evidence.get("decisionIssueCount") or 0) == 0
+        and int(evidence.get("rowsWithDecisionIssues") or 0) == 0
+        and int(evidence.get("decisionArchiveCount") or 0) == int(evidence.get("totalRepairRowCount") or 0)
+        and int(evidence.get("rowsWithClosureDecision") or 0) == int(evidence.get("totalRepairRowCount") or 0)
         and int(evidence.get("repairRowsWithDecisionFields") or 0) == int(evidence.get("repairRowCount") or 0)
         and int(evidence.get("auditBlockedCheckCount") or 0) == 0
         and evidence.get("blocksFilenameOrderAssembly") is True

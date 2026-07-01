@@ -95,6 +95,9 @@ def build_report(package_dir: Path, explicit_plan: str | None = None) -> dict[st
         decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
         if REQUIRED_DECISION_FIELDS.issubset(set(decision)):
             repair_rows_with_decision += 1
+    open_repair_row_count = as_int(summary.get("openRepairRowCount"), len(repair_rows))
+    decision_issue_count = as_int(summary.get("decisionIssueCount"))
+    rows_with_decision_issues = as_int(summary.get("rowsWithDecisionIssues"))
     ready_chapters = [row for row in chapter_rows if row.get("status") == "ready_with_chapter_selection_coverage"]
 
     checks: list[dict[str, Any]] = []
@@ -109,10 +112,18 @@ def build_report(package_dir: Path, explicit_plan: str | None = None) -> dict[st
         "Source selection coverage has no blocking repair rows",
         plan.get("status") == "ready_no_source_selection_repairs_needed"
         and as_int(summary.get("blockingRepairRowCount")) == 0
+        and as_int(summary.get("warningRepairRowCount")) == 0
+        and open_repair_row_count == 0
+        and decision_issue_count == 0
+        and rows_with_decision_issues == 0
         and not blocking_rows,
         {
             "status": plan.get("status"),
             "blockingRepairRowCount": summary.get("blockingRepairRowCount"),
+            "warningRepairRowCount": summary.get("warningRepairRowCount"),
+            "openRepairRowCount": summary.get("openRepairRowCount"),
+            "decisionIssueCount": summary.get("decisionIssueCount"),
+            "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
             "blockingRepairIds": [row.get("repairId") for row in blocking_rows],
         },
     )
@@ -148,10 +159,14 @@ def build_report(package_dir: Path, explicit_plan: str | None = None) -> dict[st
     add_check(
         checks,
         "Repair rows are machine-actionable when warnings remain",
-        len(repair_rows) == repair_rows_with_decision,
+        len(repair_rows) == repair_rows_with_decision and open_repair_row_count == 0 and decision_issue_count == 0,
         {
             "repairRowCount": len(repair_rows),
             "warningRepairRowCount": len(warning_rows),
+            "openRepairRowCount": summary.get("openRepairRowCount"),
+            "closedRepairRowCount": summary.get("closedRepairRowCount"),
+            "decisionIssueCount": summary.get("decisionIssueCount"),
+            "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
             "rowsWithDecisionFields": repair_rows_with_decision,
         },
     )
@@ -183,6 +198,13 @@ def build_report(package_dir: Path, explicit_plan: str | None = None) -> dict[st
             "destinationPayoffCandidateCount": summary.get("destinationPayoffCandidateCount"),
             "blockingRepairRowCount": summary.get("blockingRepairRowCount"),
             "warningRepairRowCount": summary.get("warningRepairRowCount"),
+            "openRepairRowCount": summary.get("openRepairRowCount"),
+            "closedRepairRowCount": summary.get("closedRepairRowCount"),
+            "totalRepairRowCount": summary.get("totalRepairRowCount"),
+            "decisionArchiveCount": summary.get("decisionArchiveCount"),
+            "decisionIssueCount": summary.get("decisionIssueCount"),
+            "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
+            "rowsWithClosureDecision": summary.get("rowsWithClosureDecision"),
             "checkCount": len(checks),
             "passedCheckCount": sum(1 for row in checks if row["status"] == "passed"),
             "blockedCheckCount": len(blockers),

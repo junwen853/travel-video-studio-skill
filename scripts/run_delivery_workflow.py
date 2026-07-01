@@ -237,6 +237,11 @@ def summarize_source_selection_repair_plan(plan: dict[str, Any] | None) -> dict[
         "destinationPayoffCandidateCount": summary.get("destinationPayoffCandidateCount"),
         "blockingRepairRowCount": summary.get("blockingRepairRowCount"),
         "warningRepairRowCount": summary.get("warningRepairRowCount"),
+        "openRepairRowCount": summary.get("openRepairRowCount"),
+        "closedRepairRowCount": summary.get("closedRepairRowCount"),
+        "totalRepairRowCount": summary.get("totalRepairRowCount"),
+        "decisionIssueCount": summary.get("decisionIssueCount"),
+        "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
         "requiredOwnerScripts": summary.get("requiredOwnerScripts") or [],
     }
 
@@ -2966,6 +2971,8 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
                 f"- Candidates: {source_repair.get('candidateVideoCount')}",
                 f"- Hero/movement/texture/payoff: {source_repair.get('heroCandidateCount')} / {source_repair.get('movementBridgeCandidateCount')} / {source_repair.get('livedInTextureCandidateCount')} / {source_repair.get('destinationPayoffCandidateCount')}",
                 f"- Blocking/warning repairs: {source_repair.get('blockingRepairRowCount')} / {source_repair.get('warningRepairRowCount')}",
+                f"- Open/closed repairs: {source_repair.get('openRepairRowCount')} / {source_repair.get('closedRepairRowCount')}",
+                f"- Decision issues: {source_repair.get('decisionIssueCount')}",
             ]
         )
     if report.get("sourceSelectionCoverageSummary"):

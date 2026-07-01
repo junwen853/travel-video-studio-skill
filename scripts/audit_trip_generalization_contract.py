@@ -104,6 +104,19 @@ REQUIRED_CONTRACT_TOKENS = {
         "rowsWithMatchedCurrentReelPath",
         "effectRestraintEvidence",
     ],
+    "prepare_source_selection_repair_plan.py": [
+        "GENERIC_DECISION_TEXT",
+        "decisionArchive",
+        "openRepairRowCount",
+        "decisionIssueCount",
+        "rowsWithClosureDecision",
+    ],
+    "audit_source_selection_coverage_contract.py": [
+        "openRepairRowCount",
+        "decisionIssueCount",
+        "rowsWithDecisionIssues",
+        "rowsWithClosureDecision",
+    ],
     "audit_skill_maturity_contract.py": [
         "rowsReviewedAfterFinalOutputMtime",
         "rowsWithTimecodedOrFullRange",
@@ -111,6 +124,7 @@ REQUIRED_CONTRACT_TOKENS = {
         "rowsWithOpeningMiddleEndingDecisionEvidence",
         "rowsWithTransitionAudioCaptionEndingDecisionEvidence",
         "transition_watch_reel_watchdown_repair_plan_ready",
+        "rowsWithClosureDecision",
     ],
     "audit_v14_baseline_contract.py": [
         "rowsReviewedAfterFinalOutputMtime",
@@ -120,6 +134,7 @@ REQUIRED_CONTRACT_TOKENS = {
         "rowsWithTransitionAudioCaptionEndingDecisionEvidence",
         "rowsReviewedAfterReelMtime",
         "rowsWithMatchedCurrentReelPath",
+        "openRepairRowCount",
     ],
 }
 

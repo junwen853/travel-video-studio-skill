@@ -463,6 +463,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and source_chapters >= 1
         and int(source_selection_summary.get("readyChapterCount") or 0) == source_chapters
         and int(source_selection_summary.get("blockingRepairRowCount") or 0) == 0
+        and int(source_selection_summary.get("warningRepairRowCount") or 0) == 0
+        and int(source_selection_summary.get("openRepairRowCount") or 0) == 0
+        and int(source_selection_summary.get("decisionIssueCount") or 0) == 0
+        and int(source_selection_summary.get("rowsWithDecisionIssues") or 0) == 0
         and int(source_selection_summary.get("heroCandidateCount") or 0) >= 1
         and int(source_selection_summary.get("movementBridgeCandidateCount") or 0) >= max(1, source_chapters - 1)
         and int(source_selection_summary.get("livedInTextureCandidateCount") or 0) >= 1
@@ -2760,6 +2764,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and large_source_unattended.get("status") in {"passed", "passed_with_warnings"}
         and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
         and source_selection_repair.get("status") == "ready_no_source_selection_repairs_needed"
+        and int(source_selection_summary.get("warningRepairRowCount") or 0) == 0
+        and int(source_selection_summary.get("openRepairRowCount") or 0) == 0
+        and int(source_selection_summary.get("decisionIssueCount") or 0) == 0
+        and int(source_selection_summary.get("rowsWithDecisionIssues") or 0) == 0
         and source_selection_coverage.get("status") == "passed"
         and chapter_arc.get("status") == "ready_with_chapter_arc_plan"
         and rhythm.get("status") == "ready_with_edit_rhythm_plan"

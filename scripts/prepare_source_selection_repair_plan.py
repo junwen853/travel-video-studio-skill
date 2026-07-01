@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -42,6 +43,37 @@ DECISION_FIELDS = {
     "approvedAt": "",
     "editorNotes": "",
 }
+GENERIC_DECISION_TEXT = {
+    "ok",
+    "okay",
+    "pass",
+    "passed",
+    "done",
+    "none",
+    "n/a",
+    "na",
+    "no issue",
+    "no issues",
+    "fixed",
+    "reviewed",
+    "complete",
+    "completed",
+    "无",
+    "无问题",
+    "没问题",
+    "通过",
+    "完成",
+    "已完成",
+    "已看",
+}
+REQUIRED_DECISION_TEXT_FIELDS = (
+    "acceptedRepair",
+    "ownerScriptExecuted",
+    "resolveBlueprintUpdate",
+    "postRepairAudit",
+    "readbackEvidence",
+    "approvedBy",
+)
 
 
 def load_json(path: Path | None) -> Any | None:
@@ -70,6 +102,31 @@ def as_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def clean(value: Any, limit: int = 700) -> str:
+    return re.sub(r"\s+", " ", str(value or "")).strip()[:limit]
+
+
+def is_meaningful_text(value: Any, *, min_len: int = 12) -> bool:
+    text = clean(value, 1000)
+    if len(text) < min_len:
+        return False
+    normalized = re.sub(r"[\s.。,_-]+", " ", text).strip().lower()
+    return normalized not in GENERIC_DECISION_TEXT
+
+
+def parse_iso_datetime(value: Any) -> datetime | None:
+    text = clean(value, 100)
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone().replace(tzinfo=None)
+    return parsed
 
 
 def row_index(row: dict[str, Any]) -> int:
@@ -143,6 +200,66 @@ def output_root(args: argparse.Namespace, package_dir: Path | None, project_dir:
     if project_dir:
         return project_dir / "source_selection_repair_plan"
     raise SystemExit("Provide --package-dir, --project-dir, or --output-dir.")
+
+
+def existing_decisions(output_dir: Path) -> dict[str, dict[str, Any]]:
+    data = load_json(output_dir / "source_selection_repair_plan.json") or {}
+    out: dict[str, dict[str, Any]] = {}
+    if not isinstance(data, dict):
+        return out
+
+    def keep_best(repair_id: str, decision: dict[str, Any]) -> None:
+        current = out.get(repair_id)
+        if current is None or len(decision_quality_issues({"decision": decision})) < len(decision_quality_issues({"decision": current})):
+            out[repair_id] = dict(decision)
+
+    archive = data.get("decisionArchive")
+    if isinstance(archive, dict):
+        for repair_id, decision in archive.items():
+            if isinstance(decision, dict) and clean(repair_id, 120):
+                keep_best(clean(repair_id, 120), decision)
+    for row_key in ("repairRows", "closedRepairRows"):
+        rows = data.get(row_key) if isinstance(data.get(row_key), list) else []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            repair_id = clean(row.get("repairId"), 120)
+            decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+            if repair_id:
+                keep_best(repair_id, decision)
+    return out
+
+
+def merge_decision(existing: dict[str, Any] | None) -> dict[str, Any]:
+    decision = dict(DECISION_FIELDS)
+    if isinstance(existing, dict):
+        decision.update(existing)
+    return decision
+
+
+def decision_quality_issues(row: dict[str, Any]) -> list[str]:
+    decision = row.get("decision") if isinstance(row.get("decision"), dict) else {}
+    issues: list[str] = []
+    for key in REQUIRED_DECISION_TEXT_FIELDS:
+        if not is_meaningful_text(decision.get(key)):
+            issues.append(f"{key} is missing, too short, or generic")
+    replacement_rows = decision.get("replacementRowIndexes")
+    if not (isinstance(replacement_rows, list) and replacement_rows) and not is_meaningful_text(decision.get("approvedFallback")):
+        issues.append("replacementRowIndexes or approvedFallback must explain what replaced or safely excluded the weak source")
+    if not parse_iso_datetime(decision.get("approvedAt")):
+        issues.append("approvedAt must be an ISO timestamp from the actual repair closure")
+    return issues
+
+
+def apply_previous_decisions(rows: list[dict[str, Any]], previous: dict[str, dict[str, Any]]) -> None:
+    for row in rows:
+        repair_id = clean(row.get("repairId"), 120)
+        row["decision"] = merge_decision(previous.get(repair_id))
+        row["decisionIssues"] = decision_quality_issues(row)
+
+
+def row_closed(row: dict[str, Any]) -> bool:
+    return not row.get("decisionIssues")
 
 
 def normalized_chapters(footage_select: dict[str, Any]) -> list[dict[str, Any]]:
@@ -305,8 +422,19 @@ def chapter_coverage_row(index: int, chapter_key: str, rows: list[dict[str, Any]
 
 
 def build_plan(package_dir: Path | None, project_dir: Path | None, footage_select_path: Path | None, output_dir: Path) -> dict[str, Any]:
+    previous = existing_decisions(output_dir)
     selected_path, footage_select = find_footage_select(package_dir, project_dir, footage_select_path)
     if not footage_select:
+        missing_row = make_repair_row(
+            repair_id="global_missing_footage_select_plan",
+            severity="blocker",
+            issue_type="missing_footage_select_plan",
+            scope="global",
+            owner_script="prepare_footage_select_plan.py",
+            problem="No footage_select_plan.json was found.",
+            required_action="Run prepare_footage_select_plan.py before building or auditing the first assembly.",
+        )
+        apply_previous_decisions([missing_row], previous)
         return {
             "createdAt": datetime.now().isoformat(timespec="seconds"),
             "status": "blocked_missing_footage_select_plan",
@@ -314,19 +442,18 @@ def build_plan(package_dir: Path | None, project_dir: Path | None, footage_selec
             "projectDir": str(project_dir) if project_dir else None,
             "outputDir": str(output_dir),
             "inputs": {"footageSelectPlan": str(selected_path) if selected_path else None},
-            "summary": {"blockingRepairRowCount": 1, "warningRepairRowCount": 0, "chapterRowCount": 0},
+            "summary": {
+                "blockingRepairRowCount": 1,
+                "warningRepairRowCount": 0,
+                "openRepairRowCount": 1,
+                "closedRepairRowCount": 0,
+                "decisionIssueCount": len(missing_row.get("decisionIssues") or []),
+                "rowsWithDecisionIssues": 1 if missing_row.get("decisionIssues") else 0,
+                "chapterRowCount": 0,
+            },
             "chapterCoverageRows": [],
-            "repairRows": [
-                make_repair_row(
-                    repair_id="global_missing_footage_select_plan",
-                    severity="blocker",
-                    issue_type="missing_footage_select_plan",
-                    scope="global",
-                    owner_script="prepare_footage_select_plan.py",
-                    problem="No footage_select_plan.json was found.",
-                    required_action="Run prepare_footage_select_plan.py before building or auditing the first assembly.",
-                )
-            ],
+            "decisionArchive": {missing_row["repairId"]: missing_row["decision"]},
+            "repairRows": [missing_row],
             "safety": safety(),
         }
 
@@ -416,10 +543,15 @@ def build_plan(package_dir: Path | None, project_dir: Path | None, footage_selec
             )
         )
 
+    apply_previous_decisions(repair_rows, previous)
     blocking = [row for row in repair_rows if row.get("severity") == "blocker"]
     warnings = [row for row in repair_rows if row.get("severity") != "blocker"]
-    required_scripts = sorted({str(row.get("ownerScript")) for row in repair_rows if row.get("ownerScript")})
-    status = "ready_no_source_selection_repairs_needed" if not blocking else "blocked_source_selection_coverage_needs_repair"
+    open_warnings = [row for row in warnings if not row_closed(row)]
+    closed_warnings = [row for row in warnings if row_closed(row)]
+    open_repair_rows = blocking + open_warnings
+    closed_repair_rows = closed_warnings
+    required_scripts = sorted({str(row.get("ownerScript")) for row in open_repair_rows if row.get("ownerScript")})
+    status = "ready_no_source_selection_repairs_needed" if not open_repair_rows else "blocked_source_selection_coverage_needs_repair"
     return {
         "createdAt": datetime.now().isoformat(timespec="seconds"),
         "status": status,
@@ -444,7 +576,16 @@ def build_plan(package_dir: Path | None, project_dir: Path | None, footage_selec
             "orientationRepairRowCount": len(orientation_repair_rows),
             "repairOrRejectRatio": round(repair_ratio, 4),
             "blockingRepairRowCount": len(blocking),
-            "warningRepairRowCount": len(warnings),
+            "warningRepairRowCount": len(open_warnings),
+            "totalWarningRepairRowCount": len(warnings),
+            "closedWarningRepairRowCount": len(closed_warnings),
+            "openRepairRowCount": len(open_repair_rows),
+            "closedRepairRowCount": len(closed_repair_rows),
+            "totalRepairRowCount": len(repair_rows),
+            "decisionArchiveCount": len(repair_rows),
+            "decisionIssueCount": sum(len(row.get("decisionIssues") or []) for row in repair_rows),
+            "rowsWithDecisionIssues": len([row for row in repair_rows if row.get("decisionIssues")]),
+            "rowsWithClosureDecision": len([row for row in repair_rows if row_closed(row)]),
             "requiredOwnerScripts": required_scripts,
         },
         "policy": {
@@ -465,7 +606,9 @@ def build_plan(package_dir: Path | None, project_dir: Path | None, footage_selec
             "topReadySourceNames": [source_name(row) for row in sorted(ready_rows, key=lambda item: as_int(item.get("selectionScore")), reverse=True)[:20]],
         },
         "chapterCoverageRows": chapter_coverage_rows,
-        "repairRows": repair_rows,
+        "decisionArchive": {str(row.get("repairId")): row.get("decision") for row in repair_rows if row.get("repairId")},
+        "closedRepairRows": closed_repair_rows,
+        "repairRows": open_repair_rows,
         "safety": safety(),
     }
 
@@ -511,6 +654,7 @@ def write_markdown(path: Path, plan: dict[str, Any]) -> None:
                 f"- Required action: {row.get('requiredAction')}",
                 f"- Candidate rows: `{row.get('candidateRowIndexes')}`",
                 f"- Affected rows: `{row.get('affectedRowIndexes')}`",
+                f"- Decision issues: `{', '.join(row.get('decisionIssues') or []) or 'none'}`",
             ]
         )
     warnings = [row for row in plan.get("repairRows") or [] if row.get("severity") != "blocker"]
@@ -525,6 +669,20 @@ def write_markdown(path: Path, plan: dict[str, Any]) -> None:
                 f"- Owner script: `{row.get('ownerScript')}`",
                 f"- Problem: {row.get('problem')}",
                 f"- Required action: {row.get('requiredAction')}",
+                f"- Decision issues: `{', '.join(row.get('decisionIssues') or []) or 'none'}`",
+            ]
+        )
+    closed_rows = plan.get("closedRepairRows") or []
+    lines.extend(["", "## Closed Repair Rows"])
+    if not closed_rows:
+        lines.append("- None.")
+    for row in closed_rows:
+        lines.extend(
+            [
+                "",
+                f"### {row.get('repairId')}",
+                f"- Owner script: `{row.get('ownerScript')}`",
+                f"- Closure: `{json.dumps(row.get('decision'), ensure_ascii=False)[:1200]}`",
             ]
         )
     lines.extend(["", "## Chapter Coverage"])
