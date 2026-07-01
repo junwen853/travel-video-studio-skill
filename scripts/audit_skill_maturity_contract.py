@@ -88,6 +88,7 @@ REQUIRED_SCRIPTS = {
         "audit_transition_audition_quality_contract.py",
         "prepare_transition_watch_reel.py",
         "audit_transition_watch_reel_review_contract.py",
+        "prepare_transition_watch_reel_watchdown_repair_plan.py",
         "audit_transition_audition_visual_proof_contract.py",
         "audit_transition_audition_role_integrity_contract.py",
         "audit_transition_storyboard_contract.py",
@@ -210,6 +211,8 @@ REQUIRED_SKILL_PATTERNS = {
     "transition_watch_reel_review_contract_rule": "audit_transition_watch_reel_review_contract.py",
     "transition_watch_reel_review_status_rule": "passed_no_important_transitions",
     "transition_watch_reel_review_reference_rule": "transition-watch-reel-review-contract.md",
+    "transition_watch_reel_watchdown_rule": "prepare_transition_watch_reel_watchdown_repair_plan.py",
+    "transition_watch_reel_watchdown_status_rule": "ready_no_transition_watch_reel_watchdown_repairs_needed",
     "transition_audition_visual_proof_contract_rule": "audit_transition_audition_visual_proof_contract.py",
     "transition_audition_role_integrity_contract_rule": "audit_transition_audition_role_integrity_contract.py",
     "transition_storyboard_contract_rule": "audit_transition_storyboard_contract.py",
@@ -504,6 +507,7 @@ REQUIRED_PARALLEL_WORLD_PATTERNS = {
     "transition_audition_quality_contract": "transition audition quality contract",
     "transition_watch_reel": "transition watch reel",
     "transition_watch_reel_review": "transition watch reel review",
+    "transition_watch_reel_watchdown": "transition watch reel watchdown",
     "transition_audition_visual_proof_contract": "transition audition visual proof contract",
     "transition_audition_role_integrity_contract": "transition audition role integrity contract",
     "transition_motif_plan": "transition motif plan",
@@ -8035,6 +8039,74 @@ def transition_watch_reel_review_contract_ready(evidence: dict[str, Any]) -> boo
     )
 
 
+def transition_watch_reel_watchdown_repair_plan_evidence(package_dir: Path) -> dict[str, Any]:
+    path = package_dir / "transition_watch_reel_watchdown_repair_plan" / "transition_watch_reel_watchdown_repair_plan.json"
+    data = load_json(path) or {}
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    safety = data.get("safety") if isinstance(data.get("safety"), dict) else {}
+    rows = data.get("watchRows") if isinstance(data.get("watchRows"), list) else []
+    repair_rows = data.get("repairRows") if isinstance(data.get("repairRows"), list) else []
+    return {
+        "path": str(path),
+        "exists": path.exists(),
+        "status": data.get("status"),
+        "watchRowCount": summary.get("watchRowCount"),
+        "closedWatchRowCount": summary.get("closedWatchRowCount"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "supportingIssueCount": summary.get("supportingIssueCount"),
+        "decisionArchiveCount": summary.get("decisionArchiveCount"),
+        "decisionIssueCount": summary.get("decisionIssueCount"),
+        "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
+        "rowsWithTimecodedOrFullRange": summary.get("rowsWithTimecodedOrFullRange"),
+        "rowsWithMatchedCurrentReelPath": summary.get("rowsWithMatchedCurrentReelPath"),
+        "rowsReviewedAfterReelMtime": summary.get("rowsReviewedAfterReelMtime"),
+        "rowEvidenceIssueCount": summary.get("rowEvidenceIssueCount"),
+        "reelOutputExists": summary.get("reelOutputExists"),
+        "rowCount": len(rows),
+        "openRepairRowCount": len(repair_rows),
+        "writesResolve": safety.get("writesResolve"),
+        "queuesRender": safety.get("queuesRender"),
+        "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
+        "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
+        "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+    }
+
+
+def transition_watch_reel_watchdown_repair_plan_ready(evidence: dict[str, Any], review_evidence: dict[str, Any]) -> bool:
+    watch_rows = int(evidence.get("watchRowCount") or 0)
+    review_rows = int(review_evidence.get("reelRowCount") or 0)
+    no_important = review_evidence.get("status") == "passed_no_important_transitions" or review_rows == 0
+    common = (
+        evidence.get("exists")
+        and evidence.get("status") == "ready_no_transition_watch_reel_watchdown_repairs_needed"
+        and int(evidence.get("repairRowCount") or 0) == 0
+        and int(evidence.get("openRepairRowCount") or 0) == 0
+        and int(evidence.get("supportingIssueCount") or 0) == 0
+        and int(evidence.get("decisionIssueCount") or 0) == 0
+        and int(evidence.get("rowsWithDecisionIssues") or 0) == 0
+        and int(evidence.get("rowEvidenceIssueCount") or 0) == 0
+        and evidence.get("writesResolve") is False
+        and evidence.get("queuesRender") is False
+        and evidence.get("downloadsExternalAssets") is False
+        and evidence.get("modifiesSourceFootage") is False
+        and evidence.get("modifiesSourceDrive") is False
+    )
+    if not common:
+        return False
+    if no_important:
+        return watch_rows == 0
+    return (
+        watch_rows >= review_rows
+        and int(evidence.get("closedWatchRowCount") or 0) == watch_rows
+        and int(evidence.get("rowCount") or 0) == watch_rows
+        and int(evidence.get("decisionArchiveCount") or 0) == watch_rows
+        and int(evidence.get("rowsWithTimecodedOrFullRange") or 0) == watch_rows
+        and int(evidence.get("rowsWithMatchedCurrentReelPath") or 0) == watch_rows
+        and int(evidence.get("rowsReviewedAfterReelMtime") or 0) == watch_rows
+        and evidence.get("reelOutputExists") is True
+    )
+
+
 def transition_audition_visual_proof_contract_evidence(package_dir: Path) -> dict[str, Any]:
     path = package_dir / "transition_audition_visual_proof_contract_audit.json"
     data = load_json(path) or {}
@@ -9303,6 +9375,23 @@ def build_report(package_dir: Path, skill_dir: Path, args: argparse.Namespace) -
             "transitionAuditionQuality": transition_audition_quality_evidence,
             "transitionWatchReel": transition_watch_reel_evidence_report,
             "transitionWatchReelReview": transition_watch_reel_review_evidence,
+        },
+    )
+    transition_watch_reel_watchdown_evidence = transition_watch_reel_watchdown_repair_plan_evidence(package_dir)
+    add_check(
+        checks,
+        "Transition watch reel watchdown repair plan proves the current ordered transition reel was reviewed with concrete viewer-facing decisions before Resolve apply or V14 handoff",
+        transition_audition_packet_ready(transition_audition_packet)
+        and transition_audition_quality_contract_ready(transition_audition_quality_evidence)
+        and transition_watch_reel_ready(transition_watch_reel_evidence_report)
+        and transition_watch_reel_review_contract_ready(transition_watch_reel_review_evidence)
+        and transition_watch_reel_watchdown_repair_plan_ready(transition_watch_reel_watchdown_evidence, transition_watch_reel_review_evidence),
+        {
+            "transitionAuditionPacket": transition_audition_packet,
+            "transitionAuditionQuality": transition_audition_quality_evidence,
+            "transitionWatchReel": transition_watch_reel_evidence_report,
+            "transitionWatchReelReview": transition_watch_reel_review_evidence,
+            "transitionWatchReelWatchdown": transition_watch_reel_watchdown_evidence,
         },
     )
     transition_audition_visual_proof_evidence = transition_audition_visual_proof_contract_evidence(package_dir)

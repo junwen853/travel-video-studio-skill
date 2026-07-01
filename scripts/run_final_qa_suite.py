@@ -82,6 +82,7 @@ ACCEPTED_STATUSES = {
     "transition_audition_quality_contract_audit": {"passed"},
     "transition_watch_reel": {"ready_with_transition_watch_reel", "ready_no_important_transitions"},
     "transition_watch_reel_review_contract_audit": {"passed", "passed_no_important_transitions"},
+    "transition_watch_reel_watchdown_repair_plan": {"ready_no_transition_watch_reel_watchdown_repairs_needed"},
     "transition_audition_visual_proof_contract_audit": {"passed"},
     "transition_audition_role_integrity_contract_audit": {"passed"},
     "transition_storyboard_contract_audit": {"passed"},
@@ -236,6 +237,8 @@ def stage_report_path(package_dir: Path, stage: str, *, strict: bool = False) ->
         return package_dir / "transition_audition_packet" / "transition_audition_packet.json"
     if stage == "transition_watch_reel":
         return package_dir / "transition_watch_reel" / "transition_watch_reel.json"
+    if stage == "transition_watch_reel_watchdown_repair_plan":
+        return package_dir / "transition_watch_reel_watchdown_repair_plan" / "transition_watch_reel_watchdown_repair_plan.json"
     if stage == "transition_motion_accent_repair_plan":
         return package_dir / "transition_motion_accent_repair_plan" / "transition_motion_accent_repair_plan.json"
     if stage == "transition_flow_repair_plan":
@@ -898,6 +901,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "audit_transition_watch_reel_review_contract.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "transition_watch_reel_watchdown_repair_plan",
+                [
+                    sys.executable,
+                    str(scripts / "prepare_transition_watch_reel_watchdown_repair_plan.py"),
                     "--package-dir",
                     str(package_dir),
                 ],

@@ -96,12 +96,21 @@ REQUIRED_CONTRACT_TOKENS = {
         "rowsWithOpeningMiddleEndingDecisionEvidence",
         "rowsWithTransitionAudioCaptionEndingDecisionEvidence",
     ],
+    "prepare_transition_watch_reel_watchdown_repair_plan.py": [
+        "TIME_RANGE_RE",
+        "GENERIC_DECISION_TEXT",
+        "decisionArchive",
+        "rowsReviewedAfterReelMtime",
+        "rowsWithMatchedCurrentReelPath",
+        "effectRestraintEvidence",
+    ],
     "audit_skill_maturity_contract.py": [
         "rowsReviewedAfterFinalOutputMtime",
         "rowsWithTimecodedOrFullRange",
         "rowsWithTimecodedOrFullRangeEvidence",
         "rowsWithOpeningMiddleEndingDecisionEvidence",
         "rowsWithTransitionAudioCaptionEndingDecisionEvidence",
+        "transition_watch_reel_watchdown_repair_plan_ready",
     ],
     "audit_v14_baseline_contract.py": [
         "rowsReviewedAfterFinalOutputMtime",
@@ -109,6 +118,8 @@ REQUIRED_CONTRACT_TOKENS = {
         "rowsWithTimecodedOrFullRangeEvidence",
         "rowsWithOpeningMiddleEndingDecisionEvidence",
         "rowsWithTransitionAudioCaptionEndingDecisionEvidence",
+        "rowsReviewedAfterReelMtime",
+        "rowsWithMatchedCurrentReelPath",
     ],
 }
 

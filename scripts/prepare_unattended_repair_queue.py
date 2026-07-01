@@ -339,6 +339,18 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "forbiddenWorkaround": "Do not approve a transition sequence only because per-row clips exist; the ordered watch reel must pass sequence-level rhythm and effect-restraint review.",
         "allowKeywordRoutes": False,
     },
+    "transition_watch_reel_watchdown_repair_plan": {
+        "path": "transition_watch_reel_watchdown_repair_plan/transition_watch_reel_watchdown_repair_plan.json",
+        "accepted": {"ready_no_transition_watch_reel_watchdown_repairs_needed"},
+        "phase": "transition_flow",
+        "priority": "P0",
+        "ownerScript": "prepare_transition_watch_reel_watchdown_repair_plan.py",
+        "requiredArtifact": "transition_watch_reel_watchdown_repair_plan/transition_watch_reel_watchdown_repair_plan.json",
+        "command": "python3 <skill-dir>/scripts/prepare_transition_watch_reel_watchdown_repair_plan.py --package-dir <package> --json",
+        "acceptanceEvidence": "Watch the current ordered muted transition reel and close every row with timecoded viewer-facing evidence for flow, motivation, effect restraint, landing continuity, and BGM/caption safety.",
+        "forbiddenWorkaround": "Do not approve transition flow from automated JSON alone, scattered clips, stale reels, generic 'looks good' notes, or effects that feel random/template-like in sequence.",
+        "allowKeywordRoutes": False,
+    },
     "editorial_watchdown_repair_plan": {
         "path": "editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json",
         "accepted": {"ready_no_editorial_watchdown_repairs_needed"},
@@ -768,6 +780,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/audit_transition_watch_reel_review_contract.py --package-dir <package> --json",
             "acceptanceEvidence": "Rerun transition watch reel review and final QA until the ordered transition reel has clean timing, no audio stream, family variety, and restrained high-intensity motion.",
             "forbiddenWorkaround": "Do not approve reference-style transitions from scattered clips or a reel with repeated template motion, noisy audio, or effect spam.",
+        },
+    ),
+    (
+        ("transition_watch_reel_watchdown", "watch reel watchdown", "transition watchdown", "ordered transition reel"),
+        {
+            "phase": "transition_flow",
+            "ownerScript": "prepare_transition_watch_reel_watchdown_repair_plan.py",
+            "requiredArtifact": "transition_watch_reel_watchdown_repair_plan/transition_watch_reel_watchdown_repair_plan.json",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_watch_reel_watchdown_repair_plan.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun transition watch reel watchdown planning until current-reel timecoded viewer decisions close every important transition row.",
+            "forbiddenWorkaround": "Do not close transition style from automated pass/fail summaries without watching the current ordered reel.",
         },
     ),
     (

@@ -2387,6 +2387,29 @@ def summarize_transition_watch_reel_review_contract(report: dict[str, Any] | Non
     }
 
 
+def summarize_transition_watch_reel_watchdown_repair_plan(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "watchRowCount": summary.get("watchRowCount"),
+        "closedWatchRowCount": summary.get("closedWatchRowCount"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "supportingIssueCount": summary.get("supportingIssueCount"),
+        "decisionIssueCount": summary.get("decisionIssueCount"),
+        "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
+        "rowsWithTimecodedOrFullRange": summary.get("rowsWithTimecodedOrFullRange"),
+        "rowsWithMatchedCurrentReelPath": summary.get("rowsWithMatchedCurrentReelPath"),
+        "rowsReviewedAfterReelMtime": summary.get("rowsReviewedAfterReelMtime"),
+        "rowEvidenceIssueCount": summary.get("rowEvidenceIssueCount"),
+        "reelOutput": summary.get("reelOutput"),
+        "reelOutputExists": summary.get("reelOutputExists"),
+        "ownerScripts": summary.get("ownerScripts"),
+    }
+
+
 def summarize_transition_audition_visual_proof_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -4127,6 +4150,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("audit_transition_watch_reel_review_contract", transition_watch_reel_review_cmd, ok_codes={0, 2}))
 
+    transition_watch_reel_watchdown_repair_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "prepare_transition_watch_reel_watchdown_repair_plan.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("prepare_transition_watch_reel_watchdown_repair_plan", transition_watch_reel_watchdown_repair_cmd, ok_codes={0}))
+
     transition_audition_visual_proof_cmd = [
         "python3",
         str(SCRIPTS_DIR / "audit_transition_audition_visual_proof_contract.py"),
@@ -4590,6 +4622,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_audition_quality_summary = None
     transition_watch_reel_summary = None
     transition_watch_reel_review_summary = None
+    transition_watch_reel_watchdown_summary = None
     transition_audition_visual_proof_summary = None
     transition_audition_role_integrity_summary = None
     transition_motion_accent_summary = None
@@ -5113,6 +5146,12 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition watch reel review blocker: {item}" for item in transition_watch_reel_review_summary.get("blockers") or [])
             if transition_watch_reel_review_summary and transition_watch_reel_review_summary.get("warnings"):
                 warnings.extend(f"Transition watch reel review warning: {item}" for item in transition_watch_reel_review_summary.get("warnings") or [])
+        if step["id"] == "prepare_transition_watch_reel_watchdown_repair_plan":
+            transition_watch_reel_watchdown_summary = summarize_transition_watch_reel_watchdown_repair_plan(payload)
+            if transition_watch_reel_watchdown_summary and transition_watch_reel_watchdown_summary.get("status") != "ready_no_transition_watch_reel_watchdown_repairs_needed":
+                blockers.append(
+                    f"Transition watch reel watchdown blocker: {transition_watch_reel_watchdown_summary.get('repairRowCount')} watchdown rows remain open"
+                )
         if step["id"] == "audit_transition_audition_visual_proof_contract":
             transition_audition_visual_proof_summary = summarize_transition_audition_visual_proof_contract(payload)
             if transition_audition_visual_proof_summary and report_is_blocked(transition_audition_visual_proof_summary):
@@ -5708,6 +5747,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_watch_reel_review_summary = summarize_transition_watch_reel_review_contract(
             load_json(package_dir / "transition_watch_reel_review_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_watch_reel_watchdown_repair_plan" / "transition_watch_reel_watchdown_repair_plan.json").exists():
+        transition_watch_reel_watchdown_summary = summarize_transition_watch_reel_watchdown_repair_plan(
+            load_json(package_dir / "transition_watch_reel_watchdown_repair_plan" / "transition_watch_reel_watchdown_repair_plan.json")
+        )
     if package_dir and (package_dir / "transition_audition_visual_proof_contract_audit.json").exists():
         transition_audition_visual_proof_summary = summarize_transition_audition_visual_proof_contract(
             load_json(package_dir / "transition_audition_visual_proof_contract_audit.json")
@@ -5927,6 +5970,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionAuditionQualitySummary": transition_audition_quality_summary,
         "transitionWatchReelSummary": transition_watch_reel_summary,
         "transitionWatchReelReviewSummary": transition_watch_reel_review_summary,
+        "transitionWatchReelWatchdownSummary": transition_watch_reel_watchdown_summary,
         "transitionAuditionVisualProofSummary": transition_audition_visual_proof_summary,
         "transitionAuditionRoleIntegritySummary": transition_audition_role_integrity_summary,
         "transitionMotionAccentSummary": transition_motion_accent_summary,
@@ -6001,6 +6045,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review feedback_regression_plan.json so original user complaints stay in pre-render audio policy, post-render feedback audit, and final QA commands.",
             "Review reference_batch_profile.json when local reference videos are supplied so rhythm/style targets are based on measured reference evidence.",
             "Review reference_review_repair_plan/reference_review_repair_plan.json when local reference videos are supplied so full-film review evidence is closed before reference learning, final QA, V14, or Skill maturity claims.",
+            "Review transition_watch_reel_watchdown_repair_plan/transition_watch_reel_watchdown_repair_plan.json before Resolve apply, final QA, or V14; ready_with_transition_watch_reel_watchdown_repair_plan means the ordered transition reel still has open viewer-watchdown rows.",
             "Review story_style_contract_audit.json and reference_style_alignment_audit.json before calling a draft Bilibili/Malta-like; these must pass, not only render technically.",
             "Review director_intent_contract_audit.json, route_texture_contract_audit.json, stock_aerial_closure_audit.json, and director_polish_contract_audit.json before handoff; blocked director gates mean the film still lacks route arc, lived-in texture, closed aerial/stock decisions, or premium polish.",
             "Review editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json before handoff; ready_with_editorial_watchdown_repair_plan means the current final MP4 still has open full-film viewer-review rows.",
