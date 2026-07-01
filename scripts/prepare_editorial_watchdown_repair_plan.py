@@ -13,6 +13,27 @@ from typing import Any
 
 CLOSED_STATUS = "ready_no_editorial_watchdown_repairs_needed"
 OPEN_STATUS = "ready_with_editorial_watchdown_repair_plan"
+TIME_RANGE_RE = re.compile(r"(?i)(?:\bfull\b|\bentire\b|\bwhole\b|全片|完整|全程|从头到尾|\d{1,2}:\d{2}(?::\d{2})?)")
+GENERIC_DECISION_TEXT = {
+    "ok",
+    "okay",
+    "pass",
+    "passed",
+    "done",
+    "none",
+    "n/a",
+    "na",
+    "no issue",
+    "no issues",
+    "fixed",
+    "reviewed",
+    "无",
+    "无问题",
+    "没问题",
+    "通过",
+    "完成",
+    "已看",
+}
 
 DECISION_TEMPLATE = {
     "watchAccepted": False,
@@ -76,6 +97,27 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 def clean(value: Any, limit: int = 700) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()[:limit]
+
+
+def is_meaningful_text(value: Any, *, min_len: int = 12) -> bool:
+    text = clean(value, 1000)
+    if len(text) < min_len:
+        return False
+    normalized = re.sub(r"[\s.。,_-]+", " ", text).strip().lower()
+    return normalized not in GENERIC_DECISION_TEXT
+
+
+def parse_iso_datetime(value: Any) -> datetime | None:
+    text = clean(value, 100)
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone().replace(tzinfo=None)
+    return parsed
 
 
 def safe_id(value: Any) -> str:
@@ -185,15 +227,48 @@ def merge_decision(existing: dict[str, Any] | None) -> dict[str, Any]:
     return decision
 
 
-def decision_is_closed(decision: dict[str, Any], *, package_dir: Path, output_path: Path | None) -> bool:
+def decision_quality_issues(decision: dict[str, Any], *, package_dir: Path, output_path: Path | None, output: dict[str, Any]) -> list[str]:
+    issues: list[str] = []
     if decision.get("watchAccepted") is not True:
-        return False
-    if not all(bool(clean(decision.get(key), 300)) for key in REQUIRED_DECISION_TEXT_FIELDS):
-        return False
+        issues.append("watchAccepted is not true")
+    missing = [key for key in REQUIRED_DECISION_TEXT_FIELDS if not clean(decision.get(key), 300)]
+    if missing:
+        issues.append("missing required decision fields: " + ", ".join(missing))
     if not output_path or not output_path.exists():
-        return False
+        issues.append("current final output is missing")
+    watched_range = clean(decision.get("watchedRange"), 300)
+    if watched_range and not TIME_RANGE_RE.search(watched_range):
+        issues.append("watchedRange must name the full film/section or include timecode ranges")
     reviewed = resolve_path(decision.get("reviewedOutputPath"), base=package_dir)
-    return bool(reviewed and reviewed == output_path.resolve())
+    if output_path and output_path.exists() and (not reviewed or reviewed != output_path.resolve()):
+        issues.append("reviewedOutputPath does not match the current final MP4")
+    reviewed_at = parse_iso_datetime(decision.get("reviewedAt"))
+    if not reviewed_at:
+        issues.append("reviewedAt must be an ISO timestamp from the current watchdown")
+    output_mtime = parse_iso_datetime(output.get("mtime"))
+    if reviewed_at and output_mtime and reviewed_at < output_mtime:
+        issues.append("reviewedAt is older than the current final MP4 mtime")
+    if not is_meaningful_text(decision.get("reviewedBy"), min_len=2):
+        issues.append("reviewedBy is missing or too generic")
+    evidence_fields = (
+        "viewerFacingIssueSummary",
+        "openingTitleEvidence",
+        "chapterContinuityEvidence",
+        "transitionEvidence",
+        "bgmCaptionEvidence",
+        "endingAftertasteEvidence",
+        "referenceFitEvidence",
+        "repairActionTaken",
+        "postRepairAuditEvidence",
+    )
+    generic_fields = [key for key in evidence_fields if clean(decision.get(key), 1000) and not is_meaningful_text(decision.get(key), min_len=12)]
+    if generic_fields:
+        issues.append("decision evidence is too generic: " + ", ".join(generic_fields))
+    return issues
+
+
+def decision_is_closed(decision: dict[str, Any], *, package_dir: Path, output_path: Path | None, output: dict[str, Any]) -> bool:
+    return not decision_quality_issues(decision, package_dir=package_dir, output_path=output_path, output=output)
 
 
 def first_list(data: Any, keys: tuple[str, ...]) -> list[Any]:
@@ -345,14 +420,14 @@ def build_watch_row(
 ) -> dict[str, Any]:
     repair_id = str(spec["repairId"])
     decision = merge_decision(previous.get(repair_id))
-    closed = decision_is_closed(decision, package_dir=package_dir, output_path=output_path)
+    decision_issues = decision_quality_issues(decision, package_dir=package_dir, output_path=output_path, output=output)
+    closed = not decision_issues
     issues: list[str] = []
     if not output.get("exists"):
         issues.append("final MP4 is missing or could not be inferred for review")
     if support_issues:
         issues.append("supporting final audits are not all accepted: " + "; ".join(support_issues[:12]))
-    if not closed:
-        issues.append("editorial watchdown decision fields are not complete for the current final output")
+    issues.extend(f"decision issue: {issue}" for issue in decision_issues)
     return {
         "repairId": repair_id,
         "priority": "P0",
@@ -370,6 +445,7 @@ def build_watch_row(
         "forbiddenWorkaround": "Do not call the package ready from technical QA alone, screenshots, contact sheets, sampled frames, stale renders, or internal workflow notes.",
         "affectedEvidence": {**(spec.get("affectedEvidence") or {}), "finalOutput": output},
         "decision": decision,
+        "decisionIssues": decision_issues,
         "closed": closed and not issues,
     }
 
@@ -402,6 +478,18 @@ def build_plan(package_dir: Path, output_dir: Path, final_output: str | None) ->
         "chapterWatchRowCount": len([row for row in watch_rows if str(row.get("repairId", "")).startswith("chapter_watchdown")]),
         "supportingReportCount": len(support_evidence),
         "supportingReportIssueCount": len(support_issues),
+        "decisionIssueCount": sum(len(row.get("decisionIssues") or []) for row in watch_rows),
+        "rowsWithDecisionIssues": len([row for row in watch_rows if row.get("decisionIssues")]),
+        "rowsWithTimecodedOrFullRange": len([row for row in watch_rows if TIME_RANGE_RE.search(clean((row.get("decision") or {}).get("watchedRange"), 300))]),
+        "rowsReviewedAfterFinalOutputMtime": len(
+            [
+                row
+                for row in watch_rows
+                if parse_iso_datetime((row.get("decision") or {}).get("reviewedAt"))
+                and parse_iso_datetime(output.get("mtime"))
+                and parse_iso_datetime((row.get("decision") or {}).get("reviewedAt")) >= parse_iso_datetime(output.get("mtime"))
+            ]
+        ),
         "finalOutput": output.get("path"),
         "finalOutputExists": output.get("exists"),
         "ownerScripts": sorted({str(row.get("ownerScript")) for row in repair_rows if row.get("ownerScript")}),
@@ -458,6 +546,7 @@ def write_markdown(path: Path, plan: dict[str, Any]) -> None:
                 f"- Required action: {row.get('requiredAction')}",
                 f"- Acceptance evidence: {row.get('acceptanceEvidence')}",
                 f"- Forbidden workaround: {row.get('forbiddenWorkaround')}",
+                f"- Decision issues: `{row.get('decisionIssues')}`",
                 "- Decision fields to complete:",
             ]
         )
@@ -469,6 +558,8 @@ def write_markdown(path: Path, plan: dict[str, Any]) -> None:
             "## Contract",
             "- Technical QA does not replace watching the actual final candidate as a film.",
             "- The reviewed output path must match the current final MP4; stale V1/V2/V14 renders do not close this gate.",
+            "- `reviewedAt` must be an ISO timestamp after the current final MP4 modification time, and `watchedRange` must name full-film/section coverage or timecode ranges.",
+            "- Decision evidence must be concrete viewer-facing notes; generic `ok`, `done`, `pass`, or empty repair/audit text does not close a row.",
             "- Repair weak viewing sections through their owner scripts, then rerun final QA instead of leaving viewer-facing notes in captions or handoff text.",
         ]
     )

@@ -736,6 +736,10 @@ def editorial_watchdown_repair_plan_evidence(package_dir: Path) -> dict[str, Any
         "repairRowCount": summary.get("repairRowCount"),
         "chapterWatchRowCount": summary.get("chapterWatchRowCount"),
         "supportingReportIssueCount": summary.get("supportingReportIssueCount"),
+        "decisionIssueCount": summary.get("decisionIssueCount"),
+        "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
+        "rowsWithTimecodedOrFullRange": summary.get("rowsWithTimecodedOrFullRange"),
+        "rowsReviewedAfterFinalOutputMtime": summary.get("rowsReviewedAfterFinalOutputMtime"),
         "finalOutput": summary.get("finalOutput") or final_output.get("path"),
         "finalOutputExists": summary.get("finalOutputExists") or final_output.get("exists"),
         "rowCount": len(rows),
@@ -757,6 +761,10 @@ def editorial_watchdown_repair_plan_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("repairRowCount") or 0) == 0
         and int(evidence.get("openRepairRowCount") or 0) == 0
         and int(evidence.get("supportingReportIssueCount") or 0) == 0
+        and int(evidence.get("decisionIssueCount") or 0) == 0
+        and int(evidence.get("rowsWithDecisionIssues") or 0) == 0
+        and int(evidence.get("rowsWithTimecodedOrFullRange") or 0) == watch_rows
+        and int(evidence.get("rowsReviewedAfterFinalOutputMtime") or 0) == watch_rows
         and evidence.get("finalOutputExists") is True
         and evidence.get("writesResolve") is False
         and evidence.get("queuesRender") is False

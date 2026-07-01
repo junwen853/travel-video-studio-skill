@@ -3009,6 +3009,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(editorial_watchdown_summary.get("closedWatchRowCount") or 0) == editorial_watch_rows
         and int(editorial_watchdown_summary.get("repairRowCount") or 0) == 0
         and int(editorial_watchdown_summary.get("supportingReportIssueCount") or 0) == 0
+        and int(editorial_watchdown_summary.get("decisionIssueCount") or 0) == 0
+        and int(editorial_watchdown_summary.get("rowsWithDecisionIssues") or 0) == 0
+        and int(editorial_watchdown_summary.get("rowsWithTimecodedOrFullRange") or 0) == editorial_watch_rows
+        and int(editorial_watchdown_summary.get("rowsReviewedAfterFinalOutputMtime") or 0) == editorial_watch_rows
         and bool(editorial_watchdown_summary.get("finalOutputExists")),
         {
             "editorialWatchdownStatus": editorial_watchdown.get("status"),

@@ -81,6 +81,20 @@ REQUIRED_CONTRACT_TOKENS = {
         "packet_summary.get(\"builtClips\")",
         "packet_inputs.get(\"buildClips\")",
     ],
+    "prepare_editorial_watchdown_repair_plan.py": [
+        "TIME_RANGE_RE",
+        "reviewedAt is older than the current final MP4 mtime",
+        "decisionIssueCount",
+        "rowsReviewedAfterFinalOutputMtime",
+    ],
+    "audit_skill_maturity_contract.py": [
+        "rowsReviewedAfterFinalOutputMtime",
+        "rowsWithTimecodedOrFullRange",
+    ],
+    "audit_v14_baseline_contract.py": [
+        "rowsReviewedAfterFinalOutputMtime",
+        "rowsWithTimecodedOrFullRange",
+    ],
 }
 
 
