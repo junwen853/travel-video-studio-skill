@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -48,6 +49,49 @@ def as_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def resolved_path(value: Any) -> Path | None:
+    if not value:
+        return None
+    try:
+        return Path(str(value)).expanduser().resolve()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def is_under(path: Path | None, root: Path | None) -> bool:
+    if not path or not root:
+        return False
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def dedupe_paths(paths: list[Path]) -> list[Path]:
+    seen: set[str] = set()
+    out: list[Path] = []
+    for path in paths:
+        key = str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(path)
+    return out
+
+
+def safe_disk_free_gb(path: Path) -> float | None:
+    target = path
+    while not target.exists() and target.parent != target:
+        target = target.parent
+    if not target.exists():
+        return None
+    try:
+        return round(shutil.disk_usage(target).free / 1024 / 1024 / 1024, 3)
+    except OSError:
+        return None
 
 
 def infer_project_dir(package_dir: Path, explicit: str | None) -> Path | None:
@@ -113,6 +157,119 @@ def external_intake(package_dir: Path, project_dir: Path | None, raw: dict[str, 
     return None, {}
 
 
+def intake_choices(data: dict[str, Any]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for key in ("choices", "recommendedChoices"):
+        value = data.get(key)
+        if isinstance(value, list):
+            rows.extend(row for row in value if isinstance(row, dict))
+    return rows
+
+
+def project_media_roots(project_dir: Path | None, raw: dict[str, Any]) -> list[Path]:
+    candidates: list[Path] = []
+    raw_inputs = raw.get("inputs") if isinstance(raw.get("inputs"), dict) else {}
+    project_json = resolved_path(raw_inputs.get("projectJson"))
+    if not project_json and project_dir:
+        project_json = project_dir / "project.json"
+    data = load_json(project_json) if project_json else {}
+    if isinstance(data, dict):
+        for root in data.get("mediaRoots") or []:
+            path = resolved_path(root)
+            if path:
+                candidates.append(path)
+    return dedupe_paths(candidates)
+
+
+def source_root_paths(project_dir: Path | None, raw: dict[str, Any], intake: dict[str, Any]) -> list[Path]:
+    roots = project_media_roots(project_dir, raw)
+    for row in intake_choices(intake):
+        path = resolved_path(row.get("sourceRoot"))
+        if path:
+            roots.append(path)
+    return dedupe_paths(roots)
+
+
+def workspace_storage_evidence(
+    *,
+    package_dir: Path,
+    project_dir: Path | None,
+    raw: dict[str, Any],
+    intake: dict[str, Any],
+    source_size_gb: float,
+    large_source: bool,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    source_roots = source_root_paths(project_dir, raw, intake)
+    package_inside_source = [str(root) for root in source_roots if is_under(package_dir, root)]
+    source_inside_package = [str(root) for root in source_roots if is_under(root, package_dir)]
+    project_inside_source = [str(root) for root in source_roots if is_under(project_dir, root)]
+    missing_source_roots = [str(root) for root in source_roots if not root.exists()]
+
+    estimated_working_set_gb = min(max(source_size_gb, 0.0) * args.working_set_ratio, args.max_working_set_gb)
+    required_free_gb = round(max(args.min_free_gb, estimated_working_set_gb), 3)
+    package_free_gb = safe_disk_free_gb(package_dir)
+    package_free_ready = package_free_gb is not None and package_free_gb >= required_free_gb
+    source_roots_ready = bool(source_roots) if (large_source or args.require_external_intake) else True
+    source_preservation_ready = (
+        source_roots_ready
+        and not missing_source_roots
+        and not package_inside_source
+        and not source_inside_package
+        and not project_inside_source
+    )
+
+    return {
+        "sourceRoots": [str(root) for root in source_roots],
+        "sourceRootCount": len(source_roots),
+        "missingSourceRoots": missing_source_roots,
+        "packageDir": str(package_dir),
+        "projectDir": str(project_dir) if project_dir else None,
+        "packageInsideSourceRoots": package_inside_source,
+        "sourceRootsInsidePackage": source_inside_package,
+        "projectDirInsideSourceRoots": project_inside_source,
+        "sourceSizeGB": source_size_gb,
+        "workingSetRatio": args.working_set_ratio,
+        "estimatedWorkingSetGB": round(estimated_working_set_gb, 3),
+        "maxWorkingSetGB": args.max_working_set_gb,
+        "requiredWorkspaceFreeGB": required_free_gb,
+        "packageFreeGB": package_free_gb,
+        "packageFreeReady": package_free_ready,
+        "sourcePreservationReady": source_preservation_ready,
+        "workspaceStorageReady": bool(source_preservation_ready and package_free_ready),
+    }
+
+
+def checkpoint_evidence(
+    *,
+    package_dir: Path,
+    recognition_path: Path | None,
+    intake_path: Path | None,
+    require_external_intake: bool,
+    large_source: bool,
+) -> dict[str, Any]:
+    paths = {
+        "rawIntake": package_dir / "raw_intake_completeness_audit.json",
+        "recognitionReport": recognition_path,
+        "locationTruth": package_dir / "location_truth_contract_audit.json",
+        "footageSelect": package_dir / "footage_select_plan" / "footage_select_plan.json",
+        "sourceSelectionRepair": package_dir / "source_selection_repair_plan" / "source_selection_repair_plan.json",
+        "sourceSelectionCoverage": package_dir / "source_selection_coverage_contract_audit.json",
+        "firstAssemblySourceOrder": package_dir / "first_assembly_source_order_contract_audit.json",
+        "unattendedFirstDraft": package_dir / "unattended_first_draft_contract_audit.json",
+    }
+    if large_source or require_external_intake:
+        paths["externalMediaIntake"] = intake_path
+    missing = [name for name, path in paths.items() if not path or not path.exists()]
+    return {
+        "checkpointPaths": {name: str(path) if path else None for name, path in paths.items()},
+        "missingCheckpointNames": missing,
+        "checkpointCount": len(paths),
+        "readyCheckpointCount": len(paths) - len(missing),
+        "resumeReady": not missing,
+    }
+
+
 def add_check(checks: list[dict[str, Any]], name: str, passed: bool, evidence: dict[str, Any], *, required: bool = True) -> None:
     checks.append(
         {
@@ -129,8 +286,8 @@ def intake_ready(data: dict[str, Any], *, large_source: bool, require_external_i
         return True
     if not data:
         return False
-    choices = data.get("choices") if isinstance(data.get("choices"), list) else []
-    ready_choices = [row for row in choices if isinstance(row, dict) and row.get("status") == "ready_for_project_workflow"]
+    choices = intake_choices(data)
+    ready_choices = [row for row in choices if row.get("status") == "ready_for_project_workflow"]
     return data.get("status") in {"ready_for_project_choice", "passed", "ready"} and bool(ready_choices)
 
 
@@ -164,6 +321,22 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     recognized_count = max(as_int(recognition_summary.get("recognizedVideoCount")), as_int(location_summary.get("recognizedVideoCount")))
     recognition_coverage = max(as_float(raw_summary.get("recognitionCoverageRatio")), as_float(recognition_summary.get("recognitionCoverageRatio")), as_float(location_summary.get("recognitionCoverageRatio")))
     expected_active_count = max(active_source_count, as_int(location_summary.get("expectedActiveSourceCount")), as_int(recognition_summary.get("mediaVideoCount")))
+    storage = workspace_storage_evidence(
+        package_dir=package_dir,
+        project_dir=project_dir,
+        raw=raw,
+        intake=intake,
+        source_size_gb=source_size_gb,
+        large_source=large_source,
+        args=args,
+    )
+    checkpoints = checkpoint_evidence(
+        package_dir=package_dir,
+        recognition_path=recognition_path,
+        intake_path=intake_path,
+        require_external_intake=args.require_external_intake,
+        large_source=large_source,
+    )
 
     checks: list[dict[str, Any]] = []
     add_check(
@@ -194,11 +367,25 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "required": bool(large_source or args.require_external_intake),
             "intakePath": str(intake_path) if intake_path else None,
             "status": intake.get("status"),
-            "choiceCount": len(intake.get("choices") or []) if isinstance(intake.get("choices"), list) else 0,
-            "readyChoiceCount": sum(1 for row in (intake.get("choices") or []) if isinstance(row, dict) and row.get("status") == "ready_for_project_workflow"),
+            "choiceCount": len(intake_choices(intake)),
+            "readyChoiceCount": sum(1 for row in intake_choices(intake) if row.get("status") == "ready_for_project_workflow"),
             "largeSource": large_source,
         },
         required=bool(large_source or args.require_external_intake),
+    )
+    add_check(
+        checks,
+        "Workspace storage budget and source-drive preservation are safe before unattended large-source work",
+        bool(storage["workspaceStorageReady"]),
+        storage,
+        required=bool(large_source or args.require_external_intake),
+    )
+    add_check(
+        checks,
+        "Resume checkpoints exist before any long render, Resolve write, or cleanup step",
+        bool(checkpoints["resumeReady"]),
+        checkpoints,
+        required=True,
     )
     add_check(
         checks,
@@ -315,6 +502,9 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "largeSourceGB": args.large_source_gb,
             "minCandidateRows": args.min_candidate_rows,
             "requireExternalIntake": args.require_external_intake,
+            "minFreeGB": args.min_free_gb,
+            "workingSetRatio": args.working_set_ratio,
+            "maxWorkingSetGB": args.max_working_set_gb,
             "externalMediaIntake": str(intake_path) if intake_path else None,
             "recognitionReport": str(recognition_path) if recognition_path else None,
         },
@@ -323,6 +513,13 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "activeSourceVideoCount": active_source_count,
             "expectedActiveSourceCount": expected_active_count,
             "sourceSizeGB": source_size_gb,
+            "sourceRootCount": storage["sourceRootCount"],
+            "sourcePreservationReady": storage["sourcePreservationReady"],
+            "workspaceStorageReady": storage["workspaceStorageReady"],
+            "packageFreeGB": storage["packageFreeGB"],
+            "requiredWorkspaceFreeGB": storage["requiredWorkspaceFreeGB"],
+            "resumeReady": checkpoints["resumeReady"],
+            "missingCheckpointCount": len(checkpoints["missingCheckpointNames"]),
             "indexedVideoCount": raw_summary.get("indexedVideoCount"),
             "recognitionCoverageRatio": recognition_coverage,
             "recognizedVideoCount": recognized_count,
@@ -347,6 +544,9 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "sourceCoverageBeforeEffectsOrStock": True,
             "filenameOrderRejected": True,
             "routeAwareTruthWithoutGpsOverclaim": True,
+            "workspaceStorageBudgetBeforeRender": True,
+            "generatedArtifactsStayOutsideSourceRoot": True,
+            "resumeCheckpointsBeforeCleanup": True,
         },
         "safety": {
             "writesResolve": False,
@@ -354,6 +554,7 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "downloadsExternalAssets": False,
             "modifiesSourceFootage": False,
             "modifiesSourceDrive": False,
+            "writesSourceRoot": False,
         },
     }
 
@@ -402,6 +603,9 @@ def main() -> int:
     parser.add_argument("--large-source-video-count", type=int, default=60)
     parser.add_argument("--large-source-gb", type=float, default=100.0)
     parser.add_argument("--min-candidate-rows", type=int, default=3)
+    parser.add_argument("--min-free-gb", type=float, default=40.0)
+    parser.add_argument("--working-set-ratio", type=float, default=0.35)
+    parser.add_argument("--max-working-set-gb", type=float, default=120.0)
     parser.add_argument("--require-external-intake", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()

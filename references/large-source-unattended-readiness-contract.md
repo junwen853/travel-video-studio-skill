@@ -7,6 +7,8 @@ Use this contract when the source folder is large, unordered, mounted from an ex
 ```bash
 python3 <skill-dir>/scripts/audit_large_source_unattended_readiness_contract.py \
   --package-dir <package> \
+  --min-free-gb 40 \
+  --working-set-ratio 0.35 \
   --json
 ```
 
@@ -18,6 +20,8 @@ python3 <skill-dir>/scripts/audit_large_source_unattended_readiness_contract.py 
   --project-dir <project> \
   --external-media-intake <external_media_intake.json> \
   --require-external-intake \
+  --min-free-gb 40 \
+  --working-set-ratio 0.35 \
   --json
 ```
 
@@ -33,12 +37,16 @@ python3 <skill-dir>/scripts/audit_large_source_unattended_readiness_contract.py 
 - `unattended_first_draft_contract_audit.json`
 - `resolve_blueprint_preflight.json` when Resolve blueprint preflight exists
 - `external_media_intake.json` when a large mounted or ambiguous media root is involved
+- Project `mediaRoots` or ready external-intake `sourceRoot` values that point to the source footage roots.
 
 ## Pass Criteria
 
 - The selected project/media root is known and the media index covers the active source videos.
 - Large sources use `media_index` as the footage-select input, not blueprint fallback or samples.
 - External media intake is ready when the source is large or explicitly required.
+- Package and project write paths are outside the source footage roots, no source root is nested inside the package, and missing source roots block the run.
+- The package volume has an explicit free-space budget before unattended work starts: by default at least `max(40GB, min(sourceSizeGB * 0.35, 120GB))`.
+- Resume checkpoints exist for raw intake, recognition, location truth, footage selection, source repair, source coverage, first assembly, unattended first draft, and external intake when required.
 - Whole-folder recognition covers every active source video and has no missing or duplicated route rows.
 - Location truth allows route-aware editing while avoiding GPS/per-clip overclaiming.
 - Source selection has enough hero/main/texture candidates and no missing footage-select rows.
@@ -48,4 +56,4 @@ python3 <skill-dir>/scripts/audit_large_source_unattended_readiness_contract.py 
 
 ## Repair Route
 
-If blocked, repair in order. First fix media root/project choice with `prepare_external_media_intake.py`. Then rebuild or apply the media index with `run_videoclaw_media_index.py`, regenerate recognition and truth reports, rerun footage selection and source-selection repair, rebuild the package so first assembly records selection sorting, and only then rerun unattended first-draft and Resolve preflight. Do not hide weak large-source selection behind transitions, stock footage, or rhythm recut.
+If blocked, repair in order. First fix media root/project choice with `prepare_external_media_intake.py`, move package/project outputs outside the source footage root if needed, and free or choose enough workspace storage before starting a long unattended run. Then rebuild or apply the media index with `run_videoclaw_media_index.py`, regenerate recognition and truth reports, rerun footage selection and source-selection repair, rebuild the package so first assembly records selection sorting, and only then rerun unattended first-draft and Resolve preflight. Do not hide weak large-source selection, unsafe storage, or missing checkpoints behind transitions, stock footage, or rhythm recut.

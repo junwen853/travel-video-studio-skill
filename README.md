@@ -370,6 +370,8 @@ A package is not considered deliverable until the relevant audits pass:
 python3 -m py_compile ~/.codex/skills/travel-video-studio/scripts/*.py
 python3 ~/.codex/skills/travel-video-studio/scripts/audit_large_source_unattended_readiness_contract.py \
   --package-dir /path/to/delivery-package \
+  --min-free-gb 40 \
+  --working-set-ratio 0.35 \
   --json
 python3 ~/.codex/skills/travel-video-studio/scripts/audit_first_draft_satisfaction_contract.py \
   --package-dir /path/to/delivery-package \

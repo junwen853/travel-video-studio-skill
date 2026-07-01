@@ -514,6 +514,11 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(large_source_summary.get("blockedCheckCount") or 0) == 0
         and int(large_source_summary.get("activeSourceVideoCount") or 0) > 0
         and int(large_source_summary.get("expectedActiveSourceCount") or 0) > 0
+        and int(large_source_summary.get("sourceRootCount") or 0) > 0
+        and large_source_summary.get("sourcePreservationReady") is True
+        and large_source_summary.get("workspaceStorageReady") is True
+        and large_source_summary.get("resumeReady") is True
+        and int(large_source_summary.get("missingCheckpointCount") or 0) == 0
         and float(large_source_summary.get("recognitionCoverageRatio") or 0) >= 1.0
         and (not large_source_summary.get("largeSource") or large_source_summary.get("footageSelectInputSource") == "media_index")
         and int(large_source_summary.get("candidateVideoCount") or 0) >= 3
@@ -2794,6 +2799,11 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and reference_transition_profile.get("status") == "passed"
         and raw_intake.get("status") == "passed"
         and large_source_unattended.get("status") in {"passed", "passed_with_warnings"}
+        and int(large_source_summary.get("sourceRootCount") or 0) > 0
+        and large_source_summary.get("sourcePreservationReady") is True
+        and large_source_summary.get("workspaceStorageReady") is True
+        and large_source_summary.get("resumeReady") is True
+        and int(large_source_summary.get("missingCheckpointCount") or 0) == 0
         and footage_select.get("status") in {"ready_with_footage_select_plan", "ready_with_blueprint_fallback_footage_select_plan"}
         and source_selection_repair.get("status") == "ready_no_source_selection_repairs_needed"
         and int(source_selection_summary.get("warningRepairRowCount") or 0) == 0

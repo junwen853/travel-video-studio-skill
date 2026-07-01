@@ -2731,6 +2731,13 @@ def large_source_unattended_readiness_contract_evidence(package_dir: Path) -> di
         "activeSourceVideoCount": summary.get("activeSourceVideoCount"),
         "expectedActiveSourceCount": summary.get("expectedActiveSourceCount"),
         "sourceSizeGB": summary.get("sourceSizeGB"),
+        "sourceRootCount": summary.get("sourceRootCount"),
+        "sourcePreservationReady": summary.get("sourcePreservationReady"),
+        "workspaceStorageReady": summary.get("workspaceStorageReady"),
+        "packageFreeGB": summary.get("packageFreeGB"),
+        "requiredWorkspaceFreeGB": summary.get("requiredWorkspaceFreeGB"),
+        "resumeReady": summary.get("resumeReady"),
+        "missingCheckpointCount": summary.get("missingCheckpointCount"),
         "recognitionCoverageRatio": summary.get("recognitionCoverageRatio"),
         "footageSelectInputSource": summary.get("footageSelectInputSource"),
         "candidateVideoCount": summary.get("candidateVideoCount"),
@@ -2750,6 +2757,7 @@ def large_source_unattended_readiness_contract_evidence(package_dir: Path) -> di
         "downloadsExternalAssets": safety.get("downloadsExternalAssets"),
         "modifiesSourceFootage": safety.get("modifiesSourceFootage"),
         "modifiesSourceDrive": safety.get("modifiesSourceDrive"),
+        "writesSourceRoot": safety.get("writesSourceRoot"),
     }
 
 
@@ -2759,6 +2767,11 @@ def large_source_unattended_readiness_contract_ready(evidence: dict[str, Any]) -
         and evidence.get("status") in {"passed", "passed_with_warnings"}
         and int(evidence.get("activeSourceVideoCount") or 0) > 0
         and int(evidence.get("expectedActiveSourceCount") or 0) > 0
+        and int(evidence.get("sourceRootCount") or 0) > 0
+        and evidence.get("sourcePreservationReady") is True
+        and evidence.get("workspaceStorageReady") is True
+        and evidence.get("resumeReady") is True
+        and int(evidence.get("missingCheckpointCount") or 0) == 0
         and float(evidence.get("recognitionCoverageRatio") or 0) >= 1.0
         and (not evidence.get("largeSource") or evidence.get("footageSelectInputSource") == "media_index")
         and int(evidence.get("candidateVideoCount") or 0) >= 3
@@ -2773,6 +2786,7 @@ def large_source_unattended_readiness_contract_ready(evidence: dict[str, Any]) -
         and evidence.get("downloadsExternalAssets") is False
         and evidence.get("modifiesSourceFootage") is False
         and evidence.get("modifiesSourceDrive") is False
+        and evidence.get("writesSourceRoot") is False
     )
 
 
