@@ -16,6 +16,20 @@ IMPORTANT_CATEGORIES = {"chapter_boundary", "timeline_gap", "title_boundary", "e
 MOTION_FAMILIES = {"motion_accent"}
 BRIDGE_OR_BREATH_FAMILIES = {"physical_bridge", "title_breath", "mood_dissolve"}
 FORBIDDEN_TERMS = ("random spin", "flash", "glitch", "shake", "strobe", "particle", "template", "whoosh pack")
+GENERIC_DECISION_TEXT = {
+    "",
+    "pending",
+    "tbd",
+    "todo",
+    "n/a",
+    "none",
+    "auto",
+    "automatic",
+    "use default",
+    "default",
+    "pending resolve readback after apply",
+    "pending render-frame qa after apply",
+}
 
 
 def load_json(path: Path | None) -> Any | None:
@@ -65,6 +79,18 @@ def row_text(row: dict[str, Any], candidate: dict[str, Any] | None = None) -> st
 def forbidden_hits(row: dict[str, Any], candidate: dict[str, Any] | None = None) -> list[str]:
     text = row_text(row, candidate)
     return sorted({term for term in FORBIDDEN_TERMS if term in text})
+
+
+def concrete_text(value: Any, min_chars: int = 10) -> bool:
+    text = clean(value)
+    normalized = text.lower()
+    if len(text) < min_chars:
+        return False
+    if normalized in GENERIC_DECISION_TEXT:
+        return False
+    if normalized.startswith("pending "):
+        return False
+    return True
 
 
 def rank_bonus(candidate: dict[str, Any]) -> int:
@@ -237,6 +263,79 @@ def selected_status(row: dict[str, Any], selected: dict[str, Any] | None) -> str
     return "auto_selected"
 
 
+def boundary_reason(row: dict[str, Any], selected: dict[str, Any], reasons: list[str]) -> str:
+    category = clean(row.get("boundaryCategory"), 80) or "normal_boundary"
+    from_name = clean(row.get("fromSourceName"), 120) or "previous shot"
+    to_name = clean(row.get("toSourceName"), 120) or "next shot"
+    family = clean(selected.get("styleFamily"), 80) or "selected transition"
+    candidate_type = clean(selected.get("candidateType"), 100) or "candidate"
+    reason_text = "; ".join(clean(item, 140) for item in reasons if clean(item, 140))
+    return (
+        f"Row {row.get('rowIndex')} {category}: choose {candidate_type}/{family} from {from_name} "
+        f"to {to_name} because {reason_text or 'it is the highest-scored non-copying reference-safe option'}."
+    )
+
+
+def post_selection_proof_plan(row: dict[str, Any], selected: dict[str, Any]) -> list[dict[str, Any]]:
+    row_index = row.get("rowIndex")
+    family = clean(selected.get("styleFamily"), 80)
+    common_acceptance = (
+        f"Row {row_index} selected {selected.get('candidateType')} survives as preview/audition/storyboard, "
+        "then as Resolve/readback/render-frame proof before final QA."
+    )
+    return [
+        {
+            "ownerScript": "prepare_transition_preview_packet.py",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_preview_packet.py --package-dir <package> --extract-frames --update-transition-grammar --json",
+            "requiredArtifact": "transition_preview_packet/transition_preview_packet.json",
+            "acceptanceEvidence": common_acceptance,
+        },
+        {
+            "ownerScript": "prepare_transition_audition_packet.py",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_audition_packet.py --package-dir <package> --build-clips --json",
+            "requiredArtifact": "transition_audition_packet/transition_audition_packet.json",
+            "acceptanceEvidence": "Important rows have muted outgoing/bridge-or-motion/landing MP4 proof in selected order.",
+        },
+        {
+            "ownerScript": "prepare_transition_execution_blueprint.py",
+            "command": "python3 <skill-dir>/scripts/prepare_transition_execution_blueprint.py --package-dir <package> --json",
+            "requiredArtifact": "transition_execution_blueprint/transition_execution_blueprint_report.json",
+            "acceptanceEvidence": f"Reference selection row {row_index} is applied into transitionMotionExecution for {family}.",
+        },
+        {
+            "ownerScript": "audit_transition_reference_readiness_contract.py",
+            "command": "python3 <skill-dir>/scripts/audit_transition_reference_readiness_contract.py --package-dir <package> --json",
+            "requiredArtifact": "transition_reference_readiness_contract_audit.json",
+            "acceptanceEvidence": "The whole transition craft chain has zero readiness rows and zero metric issues.",
+        },
+    ]
+
+
+def decision_quality_issues(row: dict[str, Any], selected: dict[str, Any] | None, decision: dict[str, Any]) -> list[str]:
+    issues: list[str] = []
+    category = clean(row.get("boundaryCategory"), 80)
+    family = clean((selected or {}).get("styleFamily"), 80)
+    if not selected:
+        return ["missing_selected_candidate"]
+    if not concrete_text(decision.get("boundarySpecificReason"), 35):
+        issues.append("missing_boundary_specific_reason")
+    if not concrete_text(decision.get("resolveImplementation"), 18):
+        issues.append("missing_resolve_implementation")
+    if not concrete_text(decision.get("previewOrAuditionEvidence"), 18):
+        issues.append("missing_preview_or_audition_evidence")
+    if not isinstance(decision.get("postSelectionProofPlan"), list) or len(decision.get("postSelectionProofPlan") or []) < 3:
+        issues.append("missing_post_selection_proof_plan")
+    if not concrete_text(decision.get("forbiddenWorkaround"), 40):
+        issues.append("missing_forbidden_workaround")
+    if category in IMPORTANT_CATEGORIES and family not in BRIDGE_OR_BREATH_FAMILIES:
+        issues.append("important_boundary_not_bridge_or_breath")
+    if family in MOTION_FAMILIES and not concrete_text(decision.get("approvedBridgeOrMotionSource"), 12):
+        issues.append("motion_selection_missing_bridge_or_motion_source")
+    if forbidden_hits(row, selected):
+        issues.append("forbidden_template_effect_language")
+    return issues
+
+
 def decision_payload(row: dict[str, Any], selected: dict[str, Any], status: str, reasons: list[str]) -> dict[str, Any]:
     evidence = selected.get("requiredEvidence") if isinstance(selected.get("requiredEvidence"), list) else []
     return {
@@ -256,6 +355,9 @@ def decision_payload(row: dict[str, Any], selected: dict[str, Any], status: str,
         "previewOrAuditionEvidence": selected.get("ffmpegPreviewHint"),
         "timelineReadbackEvidence": "pending Resolve readback after apply",
         "renderFrameEvidence": "pending render-frame QA after apply",
+        "boundarySpecificReason": boundary_reason(row, selected, reasons),
+        "postSelectionProofPlan": post_selection_proof_plan(row, selected),
+        "forbiddenWorkaround": "Do not fix a weak boundary by selecting a stronger decorative effect; repair source order, bridge footage, BGM-hit timing, title/caption safety, preview/audition proof, or Resolve readback instead.",
         "approvedBy": "auto_reference_selection",
         "approvedAt": datetime.now().isoformat(timespec="seconds"),
         "editorNotes": "Auto-selected from non-copying reference candidates; repair blocked rows before final delivery.",
@@ -281,8 +383,14 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
         reasons = list(selected.get("_selectionReasons") or []) if selected else []
         reasons.extend(warnings)
         clean_selected = None
+        auto_decision: dict[str, Any] = {}
+        decision_issues: list[str] = []
         if selected:
             clean_selected = {key: value for key, value in selected.items() if not key.startswith("_")}
+            auto_decision = decision_payload(row, selected, status, reasons)
+            decision_issues = decision_quality_issues(row, selected, auto_decision)
+        else:
+            decision_issues = decision_quality_issues(row, None, {})
         selection_rows.append(
             {
                 "rowIndex": row.get("rowIndex"),
@@ -303,7 +411,8 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
                     }
                     for item in scored
                 ],
-                "autoDecision": decision_payload(row, selected, status, reasons) if selected else {},
+                "autoDecision": auto_decision,
+                "decisionIssues": decision_issues,
                 "warnings": warnings,
             }
         )
@@ -318,6 +427,25 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
         if row.get("boundaryCategory") in IMPORTANT_CATEGORIES
         and (row.get("selectedCandidate") or {}).get("styleFamily") in BRIDGE_OR_BREATH_FAMILIES
     )
+    decision_issue_count = sum(len(row.get("decisionIssues") or []) for row in selection_rows)
+    rows_with_decision_issues = sum(1 for row in selection_rows if row.get("decisionIssues"))
+    rows_with_boundary_reason = sum(1 for row in selection_rows if concrete_text((row.get("autoDecision") or {}).get("boundarySpecificReason"), 35))
+    rows_with_proof_plan = sum(
+        1
+        for row in selection_rows
+        if isinstance((row.get("autoDecision") or {}).get("postSelectionProofPlan"), list)
+        and len((row.get("autoDecision") or {}).get("postSelectionProofPlan") or []) >= 3
+    )
+    rows_with_forbidden_workaround = sum(1 for row in selection_rows if concrete_text((row.get("autoDecision") or {}).get("forbiddenWorkaround"), 40))
+    rows_with_preview_or_audition_plan = sum(
+        1
+        for row in selection_rows
+        if any(
+            (item.get("ownerScript") in {"prepare_transition_preview_packet.py", "prepare_transition_audition_packet.py"})
+            for item in ((row.get("autoDecision") or {}).get("postSelectionProofPlan") or [])
+            if isinstance(item, dict)
+        )
+    )
     style_counts: dict[str, int] = {}
     for row in selection_rows:
         family = str((row.get("selectedCandidate") or {}).get("styleFamily") or "")
@@ -325,7 +453,7 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             style_counts[family] = style_counts.get(family, 0) + 1
     if not candidate_rows:
         status = "blocked_missing_transition_reference_candidates"
-    elif blocked:
+    elif blocked or decision_issue_count:
         status = "blocked_transition_reference_selection_needs_repair"
     else:
         status = "ready_with_transition_reference_selection"
@@ -343,6 +471,12 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "selectedRowCount": selected_count,
             "autoSelectedRowCount": auto_selected,
             "blockedSelectionRowCount": len(blocked),
+            "decisionIssueCount": decision_issue_count,
+            "rowsWithDecisionIssues": rows_with_decision_issues,
+            "rowsWithBoundarySpecificReason": rows_with_boundary_reason,
+            "rowsWithPostSelectionProofPlan": rows_with_proof_plan,
+            "rowsWithForbiddenWorkaround": rows_with_forbidden_workaround,
+            "rowsWithPreviewOrAuditionProofPlan": rows_with_preview_or_audition_plan,
             "motionSelectedRowCount": motion_selected,
             "maxMotionRows": max_motion_rows,
             "motionSelectedShare": round(motion_selected / selected_count, 3) if selected_count else 0.0,
@@ -359,6 +493,9 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
             "forbiddenTemplateEffectsRejected": True,
             "titleAndSubtitleQuietZonePreferred": True,
             "bgmPhraseEvidencePreferred": True,
+            "boundarySpecificReasonRequired": True,
+            "postSelectionProofPlanRequired": True,
+            "decisionIssuesBlockReadyStatus": True,
         },
         "selectionRows": selection_rows,
         "blockers": [
@@ -366,9 +503,11 @@ def build_plan(package_dir: Path) -> dict[str, Any]:
                 "rowIndex": row.get("rowIndex"),
                 "boundaryCategory": row.get("boundaryCategory"),
                 "selectionStatus": row.get("selectionStatus"),
-                "requiredRepair": "Add or verify physical bridge/title-breath material before approving a visible transition effect.",
+                "decisionIssues": row.get("decisionIssues") or [],
+                "requiredRepair": "Add or verify physical bridge/title-breath material and concrete selection proof planning before approving a visible transition effect.",
             }
-            for row in blocked
+            for row in selection_rows
+            if str(row.get("selectionStatus") or "").startswith("blocked") or row.get("decisionIssues")
         ],
         "nextActions": [
             "Use transition_reference_selection.json as the default transition decision source for unattended first drafts.",
@@ -413,13 +552,21 @@ def write_markdown(path: Path, plan: dict[str, Any]) -> None:
                 f"- Selected: `{selected.get('rank')}` `{selected.get('candidateType')}` / `{selected.get('styleFamily')}` / {selected.get('durationFrames')} frames",
                 f"- Resolve: {selected.get('resolveRecipe') or ''}",
                 f"- Reason: {'; '.join(decision.get('selectionReasons') or [])}",
+                f"- Boundary reason: {decision.get('boundarySpecificReason') or ''}",
+                f"- Decision issues: `{', '.join(row.get('decisionIssues') or []) or 'none'}`",
             ]
         )
+        proof_plan = decision.get("postSelectionProofPlan") if isinstance(decision.get("postSelectionProofPlan"), list) else []
+        if proof_plan:
+            lines.append("- Proof plan:")
+            for item in proof_plan[:4]:
+                lines.append(f"  - `{item.get('ownerScript')}` -> `{item.get('requiredArtifact')}`")
     if plan.get("blockers"):
         lines.extend(["", "## Blockers"])
         for blocker in plan["blockers"]:
             lines.append(
-                f"- Row {blocker.get('rowIndex')} `{blocker.get('boundaryCategory')}`: {blocker.get('requiredRepair')}"
+                f"- Row {blocker.get('rowIndex')} `{blocker.get('boundaryCategory')}`: "
+                f"{blocker.get('requiredRepair')} Issues: `{', '.join(blocker.get('decisionIssues') or []) or blocker.get('selectionStatus')}`"
             )
     lines.extend(["", "## Next Actions"])
     lines.extend(f"- {item}" for item in plan["nextActions"])

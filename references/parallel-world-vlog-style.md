@@ -191,7 +191,7 @@ Before saying a package has learned this reference style, verify:
 - The transition grammar plan gives every adjacent pair a recommended transition and fallback, and marks missing bridge footage as `insert_bridge_first`.
 - The transition execution plan converts every adjacent-pair decision into a concrete Resolve recipe and keeps bridge-missing rows blocked instead of hiding them with spin/flash/template effects.
 - The transition reference candidates plan gives each boundary A/B/C options calibrated to the reference profile: clean continuity, visual match, physical bridge, scenic breath, short dissolve, or rare motivated motion.
-- The transition reference selection plan chooses one default candidate per boundary for unattended drafts, with zero blocked rows before Resolve apply and motion accents within the reference budget.
+- The transition reference selection plan chooses one default candidate per boundary for unattended drafts, with zero blocked rows, zero decision issues, boundary-specific from/to reasons, proof plans for preview/audition/execution/readiness follow-up, and motion accents within the reference budget before Resolve apply.
 - The transition execution blueprint report proves those recipes are present as candidate transitions, clip in/out metadata, and timeline markers before Resolve apply.
 - The transition motif plan proves repeated/template transition chains, missing BGM phrase cues, title-zone risk, and unmotivated motion effects are repaired or assigned.
 - The BGM phrase blueprint report proves selected music has opening/body/transition/ending rows, clip annotations, and per-transition phrase cues before rhythm recut or Resolve apply.

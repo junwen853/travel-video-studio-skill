@@ -21,6 +21,7 @@ This is a whole-chain transition craft gate. It prevents the agent from passing 
 - missing or blocked pair-continuity, execution-readiness, polish-application, Resolve materialization, or Resolve apply reports
 - important route/title/day/timeline transitions without applied bridge beats or visual bridge evidence
 - film-level cadence that reads as bare cuts, repeated dissolves, random motion, or effect spam
+- transition reference selections that only name a chosen candidate without boundary-specific reason, preview/audition proof plan, forbidden workaround, or zero decision issues
 - motion accents that are too frequent, high intensity, unsupported, direction mismatched, title unsafe, or missing action/sensory anchors
 - missing preview frames, audition clips, ordered watch reel, visual proof, role integrity, or storyboard evidence
 - final rendered transition windows with flash, raw portrait frames, or unstable landings

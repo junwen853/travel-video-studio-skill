@@ -6551,6 +6551,12 @@ def transition_reference_selection_evidence(package_dir: Path) -> dict[str, Any]
         "selectedRowCount": summary.get("selectedRowCount"),
         "autoSelectedRowCount": summary.get("autoSelectedRowCount"),
         "blockedSelectionRowCount": summary.get("blockedSelectionRowCount"),
+        "decisionIssueCount": summary.get("decisionIssueCount"),
+        "rowsWithDecisionIssues": summary.get("rowsWithDecisionIssues"),
+        "rowsWithBoundarySpecificReason": summary.get("rowsWithBoundarySpecificReason"),
+        "rowsWithPostSelectionProofPlan": summary.get("rowsWithPostSelectionProofPlan"),
+        "rowsWithForbiddenWorkaround": summary.get("rowsWithForbiddenWorkaround"),
+        "rowsWithPreviewOrAuditionProofPlan": summary.get("rowsWithPreviewOrAuditionProofPlan"),
         "motionSelectedRowCount": summary.get("motionSelectedRowCount"),
         "maxMotionRows": summary.get("maxMotionRows"),
         "importantBoundaryCount": summary.get("importantBoundaryCount"),
@@ -6576,6 +6582,12 @@ def transition_reference_selection_ready(evidence: dict[str, Any]) -> bool:
         and int(evidence.get("selectedRowCount") or 0) == candidate_rows
         and int(evidence.get("autoSelectedRowCount") or 0) == candidate_rows
         and int(evidence.get("blockedSelectionRowCount") or 0) == 0
+        and int(evidence.get("decisionIssueCount") or 0) == 0
+        and int(evidence.get("rowsWithDecisionIssues") or 0) == 0
+        and int(evidence.get("rowsWithBoundarySpecificReason") or 0) == candidate_rows
+        and int(evidence.get("rowsWithPostSelectionProofPlan") or 0) == candidate_rows
+        and int(evidence.get("rowsWithForbiddenWorkaround") or 0) == candidate_rows
+        and int(evidence.get("rowsWithPreviewOrAuditionProofPlan") or 0) == candidate_rows
         and int(evidence.get("motionSelectedRowCount") or 0) <= int(evidence.get("maxMotionRows") or 0)
         and (important == 0 or float(evidence.get("importantBridgeOrBreathSelectionCoverage") or 0.0) >= 1.0)
         and evidence.get("writesResolve") is False

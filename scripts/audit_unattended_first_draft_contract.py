@@ -687,6 +687,11 @@ def build_report(package_dir: Path) -> dict[str, Any]:
         and as_int(trs_summary.get("selectedRowCount")) == as_int(trs_summary.get("candidateRowCount"))
         and as_int(trs_summary.get("autoSelectedRowCount")) == as_int(trs_summary.get("candidateRowCount"))
         and as_int(trs_summary.get("blockedSelectionRowCount")) == 0
+        and as_int(trs_summary.get("decisionIssueCount")) == 0
+        and as_int(trs_summary.get("rowsWithDecisionIssues")) == 0
+        and as_int(trs_summary.get("rowsWithBoundarySpecificReason")) == as_int(trs_summary.get("candidateRowCount"))
+        and as_int(trs_summary.get("rowsWithPostSelectionProofPlan")) == as_int(trs_summary.get("candidateRowCount"))
+        and as_int(trs_summary.get("rowsWithPreviewOrAuditionProofPlan")) == as_int(trs_summary.get("candidateRowCount"))
         and as_int(trs_summary.get("motionSelectedRowCount")) <= as_int(trs_summary.get("maxMotionRows"))
         and (
             as_int(trs_summary.get("importantBoundaryCount")) == 0

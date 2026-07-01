@@ -1923,6 +1923,11 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(transition_reference_selection_summary.get("selectedRowCount") or 0) == int(transition_reference_selection_summary.get("candidateRowCount") or 0)
         and int(transition_reference_selection_summary.get("autoSelectedRowCount") or 0) == int(transition_reference_selection_summary.get("candidateRowCount") or 0)
         and int(transition_reference_selection_summary.get("blockedSelectionRowCount") or 0) == 0
+        and int(transition_reference_selection_summary.get("decisionIssueCount") or 0) == 0
+        and int(transition_reference_selection_summary.get("rowsWithDecisionIssues") or 0) == 0
+        and int(transition_reference_selection_summary.get("rowsWithBoundarySpecificReason") or 0) == int(transition_reference_selection_summary.get("candidateRowCount") or 0)
+        and int(transition_reference_selection_summary.get("rowsWithPostSelectionProofPlan") or 0) == int(transition_reference_selection_summary.get("candidateRowCount") or 0)
+        and int(transition_reference_selection_summary.get("rowsWithPreviewOrAuditionProofPlan") or 0) == int(transition_reference_selection_summary.get("candidateRowCount") or 0)
         and int(transition_reference_selection_summary.get("motionSelectedRowCount") or 0) <= int(transition_reference_selection_summary.get("maxMotionRows") or 0)
         and (
             int(transition_reference_selection_summary.get("importantBoundaryCount") or 0) == 0

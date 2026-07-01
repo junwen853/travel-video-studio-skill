@@ -28,11 +28,16 @@ Each selected row includes:
 - selected candidate rank/type/family/intensity/duration
 - candidate score table
 - auto decision fields for BGM hit, bridge or motion evidence, title quiet zone, Resolve implementation, preview/audition evidence, and pending readback evidence
+- boundary-specific reason naming the current from/to pair and why the chosen transition family fits that exact boundary
+- post-selection proof plan with owner scripts, commands, required artifacts, and acceptance evidence for preview, audition, execution-blueprint, and transition reference-readiness follow-up
+- forbidden workaround text that prevents repairing weak transitions by adding stronger decorative effects
+- decision issue list; any nonzero `decisionIssueCount` keeps the plan blocked
 - blockers when real bridge or title-breath material is still required
 
 ## Selection Rules
 
 - Do not leave A/B/C rows for the next agent to choose manually in an unattended first draft.
+- Do not treat auto-selected rows as ready if the decision is only generic text, pending readback prose, or a style-family label without a boundary-specific reason and proof plan.
 - Important route, day, place, or timeline jumps select physical bridge or scenic breath first. If bridge material is not verified, keep the row blocked instead of selecting a decorative effect.
 - Title boundaries select scenic title breath, short mood dissolve after readability, or clean cut to texture. They must not select motion accents.
 - Ending transitions select aftertaste hold, visual match exit, or clean BGM cut.
@@ -45,6 +50,8 @@ Each selected row includes:
 - Status is `ready_with_transition_reference_selection`.
 - Every candidate row has one selected default candidate.
 - Blocked selection row count is zero.
+- Decision issue count is zero.
+- Every selected row has a boundary-specific reason, post-selection proof plan, preview/audition proof owner, and forbidden workaround.
 - Selected motion rows do not exceed the candidate budget.
 - Important boundaries have bridge, title-breath, or mood-breath selections.
 - The following transition execution blueprint report shows `rowsWithAppliedReferenceSelection` equals the execution row count.
