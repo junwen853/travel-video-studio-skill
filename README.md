@@ -38,6 +38,7 @@ This is a portable Agent Skill for Codex, Claude Code, Hermes, OpenClaw/Lobster-
 - Audits transition scene settlement so important route, day, title, and ending transitions land into real local scene footage before the next idea instead of becoming a title-only/card-only jump.
 - Audits transition motion accents so whip, rotation, push, zoom, slide, and speed-ramp effects stay rare, motivated, title-safe, BGM-hit aligned, and readable instead of random template motion.
 - Builds a transition motion-accent repair plan when those visible effects fail, turning random/overused rotation, whip, speed-ramp, weak BGM hit, title-risk, or unstable-landing failures into owner-script repair rows instead of vague "make transitions better" notes.
+- Summarizes motion-accent repair rows in the safe workflow report, so `ready_with_transition_motion_accent_repair_plan` blocks handoff instead of being buried as a side artifact.
 - Builds a transition-flow repair plan when adjacent-shot flow still fails, aggregating cadence, microstructure, scene-arc, visual-match, source-coverage, cutpoint, action-anchor, sensory-continuity, preview/audition, breathing-room, final-smoothness, narrative, orientation, and scene-settlement blockers into executable owner-script rows.
 - Runs rendered transition proof inside the safe workflow before transition reference-readiness, so missing final-MP4 transition-window evidence is routed to the owner audit instead of surfacing only as a downstream one-shot blocker.
 - Audits transition reference-readiness so all transition craft, watch-reel, rendered-proof, Resolve-apply, bridge, reference-fit, and repair-closure gates pass as one chain before V14/final QA claims.
@@ -104,9 +105,9 @@ Install from the latest release asset:
 
 ```bash
 mkdir -p ~/.codex/skills/travel-video-studio
-curl -L -o /tmp/travel-video-studio-skill-v0.1.107.tar.gz \
-  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.107/travel-video-studio-skill-v0.1.107.tar.gz
-tar -xzf /tmp/travel-video-studio-skill-v0.1.107.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
+curl -L -o /tmp/travel-video-studio-skill-v0.1.108.tar.gz \
+  https://github.com/junwen853/travel-video-studio-skill/releases/download/v0.1.108/travel-video-studio-skill-v0.1.108.tar.gz
+tar -xzf /tmp/travel-video-studio-skill-v0.1.108.tar.gz --strip-components=1 -C ~/.codex/skills/travel-video-studio
 ```
 
 Or install from source:

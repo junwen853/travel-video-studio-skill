@@ -2663,6 +2663,30 @@ def summarize_transition_flow_repair_plan(plan: dict[str, Any] | None) -> dict[s
     }
 
 
+def summarize_transition_motion_accent_repair_plan(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not plan:
+        return None
+    summary = plan.get("summary") if isinstance(plan.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": plan.get("status"),
+        "motionAccentAuditStatus": summary.get("motionAccentAuditStatus"),
+        "repairRowCount": summary.get("repairRowCount"),
+        "globalRepairRowCount": summary.get("globalRepairRowCount"),
+        "blockedMotionAccentRowCount": summary.get("blockedMotionAccentRowCount"),
+        "motionAccentRowCount": summary.get("motionAccentRowCount"),
+        "readyMotionAccentRowCount": summary.get("readyMotionAccentRowCount"),
+        "motionAccentRunMax": summary.get("motionAccentRunMax"),
+        "maxMotionAccentAllowed": summary.get("maxMotionAccentAllowed"),
+        "ownerScripts": summary.get("ownerScripts") or [],
+        "blockers": [
+            f"{row.get('repairId')}: {row.get('issueType') or row.get('requiredAction')}"
+            for row in (plan.get("repairRows") or [])[:16]
+            if isinstance(row, dict)
+        ],
+    }
+
+
 def summarize_route_decision_application(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -4437,6 +4461,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     transition_audition_visual_proof_summary = None
     transition_audition_role_integrity_summary = None
     transition_motion_accent_summary = None
+    transition_motion_accent_repair_summary = None
     transition_effect_recipe_summary = None
     transition_storyboard_summary = None
     reference_transition_profile_summary = None
@@ -4916,6 +4941,23 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                 blockers.extend(f"Transition motion accent blocker: {item}" for item in transition_motion_accent_summary.get("blockers") or [])
             if transition_motion_accent_summary and transition_motion_accent_summary.get("warnings"):
                 warnings.extend(f"Transition motion accent warning: {item}" for item in transition_motion_accent_summary.get("warnings") or [])
+        if step["id"] == "prepare_transition_motion_accent_repair_plan":
+            transition_motion_accent_repair_summary = summarize_transition_motion_accent_repair_plan(payload)
+            if (
+                transition_motion_accent_repair_summary
+                and transition_motion_accent_repair_summary.get("status") == "ready_with_transition_motion_accent_repair_plan"
+            ):
+                blockers.extend(
+                    f"Transition motion accent repair blocker: {item}"
+                    for item in transition_motion_accent_repair_summary.get("blockers") or []
+                )
+            if (
+                transition_motion_accent_repair_summary
+                and str(transition_motion_accent_repair_summary.get("status") or "").startswith("blocked")
+            ):
+                blockers.append(
+                    f"Transition motion accent repair blocker: {transition_motion_accent_repair_summary.get('status')}"
+                )
         if step["id"] == "audit_transition_effect_recipe_contract":
             transition_effect_recipe_summary = summarize_transition_effect_recipe_contract(payload)
             if transition_effect_recipe_summary and transition_effect_recipe_summary.get("status") == "blocked":
@@ -5472,6 +5514,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         transition_motion_accent_summary = summarize_transition_motion_accent_contract(
             load_json(package_dir / "transition_motion_accent_contract_audit.json")
         )
+    if package_dir and (package_dir / "transition_motion_accent_repair_plan" / "transition_motion_accent_repair_plan.json").exists():
+        transition_motion_accent_repair_summary = summarize_transition_motion_accent_repair_plan(
+            load_json(package_dir / "transition_motion_accent_repair_plan" / "transition_motion_accent_repair_plan.json")
+        )
     if package_dir and (package_dir / "transition_effect_recipe_contract_audit.json").exists():
         transition_effect_recipe_summary = summarize_transition_effect_recipe_contract(
             load_json(package_dir / "transition_effect_recipe_contract_audit.json")
@@ -5671,6 +5717,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "transitionAuditionVisualProofSummary": transition_audition_visual_proof_summary,
         "transitionAuditionRoleIntegritySummary": transition_audition_role_integrity_summary,
         "transitionMotionAccentSummary": transition_motion_accent_summary,
+        "transitionMotionAccentRepairSummary": transition_motion_accent_repair_summary,
         "transitionEffectRecipeSummary": transition_effect_recipe_summary,
         "transitionStoryboardSummary": transition_storyboard_summary,
         "referenceTransitionProfileSummary": reference_transition_profile_summary,
@@ -5792,6 +5839,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review narrative_adjacency_contract_audit.json before Resolve apply so every adjacent visual shot has a viewer-readable route, place, story-function, bridge, BGM, title, or transition reason instead of random clip stacking.",
             "Review transition_viewer_orientation_contract_audit.json before Resolve apply so important route/day/place/title/ending transitions tell viewers where they are, why the film moved, and what the landing shot means.",
             "Review transition_scene_settlement_contract_audit.json before Resolve apply so important transitions land into enough local scene footage instead of a title-only/card-only landing or an immediate second jump.",
+            "Review transition_motion_accent_repair_plan.json before Resolve apply or handoff; ready_with_transition_motion_accent_repair_plan means random, unsupported, overused, title-risk, BGM-misaligned, or unstable motion-effect rows are still open.",
             "Review transition_flow_repair_plan.json before Resolve apply or handoff; ready_with_transition_flow_repair_plan means transition/adjacent-shot repair rows are still open.",
             "Review reference_transition_profile_contract_audit.json before Resolve apply so the current film's transition language matches the learned reference bridge, breath, match, and restrained-motion profile.",
             "Review chapter_story_spine_contract_audit.json before Resolve apply so every chapter executes context, movement, lived-in texture, payoff, and aftertaste instead of becoming title-only or effect-masked.",
