@@ -374,6 +374,20 @@ REPORT_SPECS: dict[str, dict[str, Any]] = {
         "forbiddenWorkaround": "Do not claim the first serious draft is V14/Malta/reference-level while this aggregate gate still has open rows.",
         "allowKeywordRoutes": False,
     },
+    "whole_film_satisfaction_contract_audit": {
+        "path": "whole_film_satisfaction_contract_audit.json",
+        "accepted": {"passed"},
+        "optionalIfMissing": True,
+        "phase": "final_watchdown",
+        "priority": "P0",
+        "ownerScript": "audit_whole_film_satisfaction_contract.py",
+        "requiredArtifact": "whole_film_satisfaction_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_whole_film_satisfaction_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rerun whole-film satisfaction aggregation and prove opening, chapters, rhythm, BGM/captions, transitions, reference fit, director/route texture, editorial watchdown, final viewer friction, first-draft satisfaction, and repair queue have zero open rows.",
+        "forbiddenWorkaround": "Do not claim reference-level handoff from isolated technical passes while the whole film still feels like an AI assembly.",
+        "allowKeywordRoutes": False,
+        "expandRepairRows": True,
+    },
     "resolve_blueprint_preflight": {
         "path": "resolve_blueprint_preflight.json",
         "accepted": {"ready", "ready_with_warnings"},
@@ -519,6 +533,17 @@ FINAL_QA_STAGE_ROUTES: tuple[tuple[tuple[str, ...], dict[str, str]], ...] = (
             "command": "python3 <skill-dir>/scripts/audit_final_viewer_friction_contract.py --package-dir <package> --json",
             "acceptanceEvidence": "Rerun final viewer friction aggregation and final QA until the aggregation gate has zero viewer-facing repair rows.",
             "forbiddenWorkaround": "Do not treat a technically passing render as viewer-ready while title, BGM, caption, source, story, transition, reference, route texture, or watchdown rows remain open.",
+        },
+    ),
+    (
+        ("whole_film_satisfaction", "whole film satisfaction", "blocked_whole_film_satisfaction"),
+        {
+            "phase": "final_watchdown",
+            "ownerScript": "audit_whole_film_satisfaction_contract.py",
+            "requiredArtifact": "whole_film_satisfaction_contract_audit.json",
+            "command": "python3 <skill-dir>/scripts/audit_whole_film_satisfaction_contract.py --package-dir <package> --json",
+            "acceptanceEvidence": "Rerun whole-film satisfaction aggregation and final QA until this stage passes with zero whole-film rows and zero metric issues.",
+            "forbiddenWorkaround": "Do not claim reference-level delivery from isolated technical passes while opening, chapters, rhythm, audio, transitions, reference fit, director intent, watchdown, final viewer friction, first-draft satisfaction, or repair queue rows remain open.",
         },
     ),
     (
@@ -1188,18 +1213,22 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         status = data.get("status") if isinstance(data, dict) else None
         summary = summary_of(data)
         accepted = isinstance(data, dict) and accepted_status(report_id, spec, data)
+        optional_missing = bool(spec.get("optionalIfMissing")) and data is None
         report_rows.append(
             {
                 "report": report_id,
                 "path": str(report_path),
                 "exists": report_path.exists(),
                 "status": status,
-                "accepted": accepted,
+                "accepted": True if optional_missing else accepted,
+                "optionalIfMissing": bool(spec.get("optionalIfMissing")),
                 "acceptedStatuses": sorted(spec.get("accepted") or ACCEPTED_COMMON),
                 "summary": summary,
             }
         )
         if data is None:
+            if spec.get("optionalIfMissing"):
+                continue
             rows.append(
                 repair_row(
                     row_index=len(rows) + 1,
@@ -1267,7 +1296,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     actionable_count = len([row for row in rows if row.get("actionable") is True])
     p0_count = len([row for row in rows if row.get("priority") == "P0"])
     unactionable = [row for row in rows if row.get("actionable") is not True]
-    missing_reports = [row for row in report_rows if not row["exists"]]
+    missing_reports = [row for row in report_rows if not row["exists"] and not row.get("optionalIfMissing")]
     blocked_reports = [row for row in report_rows if row["exists"] and not row["accepted"]]
     resolve_apply_rows = [row for row in rows if row.get("sourceReport") == "resolve_transition_apply_contract_audit"]
     pending_manual_resolve_apply_rows = [
@@ -1297,7 +1326,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         ],
         "warnings": final_qa_warnings,
         "summary": {
-            "requiredReportCount": len(REPORT_SPECS),
+            "requiredReportCount": len([spec for spec in REPORT_SPECS.values() if not spec.get("optionalIfMissing")]),
+            "optionalReportCount": len([spec for spec in REPORT_SPECS.values() if spec.get("optionalIfMissing")]),
             "missingRequiredReportCount": len(missing_reports),
             "blockedReportCount": len(blocked_reports),
             "acceptedReportCount": len([row for row in report_rows if row["accepted"]]),

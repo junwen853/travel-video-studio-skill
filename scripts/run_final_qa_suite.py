@@ -35,6 +35,7 @@ ACCEPTED_STATUSES = {
     "editorial_watchdown_repair_plan": {"ready_no_editorial_watchdown_repairs_needed"},
     "final_viewer_friction_contract_audit": {"passed"},
     "first_draft_satisfaction_contract_audit": {"passed"},
+    "whole_film_satisfaction_contract_audit": {"passed"},
     "package_integrity_audit": {"passed"},
     "package_integrity_audit_strict_portable": {"passed"},
     "transition_pair_continuity_contract_audit": {"passed"},
@@ -1148,6 +1149,16 @@ def build_suite(args: argparse.Namespace) -> dict[str, Any]:
                 [
                     sys.executable,
                     str(scripts / "prepare_unattended_repair_queue.py"),
+                    "--package-dir",
+                    str(package_dir),
+                ],
+                False,
+            ),
+            (
+                "whole_film_satisfaction_contract_audit",
+                [
+                    sys.executable,
+                    str(scripts / "audit_whole_film_satisfaction_contract.py"),
                     "--package-dir",
                     str(package_dir),
                 ],

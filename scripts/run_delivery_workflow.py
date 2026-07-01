@@ -613,6 +613,25 @@ def summarize_first_draft_satisfaction_contract(report: dict[str, Any] | None) -
     }
 
 
+def summarize_whole_film_satisfaction_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not report:
+        return None
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "exists": True,
+        "status": report.get("status"),
+        "requiredWholeFilmReportCount": summary.get("requiredWholeFilmReportCount"),
+        "passedWholeFilmReportCount": summary.get("passedWholeFilmReportCount"),
+        "wholeFilmSatisfactionRowCount": summary.get("wholeFilmSatisfactionRowCount"),
+        "p0WholeFilmSatisfactionRowCount": summary.get("p0WholeFilmSatisfactionRowCount"),
+        "p1WholeFilmSatisfactionRowCount": summary.get("p1WholeFilmSatisfactionRowCount"),
+        "metricIssueCount": summary.get("metricIssueCount"),
+        "phaseCounts": summary.get("phaseCounts"),
+        "ownerScripts": summary.get("ownerScripts"),
+        "blockers": [row.get("repairId") for row in report.get("wholeFilmSatisfactionRows") or []],
+    }
+
+
 def summarize_transition_reference_readiness_contract(report: dict[str, Any] | None) -> dict[str, Any] | None:
     if not report:
         return None
@@ -4223,6 +4242,15 @@ def safe_workflow(args: argparse.Namespace) -> dict[str, Any]:
     ]
     steps.append(run_step("prepare_unattended_repair_queue", unattended_repair_queue_cmd, ok_codes={0, 2}))
 
+    whole_film_satisfaction_cmd = [
+        "python3",
+        str(SCRIPTS_DIR / "audit_whole_film_satisfaction_contract.py"),
+        "--package-dir",
+        str(package_dir),
+        "--json",
+    ]
+    steps.append(run_step("audit_whole_film_satisfaction_contract", whole_film_satisfaction_cmd, ok_codes={0, 2}))
+
     unattended_first_draft_cmd = ["python3", str(SCRIPTS_DIR / "audit_unattended_first_draft_contract.py"), "--package-dir", str(package_dir), "--json"]
     steps.append(run_step("audit_unattended_first_draft_contract", unattended_first_draft_cmd, ok_codes={0, 2}))
 
@@ -4371,6 +4399,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     editorial_watchdown_summary = None
     final_viewer_friction_summary = None
     first_draft_satisfaction_summary = None
+    whole_film_satisfaction_summary = None
     unattended_repair_queue_summary = None
     rhythm_recut_apply_summary = None
     skill_maturity_summary = None
@@ -4949,6 +4978,13 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
                     f"First draft satisfaction blocker: {item}"
                     for item in first_draft_satisfaction_summary.get("blockers") or []
                 )
+        if step["id"] == "audit_whole_film_satisfaction_contract":
+            whole_film_satisfaction_summary = summarize_whole_film_satisfaction_contract(payload)
+            if whole_film_satisfaction_summary and str(whole_film_satisfaction_summary.get("status") or "").startswith("blocked"):
+                blockers.extend(
+                    f"Whole film satisfaction blocker: {item}"
+                    for item in whole_film_satisfaction_summary.get("blockers") or []
+                )
         if step["id"] == "prepare_unattended_repair_queue":
             unattended_repair_queue_summary = summarize_unattended_repair_queue(payload)
             if unattended_repair_queue_summary and unattended_repair_queue_summary.get("status") == "blocked_unactionable_repair_queue":
@@ -5118,6 +5154,10 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
     if package_dir and (package_dir / "first_draft_satisfaction_contract_audit.json").exists():
         first_draft_satisfaction_summary = summarize_first_draft_satisfaction_contract(
             load_json(package_dir / "first_draft_satisfaction_contract_audit.json")
+        )
+    if package_dir and (package_dir / "whole_film_satisfaction_contract_audit.json").exists():
+        whole_film_satisfaction_summary = summarize_whole_film_satisfaction_contract(
+            load_json(package_dir / "whole_film_satisfaction_contract_audit.json")
         )
     if package_dir and (package_dir / "transition_reference_readiness_contract_audit.json").exists():
         transition_reference_readiness_summary = summarize_transition_reference_readiness_contract(
@@ -5560,6 +5600,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
         "editorialWatchdownSummary": editorial_watchdown_summary,
         "finalViewerFrictionSummary": final_viewer_friction_summary,
         "firstDraftSatisfactionSummary": first_draft_satisfaction_summary,
+        "wholeFilmSatisfactionSummary": whole_film_satisfaction_summary,
         "unattendedRepairQueueSummary": unattended_repair_queue_summary,
         "rhythmRecutApplyPackageSummary": rhythm_recut_apply_summary,
         "skillMaturitySummary": skill_maturity_summary,
@@ -5608,6 +5649,7 @@ def finish_report(args: argparse.Namespace, started: str, steps: list[dict[str, 
             "Review editorial_watchdown_repair_plan/editorial_watchdown_repair_plan.json before handoff; ready_with_editorial_watchdown_repair_plan means the current final MP4 still has open full-film viewer-review rows.",
             "Review final_viewer_friction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_final_viewer_friction means title, BGM, caption, source, story, transition, reference-fit, route-texture, or whole-film watchdown issues still need owner-script repairs.",
             "Review first_draft_satisfaction_contract_audit.json before unattended repair queue, final QA, V14, or handoff; blocked_first_draft_satisfaction means the first serious draft still has source, opening, BGM, caption, story, rhythm, transition, reference-fit, route-texture, or watchdown rows that must be repaired through owner scripts.",
+            "Review whole_film_satisfaction_contract_audit.json before final QA, V14, Skill maturity, release, or handoff; blocked_whole_film_satisfaction means opening, chapters, rhythm, audio/captions, transitions, reference fit, director/route texture, watchdown, viewer friction, first-draft satisfaction, or unattended repair rows still stop a reference-level viewer experience.",
             "Review transition_reference_readiness_contract_audit.json before final viewer friction, final QA, V14, or handoff; blocked_transition_reference_readiness means the transition chain still has open craft/report/watch-reel/rendered-proof/repair-closure rows.",
             "Review transition_sequence_satisfaction_contract_audit.json before final viewer friction, first-draft satisfaction, final QA, V14, or handoff; blocked_transition_sequence_satisfaction means the ordered transition sequence still feels random, flashy, audio-leaky, or unlanded as a viewer experience.",
             "Review audio_scene_policy_plan.json before Resolve apply so opening/scenic/title/transition windows are A3 BGM-led with no A1/A2 voice leak.",

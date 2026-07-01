@@ -53,6 +53,7 @@ SUPPORTING_REPORTS: tuple[tuple[str, str, set[str]], ...] = (
     ("transition_viewer_orientation_contract_audit", "transition_viewer_orientation_contract_audit.json", {"passed"}),
     ("transition_scene_settlement_contract_audit", "transition_scene_settlement_contract_audit.json", {"passed"}),
     ("transition_flow_repair_plan", "transition_flow_repair_plan/transition_flow_repair_plan.json", {"ready_no_transition_flow_repairs_needed"}),
+    ("transition_sequence_satisfaction_contract_audit", "transition_sequence_satisfaction_contract_audit.json", {"passed"}),
     ("transition_audition_quality_contract_audit", "transition_audition_quality_contract_audit.json", {"passed"}),
     ("transition_audition_visual_proof_contract_audit", "transition_audition_visual_proof_contract_audit.json", {"passed"}),
     ("transition_storyboard_contract_audit", "transition_storyboard_contract_audit.json", {"passed"}),
@@ -279,7 +280,7 @@ def row_specs(package_dir: Path) -> list[dict[str, Any]]:
                 "phase": "editorial_watchdown",
                 "issueType": "transition_flow_not_viewer_signed_off",
                 "watchFocus": "Watch all day/place/chapter joins for motivated bridge footage, stable landings, rare motion accents, and no rough hard-cut/effect-spam cadence.",
-                "sourceReports": ["transition_flow_repair_plan", "transition_storyboard_contract_audit", "transition_audition_quality_contract_audit", "final_cut_smoothness_contract_audit"],
+                "sourceReports": ["transition_flow_repair_plan", "transition_sequence_satisfaction_contract_audit", "transition_storyboard_contract_audit", "transition_audition_quality_contract_audit", "final_cut_smoothness_contract_audit"],
                 "affectedEvidence": {},
             },
             {

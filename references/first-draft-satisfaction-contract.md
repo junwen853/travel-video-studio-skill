@@ -1,6 +1,6 @@
 # First Draft Satisfaction Contract
 
-Use `scripts/audit_first_draft_satisfaction_contract.py --package-dir <package>` after final viewer friction, transition reference-readiness, and transition sequence satisfaction reports exist, and before final QA, V14 baseline, Skill maturity, or handoff.
+Use `scripts/audit_first_draft_satisfaction_contract.py --package-dir <package>` after final viewer friction, transition reference-readiness, and transition sequence satisfaction reports exist, and before `whole-film-satisfaction-contract.md`, final QA, V14 baseline, Skill maturity, or handoff.
 
 ```bash
 python3 <skill-dir>/scripts/audit_first_draft_satisfaction_contract.py \
@@ -21,7 +21,7 @@ This gate answers one question: if another agent receives a large unordered trav
 - Transition-flow repair closure, transition reference-readiness, transition sequence satisfaction, ordered watch reel, rendered transition proof, and Resolve transition apply proof.
 - Full-film reference review, reference repair closure, reference profile application, reference transition profile, director intent, route texture, director polish, editorial watchdown, and final viewer friction.
 
-It deliberately does not require `final_qa_suite_report.json`, `v14_baseline_contract_audit.json`, or `skill_maturity_contract_audit.json`; those gates should depend on this one, not the other way around.
+It deliberately does not require `whole_film_satisfaction_contract_audit.json`, `final_qa_suite_report.json`, `v14_baseline_contract_audit.json`, or `skill_maturity_contract_audit.json`; those gates should depend on this one, not the other way around.
 
 ## Blocked Rows
 
@@ -57,4 +57,4 @@ Repair P0 rows in this order:
 6. Reference fit and route texture.
 7. Watchdown and final viewer friction.
 
-After repairs, rerun the source report, transition reference-readiness, transition sequence satisfaction, this contract, unattended repair queue, final QA, V14 baseline, and Skill maturity as applicable.
+After repairs, rerun the source report, transition reference-readiness, transition sequence satisfaction, this contract, unattended repair queue, whole-film satisfaction, final QA, V14 baseline, and Skill maturity as applicable. If whole-film satisfaction blocks, rerun the unattended repair queue to expand its repair rows.

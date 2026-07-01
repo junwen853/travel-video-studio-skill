@@ -103,6 +103,7 @@ SKILL_PATTERNS = {
     "editorial_watchdown_closed": "ready_no_editorial_watchdown_repairs_needed",
     "final_viewer_friction": "audit_final_viewer_friction_contract.py",
     "first_draft_satisfaction": "audit_first_draft_satisfaction_contract.py",
+    "whole_film_satisfaction": "audit_whole_film_satisfaction_contract.py",
     "transition_reference_readiness": "audit_transition_reference_readiness_contract.py",
     "transition_sequence_satisfaction": "audit_transition_sequence_satisfaction_contract.py",
     "reference_style_repair": "prepare_reference_style_repair_plan.py",
@@ -215,6 +216,7 @@ REQUIRED_SCRIPTS = [
     "prepare_editorial_watchdown_repair_plan.py",
     "audit_final_viewer_friction_contract.py",
     "audit_first_draft_satisfaction_contract.py",
+    "audit_whole_film_satisfaction_contract.py",
     "audit_transition_reference_readiness_contract.py",
     "audit_transition_sequence_satisfaction_contract.py",
     "prepare_reference_style_repair_plan.py",
@@ -395,6 +397,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     editorial_watchdown = load_json(package_dir / "editorial_watchdown_repair_plan" / "editorial_watchdown_repair_plan.json") or {}
     final_viewer_friction = load_json(package_dir / "final_viewer_friction_contract_audit.json") or {}
     first_draft_satisfaction = load_json(package_dir / "first_draft_satisfaction_contract_audit.json") or {}
+    whole_film_satisfaction = load_json(package_dir / "whole_film_satisfaction_contract_audit.json") or {}
     transition_reference_readiness = load_json(package_dir / "transition_reference_readiness_contract_audit.json") or {}
     transition_sequence_satisfaction = load_json(package_dir / "transition_sequence_satisfaction_contract_audit.json") or {}
     unattended_repair_queue = load_json(package_dir / "unattended_repair_queue" / "unattended_repair_queue.json") or {}
@@ -2695,6 +2698,7 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     director_summary = get_summary(director_intent)
     final_viewer_friction_summary = get_summary(final_viewer_friction)
     first_draft_satisfaction_summary = get_summary(first_draft_satisfaction)
+    whole_film_satisfaction_summary = get_summary(whole_film_satisfaction)
     transition_reference_readiness_summary = get_summary(transition_reference_readiness)
     transition_sequence_satisfaction_summary = get_summary(transition_sequence_satisfaction)
     add_check(
@@ -2834,6 +2838,11 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(first_draft_satisfaction_summary.get("requiredReportCount") or 0) >= 40
         and int(first_draft_satisfaction_summary.get("satisfactionRowCount") or 0) == 0
         and int(first_draft_satisfaction_summary.get("p0SatisfactionRowCount") or 0) == 0
+        and whole_film_satisfaction.get("status") == "passed"
+        and int(whole_film_satisfaction_summary.get("requiredWholeFilmReportCount") or 0) >= 20
+        and int(whole_film_satisfaction_summary.get("wholeFilmSatisfactionRowCount") or 0) == 0
+        and int(whole_film_satisfaction_summary.get("p0WholeFilmSatisfactionRowCount") or 0) == 0
+        and int(whole_film_satisfaction_summary.get("metricIssueCount") or 0) == 0
         and transition_reference_readiness.get("status") == "passed"
         and int(transition_reference_readiness_summary.get("requiredTransitionReportCount") or 0) >= 40
         and int(transition_reference_readiness_summary.get("transitionReadinessRowCount") or 0) == 0
@@ -2978,6 +2987,8 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
             "finalViewerFrictionSummary": final_viewer_friction_summary,
             "firstDraftSatisfactionStatus": first_draft_satisfaction.get("status"),
             "firstDraftSatisfactionSummary": first_draft_satisfaction_summary,
+            "wholeFilmSatisfactionStatus": whole_film_satisfaction.get("status"),
+            "wholeFilmSatisfactionSummary": whole_film_satisfaction_summary,
             "transitionReferenceReadinessStatus": transition_reference_readiness.get("status"),
             "transitionReferenceReadinessSummary": transition_reference_readiness_summary,
             "transitionSequenceSatisfactionStatus": transition_sequence_satisfaction.get("status"),
@@ -3029,6 +3040,22 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         {
             "firstDraftSatisfactionStatus": first_draft_satisfaction.get("status"),
             "firstDraftSatisfactionSummary": first_draft_satisfaction_summary,
+        },
+    )
+    whole_film_satisfaction_summary = get_summary(whole_film_satisfaction)
+    add_check(
+        checks,
+        "Whole film satisfaction contract proves V14 handoff closes opening, chapters, rhythm, audio/captions, transitions, reference fit, director intent, watchdown, viewer friction, first draft, and repair queue as one viewer experience",
+        whole_film_satisfaction.get("status") == "passed"
+        and int(whole_film_satisfaction_summary.get("requiredWholeFilmReportCount") or 0) >= 20
+        and int(whole_film_satisfaction_summary.get("passedWholeFilmReportCount") or 0) == int(whole_film_satisfaction_summary.get("requiredWholeFilmReportCount") or 0)
+        and int(whole_film_satisfaction_summary.get("wholeFilmSatisfactionRowCount") or 0) == 0
+        and int(whole_film_satisfaction_summary.get("p0WholeFilmSatisfactionRowCount") or 0) == 0
+        and int(whole_film_satisfaction_summary.get("p1WholeFilmSatisfactionRowCount") or 0) == 0
+        and int(whole_film_satisfaction_summary.get("metricIssueCount") or 0) == 0,
+        {
+            "wholeFilmSatisfactionStatus": whole_film_satisfaction.get("status"),
+            "wholeFilmSatisfactionSummary": whole_film_satisfaction_summary,
         },
     )
     transition_reference_readiness_summary = get_summary(transition_reference_readiness)

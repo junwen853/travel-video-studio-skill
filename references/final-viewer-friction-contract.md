@@ -1,6 +1,6 @@
 # Final Viewer Friction Contract
 
-Run this contract after final technical/style reports, `transition-reference-readiness-contract.md`, and `transition-sequence-satisfaction-contract.md` exist, and before `first-draft-satisfaction-contract.md`, unattended repair queue, final QA handoff, V14 baseline claims, Skill maturity claims, or release.
+Run this contract after final technical/style reports, `transition-reference-readiness-contract.md`, and `transition-sequence-satisfaction-contract.md` exist, and before `first-draft-satisfaction-contract.md`, `whole-film-satisfaction-contract.md`, unattended repair queue, final QA handoff, V14 baseline claims, Skill maturity claims, or release.
 
 ## Required Command
 
@@ -40,7 +40,7 @@ Every open row must include:
 - acceptance evidence
 - forbidden workaround
 
-If this contract blocks, repair via the listed owner scripts and rerun the source audits, transition reference-readiness, transition sequence satisfaction, this contract, first-draft satisfaction, unattended repair queue, final QA, V14 baseline, and Skill maturity.
+If this contract blocks, repair via the listed owner scripts and rerun the source audits, transition reference-readiness, transition sequence satisfaction, this contract, first-draft satisfaction, unattended repair queue, whole-film satisfaction, final QA, V14 baseline, and Skill maturity. If whole-film satisfaction blocks, rerun the unattended repair queue to expand its repair rows.
 
 ## Safety
 
