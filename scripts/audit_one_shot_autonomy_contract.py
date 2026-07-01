@@ -263,6 +263,32 @@ REPORT_SPECS: tuple[dict[str, Any], ...] = (
         "forbiddenWorkaround": "Do not claim transitions are ready because isolated transition scripts passed.",
     },
     {
+        "reportId": "transition_reference_readiness_contract_audit",
+        "path": "transition_reference_readiness_contract_audit.json",
+        "accepted": {"passed"},
+        "priority": "P0",
+        "phase": "transitions",
+        "viewerSymptom": "Shot-to-shot transitions may pass isolated checks while the full transition craft chain still has open execution, rendered-proof, or repair rows.",
+        "ownerScript": "audit_transition_reference_readiness_contract.py",
+        "requiredArtifact": "transition_reference_readiness_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_transition_reference_readiness_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Transition reference-readiness proves pair continuity, execution readiness, Resolve materialization/apply, bridge proof, cadence, microstructure, cutpoint, action-anchor, sensory continuity, rendered proof, and repair closure pass as one chain.",
+        "forbiddenWorkaround": "Do not claim polished transitions from selected defaults, watch reels, or aggregate satisfaction while the transition-readiness chain still has open rows.",
+    },
+    {
+        "reportId": "rendered_transition_proof_contract_audit",
+        "path": "rendered_transition_proof_contract_audit.json",
+        "accepted": {"passed"},
+        "priority": "P0",
+        "phase": "rendered_proof",
+        "viewerSymptom": "The final MP4 may hide black flashes, white flashes, raw pillarboxed vertical frames, strobe-like jumps, or unstable landings at transition windows.",
+        "ownerScript": "audit_rendered_transition_proof_contract.py",
+        "requiredArtifact": "rendered_transition_proof_contract_audit.json",
+        "command": "python3 <skill-dir>/scripts/audit_rendered_transition_proof_contract.py --package-dir <package> --json",
+        "acceptanceEvidence": "Rendered transition proof samples final-MP4 transition windows and shows zero blocked rows, black/blank frames, white flashes, pillarbox/raw-vertical frames, or strobe-like luma jumps.",
+        "forbiddenWorkaround": "Do not trust blueprint metadata, preview clips, or Resolve plans unless the current final MP4 transition windows have rendered-frame proof.",
+    },
+    {
         "reportId": "reference_profile_application_contract_audit",
         "path": "reference_profile_application_contract_audit.json",
         "accepted": {"passed"},
@@ -591,6 +617,29 @@ def metric_issues(report_id: str, summary: dict[str, Any]) -> list[str]:
         if as_int(summary.get("requiredSequenceReportCount")) < 30:
             issues.append(f"requiredSequenceReportCount is {summary.get('requiredSequenceReportCount')}; expected at least 30")
         for key in ("transitionSequenceRowCount", "p0TransitionSequenceRowCount", "metricIssueCount"):
+            if as_int(summary.get(key)) != 0:
+                issues.append(f"{key} is {summary.get(key)}")
+    if report_id == "transition_reference_readiness_contract_audit":
+        if as_int(summary.get("requiredTransitionReportCount")) < 40:
+            issues.append(f"requiredTransitionReportCount is {summary.get('requiredTransitionReportCount')}; expected at least 40")
+        if as_int(summary.get("passedTransitionReportCount")) != as_int(summary.get("requiredTransitionReportCount")):
+            issues.append("passedTransitionReportCount does not match requiredTransitionReportCount")
+        for key in ("transitionReadinessRowCount", "p0TransitionReadinessRowCount", "p1TransitionReadinessRowCount", "metricIssueCount"):
+            if as_int(summary.get(key)) != 0:
+                issues.append(f"{key} is {summary.get(key)}")
+    if report_id == "rendered_transition_proof_contract_audit":
+        if as_int(summary.get("rawTransitionRowCount")) <= 0:
+            issues.append("rawTransitionRowCount is 0")
+        if as_int(summary.get("auditedTransitionRowCount")) <= 0:
+            issues.append("auditedTransitionRowCount is 0")
+        for key in (
+            "blockedTransitionRowCount",
+            "rowsWithBlankOrBlackFrame",
+            "rowsWithWhiteFlash",
+            "rowsWithPillarbox",
+            "rowsWithStrobeLikeLumaJump",
+            "blockerCount",
+        ):
             if as_int(summary.get(key)) != 0:
                 issues.append(f"{key} is {summary.get(key)}")
     if report_id == "reference_profile_application_contract_audit":
