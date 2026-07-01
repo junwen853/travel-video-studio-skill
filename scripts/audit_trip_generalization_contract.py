@@ -75,6 +75,14 @@ REQUIRED_DERIVATION_TOKENS = {
     "prepare_route_decision_sheet.py": ["inferred_country_from_review", "accept_inferred_media_route"],
 }
 
+REQUIRED_CONTRACT_TOKENS = {
+    "audit_transition_audition_quality_contract.py": [
+        "packet_summary.get(\"buildClips\")",
+        "packet_summary.get(\"builtClips\")",
+        "packet_inputs.get(\"buildClips\")",
+    ],
+}
+
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -87,6 +95,44 @@ def skill_dir_from_script() -> Path:
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="ignore") if path.exists() else ""
+
+
+def markdown_paths(skill_dir: Path) -> list[Path]:
+    paths = [skill_dir / "SKILL.md", skill_dir / "README.md"]
+    references_dir = skill_dir / "references"
+    if references_dir.exists():
+        paths.extend(sorted(references_dir.glob("*.md")))
+    return [path for path in paths if path.exists()]
+
+
+def transition_audition_command_check(skill_dir: Path) -> dict[str, Any]:
+    token = "prepare_transition_audition_packet.py"
+    matches: list[dict[str, Any]] = []
+    scanned = 0
+    for path in markdown_paths(skill_dir):
+        scanned += 1
+        lines = read_text(path).splitlines()
+        for index, line in enumerate(lines):
+            if token not in line:
+                continue
+            window = "\n".join(lines[index : index + 4])
+            if "--build-clips" in window:
+                continue
+            matches.append(
+                {
+                    "file": str(path),
+                    "line": index + 1,
+                    "text": line.strip()[:240],
+                }
+            )
+    return {
+        "name": "transition_audition_commands_build_clips",
+        "status": "passed" if not matches else "blocked",
+        "file": str(skill_dir),
+        "detail": "Reference docs and SKILL instructions must not teach metadata-only transition audition packets; use prepare_transition_audition_packet.py --build-clips.",
+        "filesScanned": scanned,
+        "matches": matches[:40],
+    }
 
 
 def build_report(args: argparse.Namespace) -> dict[str, Any]:
@@ -134,6 +180,27 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
         )
         if missing:
             blockers.append(f"{filename} is missing generic derivation hooks: {', '.join(missing)}")
+
+    for filename, tokens in REQUIRED_CONTRACT_TOKENS.items():
+        path = scripts_dir / filename
+        text = read_text(path)
+        missing = [token for token in tokens if token not in text]
+        checks.append(
+            {
+                "name": f"{filename} preserves reusable contract tokens",
+                "status": "passed" if path.exists() and not missing else "blocked",
+                "file": str(path),
+                "requiredTokens": tokens,
+                "missingTokens": missing,
+            }
+        )
+        if missing:
+            blockers.append(f"{filename} is missing reusable contract tokens: {', '.join(missing)}")
+
+    audition_command_check = transition_audition_command_check(skill_dir)
+    checks.append(audition_command_check)
+    if audition_command_check["status"] == "blocked":
+        blockers.append("Transition audition commands must include --build-clips in SKILL/reference docs.")
 
     status = "blocked" if blockers else ("passed_with_warnings" if warnings else "passed")
     output_dir = Path(args.output_dir).expanduser().resolve() if args.output_dir else skill_dir / "qa" / "trip_generalization"
