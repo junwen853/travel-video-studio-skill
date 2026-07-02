@@ -32,8 +32,10 @@ Pass criteria:
 - each row has viewer purpose, outgoing evidence, landing evidence, and required audition evidence
 - the landing of row `N` connects to the outgoing evidence of row `N+1` through source identity or visual/route terms
 - motion/rotation/whip/speed-ramp/BGM-handoff rows are not adjacent without a stable buffer row
+- any 3-row high-energy window contains a calm buffer such as texture bridge, scenic breath, or same-scene continuity
+- every high-energy transition has calm aftercare within the cooldown window unless it ends the sequence
 - important route/title/time-jump boundaries do not stack back-to-back without scene breath
 - high-impact purpose runs do not dominate the film
 - breathing-room, scene-flow, final-cut smoothness, cadence, and effect-palette reports have no unresolved blockers
 
-If this audit blocks, do not approve Resolve apply, final QA, V14 baseline, or Skill maturity. Repair by changing the shot order, adding stable route/texture bridge footage, downgrading adjacent motion effects to match cuts or clean cuts, or adding a quieter landing beat between important transitions. Then rerun storyboard, audition, sensory-continuity, breathing-room, continuity rehearsal, unattended-first-draft, V14, maturity, and final QA.
+If this audit blocks, do not approve Resolve apply, final QA, V14 baseline, or Skill maturity. Repair by changing the shot order, adding stable route/texture bridge footage, downgrading adjacent motion effects to match cuts or clean cuts, adding a quieter landing beat between important transitions, or inserting calm aftercare after high-energy boundaries. Then rerun storyboard, audition, sensory-continuity, breathing-room, continuity rehearsal, unattended-first-draft, V14, maturity, and final QA.

@@ -26,6 +26,7 @@ REPORT_SPECS = {
 }
 MOTION_STYLES = {"whip_pan", "rotation", "speed_ramp", "push_slide", "whip_pan_match", "rotation_match_cut", "speed_ramp_bridge"}
 HIGH_IMPACT_PURPOSES = {"route_move", "time_jump", "title_reveal", "scenic_breath", "payoff_handoff", "ending_aftertaste", "bgm_handoff"}
+CALM_BUFFER_PURPOSES = {"texture_bridge", "scenic_breath", "same_scene_continuity"}
 STOPWORDS = {
     "the",
     "and",
@@ -175,6 +176,18 @@ def motion_style(row: dict[str, Any]) -> bool:
     return style in MOTION_STYLES or purpose == "bgm_handoff"
 
 
+def high_energy_row(row: dict[str, Any]) -> bool:
+    purpose = clean(row.get("storyboardPurpose")).lower()
+    if purpose in CALM_BUFFER_PURPOSES and not bool(row.get("motionStyle")):
+        return False
+    return bool(row.get("motionStyle")) or bool(row.get("importantBoundary")) or purpose in HIGH_IMPACT_PURPOSES
+
+
+def calm_buffer_row(row: dict[str, Any]) -> bool:
+    purpose = clean(row.get("storyboardPurpose")).lower()
+    return not bool(row.get("motionStyle")) and purpose in CALM_BUFFER_PURPOSES
+
+
 def rehearsed_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     audited: list[dict[str, Any]] = []
     for row in rows:
@@ -204,9 +217,14 @@ def rehearsed_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "landingShotEvidence": row.get("landingShotEvidence"),
                 "transitionAuditionEvidence": row.get("transitionAuditionEvidence"),
                 "motionStyle": motion_style(row),
+                "highEnergy": False,
+                "calmBuffer": False,
                 "issues": issues,
             }
         )
+    for row in audited:
+        row["highEnergy"] = high_energy_row(row)
+        row["calmBuffer"] = calm_buffer_row(row)
     return audited
 
 
@@ -239,13 +257,69 @@ def rehearsed_pairs(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return pairs
 
 
+def energy_windows(rows: list[dict[str, Any]], window_size: int) -> list[dict[str, Any]]:
+    if window_size <= 1:
+        return []
+    windows: list[dict[str, Any]] = []
+    for start in range(0, max(0, len(rows) - window_size + 1)):
+        window = rows[start : start + window_size]
+        high_rows = [row.get("rowIndex") for row in window if row.get("highEnergy")]
+        calm_rows = [row.get("rowIndex") for row in window if row.get("calmBuffer")]
+        issues: list[str] = []
+        if len(high_rows) > 1 and not calm_rows:
+            issues.append("high_energy_window_without_calm_buffer")
+        windows.append(
+            {
+                "startRowIndex": window[0].get("rowIndex"),
+                "endRowIndex": window[-1].get("rowIndex"),
+                "status": "passed" if not issues else "blocked",
+                "highEnergyRowIndices": high_rows,
+                "calmBufferRowIndices": calm_rows,
+                "issues": issues,
+            }
+        )
+    return windows
+
+
+def energy_aftercare(rows: list[dict[str, Any]], window_size: int) -> list[dict[str, Any]]:
+    if window_size <= 0:
+        return []
+    checks: list[dict[str, Any]] = []
+    for index, row in enumerate(rows):
+        if not row.get("highEnergy"):
+            continue
+        following = rows[index + 1 : index + 1 + window_size]
+        if not following:
+            continue
+        calm_rows = [next_row.get("rowIndex") for next_row in following if next_row.get("calmBuffer")]
+        issues: list[str] = []
+        if not calm_rows:
+            issues.append("high_energy_transition_missing_calm_buffer_aftercare")
+        checks.append(
+            {
+                "rowIndex": row.get("rowIndex"),
+                "status": "passed" if not issues else "blocked",
+                "storyboardPurpose": row.get("storyboardPurpose"),
+                "style": row.get("style"),
+                "lookaheadRowIndices": [next_row.get("rowIndex") for next_row in following],
+                "calmBufferRowIndices": calm_rows,
+                "issues": issues,
+            }
+        )
+    return checks
+
+
 def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     package_dir = package_dir.expanduser().resolve()
     reports = load_reports(package_dir)
     rows = rehearsed_rows(storyboard_rows(reports["transitionStoryboard"]))
     pairs = rehearsed_pairs(rows)
+    windows = energy_windows(rows, args.energy_cooldown_window)
+    aftercare = energy_aftercare(rows, args.energy_cooldown_window)
     blocked_rows = [row for row in rows if row["status"] == "blocked"]
     blocked_pairs = [pair for pair in pairs if pair["status"] == "blocked"]
+    blocked_windows = [window for window in windows if window["status"] == "blocked"]
+    blocked_aftercare = [check for check in aftercare if check["status"] == "blocked"]
     run_max, runs = purpose_run(rows)
     repeated_high_impact_runs = [
         row
@@ -272,6 +346,10 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     )
     if repeated_high_impact_runs:
         blockers.append("high-impact storyboard purpose repeats too long without a quieter continuity beat")
+    if blocked_windows:
+        blockers.append("transition energy curve stacks high-energy rows without a calm buffer")
+    if blocked_aftercare:
+        blockers.append("high-energy transitions lack a calm buffer within the cooldown window")
     if as_int(storyboard_summary.get("storyboardReadyRowCount")) < len(rows):
         blockers.append("storyboard summary does not show every row ready")
     if as_int(sensory_summary.get("readySensoryContinuityRowCount")) < len(rows):
@@ -291,9 +369,15 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "rehearsalReadyPairCount": len(pairs) - len(blocked_pairs),
         "blockedAdjacentPairCount": len(blocked_pairs),
         "rowsWithMotionStyle": sum(1 for row in rows if row.get("motionStyle")),
+        "highEnergyRowCount": sum(1 for row in rows if row.get("highEnergy")),
+        "calmBufferRowCount": sum(1 for row in rows if row.get("calmBuffer")),
         "adjacentMotionPairCount": sum(1 for pair in pairs if "adjacent_motion_or_bgm_handoff_without_stable_buffer" in (pair.get("issues") or [])),
         "backToBackImportantPairCount": sum(1 for pair in pairs if "back_to_back_important_boundaries_without_scene_breath" in (pair.get("issues") or [])),
         "landingToNextOutgoingAnchorReadyPairCount": sum(1 for pair in pairs if "landing_to_next_outgoing_anchor_missing" not in (pair.get("issues") or [])),
+        "energyCooldownWindowSize": args.energy_cooldown_window,
+        "energyWindowCount": len(windows),
+        "highEnergyWindowViolationCount": len(blocked_windows),
+        "motionAftercareViolationCount": len(blocked_aftercare),
         "purposeRunMax": run_max,
         "highImpactPurposeRunViolationCount": len(repeated_high_impact_runs),
         "storyboardReadyRowCount": storyboard_summary.get("storyboardReadyRowCount"),
@@ -317,12 +401,15 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
         "inputs": {
             "maxHighImpactPurposeRun": args.max_high_impact_purpose_run,
             "maxDecorativeRepeatedRun": args.max_decorative_repeated_run,
+            "energyCooldownWindow": args.energy_cooldown_window,
             "reports": {name: report["path"] for name, report in reports.items()},
         },
         "summary": summary,
         "reports": reports,
         "auditedRows": rows,
         "auditedPairs": pairs,
+        "energyWindows": windows,
+        "energyAftercare": aftercare,
         "purposeRuns": runs,
         "blockers": blockers,
         "warnings": [warning for report in reports.values() for warning in report["warnings"]],
@@ -330,6 +417,8 @@ def build_report(package_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
             "wholeFilmTransitionRehearsalRequired": True,
             "landingMustCarryIntoNextOutgoing": True,
             "motionEffectsNeedStableBuffer": True,
+            "highEnergyWindowsNeedCalmBuffer": True,
+            "highEnergyTransitionsNeedAftercare": True,
             "backToBackImportantBoundariesRejected": True,
             "highImpactPurposeRunsRejected": True,
             "writesResolve": False,
@@ -369,6 +458,32 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         )
         if pair.get("issues"):
             lines.append(f"- Issues: `{', '.join(pair.get('issues') or [])}`")
+    lines.extend(["", "## Energy Cooldown"])
+    for window in report.get("energyWindows", [])[:80]:
+        if window.get("status") == "passed":
+            continue
+        lines.extend(
+            [
+                "",
+                f"### Rows {window.get('startRowIndex')} -> {window.get('endRowIndex')} - `{window.get('status')}`",
+                f"- High-energy rows: `{', '.join(str(item) for item in window.get('highEnergyRowIndices') or [])}`",
+                f"- Calm buffers: `{', '.join(str(item) for item in window.get('calmBufferRowIndices') or [])}`",
+                f"- Issues: `{', '.join(window.get('issues') or [])}`",
+            ]
+        )
+    for check in report.get("energyAftercare", [])[:80]:
+        if check.get("status") == "passed":
+            continue
+        lines.extend(
+            [
+                "",
+                f"### Aftercare Row {check.get('rowIndex')} - `{check.get('status')}`",
+                f"- Purpose/style: `{check.get('storyboardPurpose')}` / `{check.get('style')}`",
+                f"- Lookahead rows: `{', '.join(str(item) for item in check.get('lookaheadRowIndices') or [])}`",
+                f"- Calm buffers: `{', '.join(str(item) for item in check.get('calmBufferRowIndices') or [])}`",
+                f"- Issues: `{', '.join(check.get('issues') or [])}`",
+            ]
+        )
     lines.extend(
         [
             "",
@@ -376,6 +491,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
             "- Rehearse transition rows as a continuous film, not isolated approved boundaries.",
             "- The landing shot of one boundary must carry into the outgoing evidence of the next boundary.",
             "- Motion accents, rotations, whip pans, speed ramps, and BGM handoffs need stable visual buffer rows.",
+            "- High-energy transition windows need texture, scenic breath, or same-scene continuity before another high-energy beat.",
             "- Important route/title/time-jump boundaries cannot stack back-to-back without scene breath.",
         ]
     )
@@ -387,6 +503,7 @@ def main() -> int:
     parser.add_argument("--package-dir", required=True)
     parser.add_argument("--max-high-impact-purpose-run", type=int, default=3)
     parser.add_argument("--max-decorative-repeated-run", type=int, default=4)
+    parser.add_argument("--energy-cooldown-window", type=int, default=3)
     parser.add_argument("--max-blocked-rows-in-report", type=int, default=12)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()

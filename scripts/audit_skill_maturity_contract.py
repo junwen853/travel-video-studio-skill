@@ -7746,9 +7746,15 @@ def transition_continuity_rehearsal_contract_evidence(package_dir: Path) -> dict
         "rehearsalReadyPairCount": summary.get("rehearsalReadyPairCount"),
         "blockedAdjacentPairCount": summary.get("blockedAdjacentPairCount"),
         "rowsWithMotionStyle": summary.get("rowsWithMotionStyle"),
+        "highEnergyRowCount": summary.get("highEnergyRowCount"),
+        "calmBufferRowCount": summary.get("calmBufferRowCount"),
         "adjacentMotionPairCount": summary.get("adjacentMotionPairCount"),
         "backToBackImportantPairCount": summary.get("backToBackImportantPairCount"),
         "landingToNextOutgoingAnchorReadyPairCount": summary.get("landingToNextOutgoingAnchorReadyPairCount"),
+        "energyCooldownWindowSize": summary.get("energyCooldownWindowSize"),
+        "energyWindowCount": summary.get("energyWindowCount"),
+        "highEnergyWindowViolationCount": summary.get("highEnergyWindowViolationCount"),
+        "motionAftercareViolationCount": summary.get("motionAftercareViolationCount"),
         "purposeRunMax": summary.get("purposeRunMax"),
         "highImpactPurposeRunViolationCount": summary.get("highImpactPurposeRunViolationCount"),
         "storyboardReadyRowCount": summary.get("storyboardReadyRowCount"),
@@ -7783,6 +7789,8 @@ def transition_continuity_rehearsal_contract_evidence(package_dir: Path) -> dict
 def transition_continuity_rehearsal_contract_ready(evidence: dict[str, Any]) -> bool:
     rows = int(evidence.get("transitionRowCount") or 0)
     pairs = int(evidence.get("adjacentPairCount") or 0)
+    cooldown = int(evidence.get("energyCooldownWindowSize") or 0)
+    expected_energy_windows = max(0, rows - cooldown + 1) if cooldown > 1 else 0
     upstream_keys = (
         "transitionStoryboardStatus",
         "transitionSensoryContinuityStatus",
@@ -7807,6 +7815,10 @@ def transition_continuity_rehearsal_contract_ready(evidence: dict[str, Any]) -> 
         and int(evidence.get("landingToNextOutgoingAnchorReadyPairCount") or 0) == pairs
         and int(evidence.get("adjacentMotionPairCount") or 0) == 0
         and int(evidence.get("backToBackImportantPairCount") or 0) == 0
+        and cooldown >= 2
+        and int(evidence.get("energyWindowCount") or 0) == expected_energy_windows
+        and int(evidence.get("highEnergyWindowViolationCount") or 0) == 0
+        and int(evidence.get("motionAftercareViolationCount") or 0) == 0
         and int(evidence.get("highImpactPurposeRunViolationCount") or 0) == 0
         and int(evidence.get("motionSpacingViolationCount") or 0) == 0
         and int(evidence.get("sceneFlowBlockedCheckCount") or 0) == 0

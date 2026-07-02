@@ -2439,6 +2439,13 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
     scene_flow_arc_summary = get_summary(scene_flow_arc)
     final_cut_smoothness_summary = get_summary(final_cut_smoothness)
     transition_continuity_rehearsal_summary = get_summary(transition_continuity_rehearsal)
+    transition_continuity_rows = int(transition_continuity_rehearsal_summary.get("transitionRowCount") or 0)
+    transition_continuity_cooldown = int(transition_continuity_rehearsal_summary.get("energyCooldownWindowSize") or 0)
+    transition_continuity_expected_energy_windows = (
+        max(0, transition_continuity_rows - transition_continuity_cooldown + 1)
+        if transition_continuity_cooldown > 1
+        else 0
+    )
     pacing_watchability_summary = get_summary(pacing_watchability)
     narrative_adjacency_summary = get_summary(narrative_adjacency)
     transition_viewer_orientation_summary = get_summary(transition_viewer_orientation)
@@ -2525,13 +2532,17 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         checks,
         "Transition continuity rehearsal contract proves approved transition rows connect as one watchable sequence",
         transition_continuity_rehearsal.get("status") == "passed"
-        and int(transition_continuity_rehearsal_summary.get("transitionRowCount") or 0) >= 1
-        and int(transition_continuity_rehearsal_summary.get("rehearsalReadyRowCount") or 0) == int(transition_continuity_rehearsal_summary.get("transitionRowCount") or 0)
+        and transition_continuity_rows >= 1
+        and int(transition_continuity_rehearsal_summary.get("rehearsalReadyRowCount") or 0) == transition_continuity_rows
         and int(transition_continuity_rehearsal_summary.get("rehearsalReadyPairCount") or 0) == int(transition_continuity_rehearsal_summary.get("adjacentPairCount") or 0)
         and int(transition_continuity_rehearsal_summary.get("blockedRehearsalRowCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("blockedAdjacentPairCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("adjacentMotionPairCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("backToBackImportantPairCount") or 0) == 0
+        and transition_continuity_cooldown >= 2
+        and int(transition_continuity_rehearsal_summary.get("energyWindowCount") or 0) == transition_continuity_expected_energy_windows
+        and int(transition_continuity_rehearsal_summary.get("highEnergyWindowViolationCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("motionAftercareViolationCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("highImpactPurposeRunViolationCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("blockedCheckCount") or 0) == 0
         and not transition_continuity_rehearsal.get("blockers"),
@@ -2918,6 +2929,10 @@ def build_report(package_dir: Path, skill_dir: Path) -> dict[str, Any]:
         and int(transition_continuity_rehearsal_summary.get("blockedAdjacentPairCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("adjacentMotionPairCount") or 0) == 0
         and int(transition_continuity_rehearsal_summary.get("backToBackImportantPairCount") or 0) == 0
+        and transition_continuity_cooldown >= 2
+        and int(transition_continuity_rehearsal_summary.get("energyWindowCount") or 0) == transition_continuity_expected_energy_windows
+        and int(transition_continuity_rehearsal_summary.get("highEnergyWindowViolationCount") or 0) == 0
+        and int(transition_continuity_rehearsal_summary.get("motionAftercareViolationCount") or 0) == 0
         and int(pacing_watchability_summary.get("blockedChapterCount") or 0) == 0
         and int(pacing_watchability_summary.get("longFlatShotCount") or 0) == 0
         and int(pacing_watchability_summary.get("veryLongShotCount") or 0) == 0

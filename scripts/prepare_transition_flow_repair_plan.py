@@ -304,7 +304,7 @@ ISSUE_ACTIONS: list[tuple[tuple[str, ...], dict[str, str]]] = [
         },
     ),
     (
-        ("breathing", "settlement", "scene flow", "viewer orientation", "narrative", "adjacency", "smoothness", "pacing", "random stack"),
+        ("breathing", "settlement", "scene flow", "viewer orientation", "narrative", "adjacency", "smoothness", "pacing", "random stack", "energy", "cooldown", "aftercare", "calm buffer"),
         {
             "ownerScript": "prepare_bridge_sequence_plan.py",
             "requiredArtifact": "bridge_sequence_plan/bridge_sequence_plan.json",
